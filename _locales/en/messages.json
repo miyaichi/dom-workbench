@@ -1,0 +1,26 @@
+{
+  "tooltipCapture": {
+    "message": "Capture a screenshot of the current tab"
+  },
+  "tooltipSettings": {
+    "message": "Settings"
+  },
+  "tooltipExpand": {
+    "message": "Expand"
+  },
+  "tooltipCollapse": {
+    "message": "Collapse"
+  },
+  "tooltipParentElement": {
+    "message": "Go to parent element"
+  },
+  "labelDOMPath": {
+    "message": "DOM Path"
+  },
+  "domSelectorEmptyState": {
+    "message": "No element is selected. Turn on Selection Mode and click on an element to display its style information and edit it."
+  },
+  "styleEditorEmptyState": {
+    "message": "You can check and modify the computed style of the selected element."
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "tooltipCapture": {
+    "message": "現在のタブのスクリーンショットを撮影"
+  },
+  "tooltipSettings": {
+    "message": "設定"
+  },
+  "tooltipExpand": {
+    "message": "展開する"
+  },
+  "tooltipCollapse": {
+    "message": "折りたたむ"
+  },
+  "tooltipParentElement": {
+    "message": "親要素に移動"
+  },
+  "labelDOMPath": {
+    "message": "DOM パス"
+  },
+  "domSelectorEmptyState": {
+    "message": "要素が選択されていません。Selection Mode を On にして、編集したい要素をクリックしてください。スタイルの情報が表示され、編集することができます。"
+  },
+  "styleEditorEmptyState": {
+    "message": "選択した要素のスタイル情報を確認・編集することができます。"
+  }
+}

@@ -1,0 +1,128 @@
+.app-container {
+  padding: 4px;
+  background-color: var(--bg-color-light);
+  min-height: 100vh;
+}
+
+.app-content {
+  max-width: 48rem;
+  margin: 0 auto;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.icon-button {
+  padding: 8px;
+  border-radius: 9999px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.icon-button:hover {
+  background-color: var(--hover-color);
+}
+
+.icon-button.active {
+  background-color: var(--primary-color);
+  color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.icon-button.active:hover {
+  background-color: #2563eb;
+  transform: translateY(-1px);
+}
+
+.icon-button.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.selection-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.selection-button.enabled {
+  background-color: #22c55e;
+  color: white;
+}
+
+.selection-button.enabled:hover {
+  background-color: #16a34a;
+}
+
+.selection-button.disabled {
+  background-color: #ef4444;
+  color: white;
+}
+
+.selection-button.disabled:hover {
+  background-color: #dc2626;
+}
+
+.components-container > *:not(:first-child) {
+  margin-top: 12px;
+}
+
+.card {
+  padding: 12px;
+  border-radius: 6px;
+  background-color: var(--bg-color-light);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.card-header {
+  margin-bottom: 8px;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.card-content {
+  padding: 0 12px;
+}
+
+.selected-element-info {
+  margin-bottom: 8px;
+}
+
+.selected-element-info h3 {
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0 0 4px 0;
+}
+
+.dom-tree {
+  padding-left: 0;
+  margin-left: 0;
+  margin-top: 8px;
+}

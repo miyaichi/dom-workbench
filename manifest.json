@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "DOM Workbench",
+  "version": "1.0",
+  "description": "Workbench for analyzing the DOM of the Active Tab.",
+  "default_locale": "en",
+  "permissions": ["activeTab", "downloads", "scripting", "sidePanel", "storage", "tabs"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["contentScript.js"]
+    }
+  ],
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "action": {
+    "default_title": "Open DOM Workbench"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/fonts/NotoSansJP-Regular.otf"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

@@ -1,0 +1,140 @@
+.style-editor {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 0;
+}
+
+.style-editor-empty {
+  padding: 14px 8px;
+  color: var(--text-color);
+}
+
+.style-editor-search {
+  position: relative;
+  padding: 0 8px;
+  margin-bottom: 4px;
+}
+
+.style-editor-search-input {
+  width: 100%;
+  padding: 8px 8px 8px 32px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  background-color: var(--bg-color-white);
+  color: var(--text-color);
+}
+
+.style-editor-search-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-color);
+}
+
+.style-editor-input {
+  width: 100%;
+  padding: 4px 4px 4px 4px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  background-color: var(--bg-color-white);
+  color: var(--text-color);
+}
+
+.style-editor-input:hover {
+  border-color: var(--primary-color);
+}
+
+.style-editor-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.style-editor-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 8px;
+}
+
+.style-editor-grid {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding-right: 4px;
+}
+
+.style-editor-property {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 14px;
+  color: var(--text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 4px 4px 4px 0;
+}
+
+.style-editor-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  width: 28px;
+  border-radius: 6px;
+  border: none;
+  background-color: transparent;
+  color: var(--text-color);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.style-editor-button:hover {
+  background-color: var(--hover-color);
+}
+
+.style-editor-button-danger {
+  color: #ef4444;
+}
+
+.style-editor-button-danger:hover {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.style-editor-button-primary {
+  color: var(--primary-color);
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-color-white);
+}
+
+.style-editor-button-primary:hover {
+  background-color: #dbeafe;
+  border-color: var(--primary-color);
+}
+
+.style-editor-add {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.style-editor-add-form {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.style-editor-button-group {
+  display: flex;
+  gap: 4px;
+}

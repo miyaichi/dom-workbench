@@ -1,0 +1,20 @@
+{
+  "entryPoints": ["src"],
+  "entryPointStrategy": "expand",
+  "out": "docs",
+  "plugin": ["typedoc-plugin-markdown"],
+  "theme": "default",
+  "includeVersion": true,
+  "name": "DOM Workbench",
+  "readme": "README.md",
+  "validation": {
+    "invalidLink": true,
+    "notDocumented": true
+  },
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeExternals": true,
+  "hideGenerator": true,
+  "searchInComments": true,
+  "pretty": true
+}
