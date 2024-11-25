@@ -5,12 +5,7 @@ import { Logger } from '../lib/logger';
 import { useSettings } from '../lib/settings';
 import { shareAsPDF } from '../lib/shareAsPDF';
 import { shareAsPPT } from '../lib/shareAsPPT';
-import {
-  DOM_SELECTION_EVENTS,
-  ElementInfo,
-  StyleModification,
-  UI_EVENTS,
-} from '../types/domSelection';
+import { ElementInfo, StyleModification } from '../types/domSelection';
 import './ShareCapture.css';
 import { formatElementTag } from './utils/htmlTagFormatter';
 
@@ -112,7 +107,7 @@ export const ShareCapture: React.FC<ShareCaptureProps> = ({
   // Message subscriptions
   useEffect(() => {
     const subscriptions = [
-      subscribe(UI_EVENTS.CAPTURE_TAB_RESULT, (message: { payload: CaptureResultPayload }) => {
+      subscribe('CAPTURE_TAB_RESULT', (message: { payload: CaptureResultPayload }) => {
         const { success, imageDataUrl, error, url } = message.payload;
 
         if (success) {
@@ -123,14 +118,14 @@ export const ShareCapture: React.FC<ShareCaptureProps> = ({
         }
       }),
 
-      subscribe(DOM_SELECTION_EVENTS.ELEMENT_SELECTED, (message: ElementSelectionMessage) => {
+      subscribe('ELEMENT_SELECTED', (message: ElementSelectionMessage) => {
         setCaptureInfo((prev) => ({
           ...prev,
           selectedElement: message.payload.elementInfo,
         }));
       }),
 
-      subscribe(DOM_SELECTION_EVENTS.ELEMENT_UNSELECTED, () => {
+      subscribe('ELEMENT_UNSELECTED', () => {
         setCaptureInfo((prev) => ({
           ...prev,
           selectedElement: null,

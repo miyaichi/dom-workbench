@@ -2,7 +2,7 @@ import { Check, Plus, Search, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useConnectionManager } from '../lib/connectionManager';
 import { Logger } from '../lib/logger';
-import { DOM_SELECTION_EVENTS, ElementInfo, StyleModification } from '../types/domSelection';
+import { ElementInfo, StyleModification } from '../types/domSelection';
 import './StyleEditor.css';
 
 interface StyleEditorProps {
@@ -36,7 +36,7 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({ onStylesChange }) => {
   // Memoized functions that depend on props or state
   const updateElementStyle = useCallback(
     (property: keyof CSSStyleDeclaration, value: string) => {
-      sendMessage(DOM_SELECTION_EVENTS.UPDATE_ELEMENT_STYLE, {
+      sendMessage('UPDATE_ELEMENT_STYLE', {
         path: selectedElement?.path,
         styles: {
           [property]: value,
@@ -107,13 +107,13 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({ onStylesChange }) => {
   // Message subscriptions
   useEffect(() => {
     const subscriptions = [
-      subscribe(DOM_SELECTION_EVENTS.ELEMENT_SELECTED, (message: ElementSelectionMessage) => {
+      subscribe('ELEMENT_SELECTED', (message: ElementSelectionMessage) => {
         logger.log('Element selected:', message.payload.elementInfo);
         setSelectedElement(message.payload.elementInfo);
         resetStyleEditorState();
       }),
 
-      subscribe(DOM_SELECTION_EVENTS.ELEMENT_UNSELECTED, () => {
+      subscribe('ELEMENT_UNSELECTED', () => {
         logger.log('Element unselected');
         setSelectedElement(null);
       }),
