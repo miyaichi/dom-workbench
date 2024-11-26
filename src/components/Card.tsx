@@ -20,7 +20,9 @@ export const Card: React.FC<CardProps> = ({ title, children, initialCollapsed = 
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
             className="card-button"
-            aria-label={isCollapsed ? '展開' : '収納'}
+            aria-label={
+              isCollapsed ? chrome.i18n.getMessage('expand') : chrome.i18n.getMessage('collapse')
+            }
           >
             {isCollapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
           </button>

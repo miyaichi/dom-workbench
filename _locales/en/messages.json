@@ -1,15 +1,15 @@
 {
+  "expand": {
+    "message": "Expand"
+  },
+  "collapse": {
+    "message": "Collapse"
+  },
   "tooltipCapture": {
     "message": "Capture a screenshot of the current tab"
   },
   "tooltipSettings": {
     "message": "Settings"
-  },
-  "tooltipExpand": {
-    "message": "Expand"
-  },
-  "tooltipCollapse": {
-    "message": "Collapse"
   },
   "tooltipParentElement": {
     "message": "Go to parent element"

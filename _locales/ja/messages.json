@@ -1,15 +1,15 @@
 {
+  "expand": {
+    "message": "展開する"
+  },
+  "collapse": {
+    "message": "折りたたむ"
+  },
   "tooltipCapture": {
     "message": "現在のタブのスクリーンショットを撮影"
   },
   "tooltipSettings": {
     "message": "設定"
-  },
-  "tooltipExpand": {
-    "message": "展開する"
-  },
-  "tooltipCollapse": {
-    "message": "折りたたむ"
   },
   "tooltipParentElement": {
     "message": "親要素に移動"
