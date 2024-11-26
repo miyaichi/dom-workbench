@@ -22,5 +22,8 @@
   },
   "styleEditorEmptyState": {
     "message": "You can check and modify the computed style of the selected element."
+  },
+  "tagInjectorEmptyState": {
+    "message": "You can add tags to the selected element."
   }
 }

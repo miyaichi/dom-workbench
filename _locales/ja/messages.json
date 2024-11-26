@@ -22,5 +22,8 @@
   },
   "styleEditorEmptyState": {
     "message": "選択した要素のスタイル情報を確認・編集することができます。"
+  },
+  "tagInjectorEmptyState": {
+    "message": "選択した要素のにタグを追加することができます。"
   }
 }

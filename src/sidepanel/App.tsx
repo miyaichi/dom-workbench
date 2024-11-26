@@ -4,6 +4,7 @@ import { DOMSelector } from '../components/DOMSelector';
 import { SettingsPanel } from '../components/SettingsPanel';
 import { ShareCapture } from '../components/ShareCapture';
 import { StyleEditor } from '../components/StyleEditor';
+import { TagInjector } from '../components/TagInjector';
 import { Tooltip } from '../components/Tooltip';
 import { useConnectionManager } from '../lib/connectionManager';
 import { Logger } from '../lib/logger';
@@ -129,6 +130,7 @@ export const App = () => {
               />
             )}
             <StyleEditor onStylesChange={handleStylesChange} />
+            <TagInjector />
           </div>
         )}
       </div>
