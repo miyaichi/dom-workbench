@@ -1,43 +1,19 @@
 import { nanoid } from 'nanoid';
+import { Context, Message, MessageType, Messages } from '../types/messages';
 import { Logger } from './logger';
 import { loadSettings } from './settings';
 
-/**
- * Type representing the different message types that can be sent
- */
-export type MessageType =
-  | 'INITIALIZE_CONTENT'
-  | 'TOGGLE_SELECTION_MODE'
-  | 'ELEMENT_SELECTED'
-  | 'ELEMENT_UNSELECTED'
-  | 'SELECT_ELEMENT'
-  | 'UPDATE_ELEMENT_STYLE'
-  | 'CAPTURE_TAB'
-  | 'CAPTURE_TAB_RESULT'
-  | 'DEBUG'; // Special message type for debugging purposes - handlers will receive all messages for logging/monitoring
+interface IConnectionManager {
+  sendMessage<T extends MessageType>(
+    type: T,
+    payload: Messages[T],
+    target?: Context
+  ): Promise<void>;
 
-/**
- * Type representing the different contexts in which messages can be sent
- */
-export type Context = 'content' | 'background' | 'sidepanel';
-
-/**
- * Interface representing a message that can be sent between different contexts
- * @template T - The type of the payload
- */
-export interface Message<T = any> {
-  /** The unique identifier for the message */
-  id: string;
-  /** The type of the message */
-  type: MessageType;
-  /** The payload of the message */
-  payload: T;
-  /** The source context of the message */
-  source: Context;
-  /** The target context of the message (optional) */
-  target?: Context;
-  /** The timestamp when the message was created */
-  timestamp: number;
+  subscribe<T extends MessageType>(
+    messageType: T,
+    handler: (message: Message<Messages[T]>) => void
+  ): () => void;
 }
 
 /**
@@ -45,7 +21,7 @@ export interface Message<T = any> {
  * in a Chrome extension (background, content scripts, and side panel).
  * Handles connection management, reconnection logic, and message broadcasting.
  */
-export class ConnectionManager {
+export class ConnectionManager implements IConnectionManager {
   private static instance: ConnectionManager;
   private static readonly RECONNECT_DELAY = 1000;
   private static readonly INITIAL_CONNECTION_DELAY = 100;
@@ -84,20 +60,7 @@ export class ConnectionManager {
   }
 
   /**
-   * Sets up connections for the ConnectionManager
-   */
-  private setupConnections() {
-    if (this.context === 'background') {
-      this.setupBackgroundConnections();
-      return;
-    }
-
-    this.setupClientConnections();
-  }
-
-  /**
    * Gets the singleton instance of the ConnectionManager
-   * @returns The singleton instance of the ConnectionManager
    */
   public static getInstance(): ConnectionManager {
     if (!ConnectionManager.instance) {
@@ -108,7 +71,6 @@ export class ConnectionManager {
 
   /**
    * Sets the context for the ConnectionManager instance and reinitializes connections
-   * @param context - The new context to set ('content', 'background', or 'sidepanel')
    */
   public setContext(context: Context) {
     if (this.context === context) {
@@ -123,6 +85,18 @@ export class ConnectionManager {
     this.setupConnections();
   }
 
+  /**
+   * Sets up connections based on the current context
+   */
+  private setupConnections() {
+    if (this.context === 'background') {
+      this.setupBackgroundConnections();
+      return;
+    }
+
+    this.setupClientConnections();
+  }
+
   private setupClientConnections() {
     if (this.isSettingUp) {
       this.logger.debug('Setup already in progress, skipping...');
@@ -132,7 +106,6 @@ export class ConnectionManager {
     this.isSettingUp = true;
     this.logger.debug('Setting up client connections...');
 
-    this.logger.debug('Scheduling initial connection...');
     setTimeout(this.connectToBackground, ConnectionManager.INITIAL_CONNECTION_DELAY);
   }
 
@@ -143,13 +116,12 @@ export class ConnectionManager {
     }
 
     try {
-      this.logger.debug('Attempting to connect...');
       this.port = chrome.runtime.connect({
         name: `${this.context}-${Date.now()}`,
       });
       this.logger.log(`Connected successfully as ${this.port.name}`);
 
-      this.port.onMessage.addListener((message) => {
+      this.port.onMessage.addListener((message: Message) => {
         this.logger.debug('Received message:', message);
         this.handleMessage(message);
       });
@@ -194,14 +166,12 @@ export class ConnectionManager {
   }
 
   private scheduleReconnect() {
-    if (this.context === 'background') {
+    if (this.context === 'background' || this.isInvalidated) {
       return;
     }
 
-    if (!this.isInvalidated) {
-      this.logger.debug('Scheduling reconnection...');
-      setTimeout(this.connectToBackground, ConnectionManager.RECONNECT_DELAY);
-    }
+    this.logger.debug('Scheduling reconnection...');
+    setTimeout(this.connectToBackground, ConnectionManager.RECONNECT_DELAY);
   }
 
   private setupBackgroundConnections() {
@@ -211,7 +181,7 @@ export class ConnectionManager {
       this.logger.log(`New connection from ${port.name}`);
       this.ports.set(port.name, port);
 
-      port.onMessage.addListener((message) => {
+      port.onMessage.addListener((message: Message) => {
         this.logger.debug(`Received message from ${port.name}:`, message);
         this.handleMessage(message);
         this.broadcast(message, port);
@@ -226,11 +196,14 @@ export class ConnectionManager {
   }
 
   /**
-   * Sends a message to the specified target context
-   * @param message - The message to send
+   * Sends a type-safe message to the specified target context
    */
-  public sendMessage<T>(type: MessageType, payload: T, target?: Context): Promise<void> {
-    const message: Message<T> = {
+  public sendMessage<T extends MessageType>(
+    type: T,
+    payload: Messages[T],
+    target?: Context
+  ): Promise<void> {
+    const message: Message<Messages[T]> = {
       id: nanoid(),
       type,
       payload,
@@ -257,42 +230,11 @@ export class ConnectionManager {
   }
 
   /**
-   * Adds a message handler for a specific message type
-   * @param type - The type of message to handle
-   * @param handler - The handler function for the message
+   * Subscribes to messages of a specific type with type-safe handler
    */
-  public addMessageHandler(type: MessageType, handler: (message: Message) => void) {
-    if (!this.messageHandlers.has(type)) {
-      this.messageHandlers.set(type, []);
-    }
-    this.messageHandlers.get(type)!.push(handler);
-  }
-
-  /**
-   * Removes a message handler for a specific message type
-   * @param type - The type of message to remove the handler for
-   * @param handler - The handler function to remove
-   */
-  public removeMessageHandler(type: MessageType, handler: (message: Message) => void) {
-    const handlers = this.messageHandlers.get(type);
-    if (handlers) {
-      this.messageHandlers.set(
-        type,
-        handlers.filter((h) => h !== handler)
-      );
-    }
-  }
-
-  /**
-   * Subscribes to messages of a specific type with a handler function
-   * @template T - The type of the message payload
-   * @param messageType - The type of message to subscribe to
-   * @param handler - The handler function to be called when a message is received
-   * @returns A function to unsubscribe the handler
-   */
-  public subscribe<T>(
-    messageType: MessageType,
-    handler: (message: Message<T>) => void
+  public subscribe<T extends MessageType>(
+    messageType: T,
+    handler: (message: Message<Messages[T]>) => void
   ): () => void {
     const handlers = this.messageHandlers.get(messageType) || [];
     handlers.push(handler as (message: Message) => void);
@@ -309,9 +251,9 @@ export class ConnectionManager {
   }
 
   private handleMessage(message: Message) {
-    this.logger.debug('received:', message);
+    this.logger.debug('Handling message:', message);
     const handlers = this.messageHandlers.get(message.type) || [];
-    const debugHandlers = this.messageHandlers.get('DEBUG') || [];
+    const debugHandlers = this.messageHandlers.get('DEBUG' as MessageType) || [];
     [...handlers, ...debugHandlers].forEach((handler) => handler(message));
   }
 
@@ -348,13 +290,12 @@ export class ConnectionManager {
 }
 
 /**
- * A hook that provides access to ConnectionManager instance methods
- * @returns An object containing message sending and subscription methods
+ * Hook for using the ConnectionManager with type safety
  */
 export const useConnectionManager = () => {
   const manager = ConnectionManager.getInstance();
   return {
     sendMessage: manager.sendMessage.bind(manager),
     subscribe: manager.subscribe.bind(manager),
-  };
+  } as const;
 };
