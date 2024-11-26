@@ -1,5 +1,5 @@
 import { Check, Plus, Search, X } from 'lucide-react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useConnectionManager } from '../lib/connectionManager';
 import { Logger } from '../lib/logger';
 import { ElementInfo, StyleModification } from '../types/domSelection';
@@ -7,13 +7,8 @@ import { Card } from './Card';
 import './StyleEditor.css';
 
 interface StyleEditorProps {
+  selectedElement: ElementInfo | null;
   onStylesChange?: (modifications: StyleModification[]) => void;
-}
-
-interface ElementSelectionMessage {
-  payload: {
-    elementInfo: ElementInfo;
-  };
 }
 
 // Utility functions
@@ -21,9 +16,8 @@ const isValidCSSProperty = (property: string): boolean => {
   return property in document.body.style;
 };
 
-export const StyleEditor: React.FC<StyleEditorProps> = ({ onStylesChange }) => {
+export const StyleEditor: React.FC<StyleEditorProps> = ({ selectedElement,onStylesChange }) => {
   // State declarations
-  const [selectedElement, setSelectedElement] = useState<ElementInfo | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [editedStyles, setEditedStyles] = useState<Record<string, string>>({});
   const [newProperty, setNewProperty] = useState('');
@@ -104,27 +98,6 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({ onStylesChange }) => {
       logger.warn('Invalid CSS property:', trimmedProperty);
     }
   };
-
-  // Message subscriptions
-  useEffect(() => {
-    const subscriptions = [
-      subscribe('ELEMENT_SELECTED', (message: ElementSelectionMessage) => {
-        logger.log('Element selected:', message.payload.elementInfo);
-        setSelectedElement(message.payload.elementInfo);
-        resetStyleEditorState();
-      }),
-
-      subscribe('ELEMENT_UNSELECTED', () => {
-        logger.log('Element unselected');
-        setSelectedElement(null);
-      }),
-    ];
-
-    // Clean up subscriptions
-    return () => {
-      subscriptions.forEach((unsubscribe) => unsubscribe());
-    };
-  }, []);
 
   // Memoized computed values
   const styleEntries = useMemo(() => {

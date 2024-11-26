@@ -1,26 +1,21 @@
-import React, { useEffect, useState } from 'react';
-import { useConnectionManager } from '../lib/connectionManager';
+import React, { useState } from 'react';
 import { Logger } from '../lib/logger';
 import { ElementInfo } from '../types/domSelection';
 import { Card } from './Card';
 import './TagInjector.css';
 
-interface TagInjectorProps {}
-
-interface ElementSelectionMessage {
-  payload: {
-    elementInfo: ElementInfo;
-  };
+interface TagInjectorProps {
+  selectedElement: ElementInfo | null;
 }
 
-export const TagInjector: React.FC<TagInjectorProps> = () => {
+export const TagInjector: React.FC<TagInjectorProps> = (
+  { selectedElement }: TagInjectorProps
+) => {
   // State declarations
-  const [selectedElement, setSelectedElement] = useState<ElementInfo | null>(null);
   const [injectedTag, setInjectedTag] = useState('');
   const [injected, setInjected] = useState(false);
 
   // Utility instances
-  const { subscribe, sendMessage } = useConnectionManager();
   const logger = new Logger('StyleEditor');
 
   // Event handlers
@@ -28,36 +23,16 @@ export const TagInjector: React.FC<TagInjectorProps> = () => {
     setInjectedTag(e.target.value);
   };
 
-  // Message subscriptions
-  useEffect(() => {
-    const subscriptions = [
-      subscribe('ELEMENT_SELECTED', (message: ElementSelectionMessage) => {
-        logger.log('Element selected:', message.payload.elementInfo);
-        setSelectedElement(message.payload.elementInfo);
-      }),
-
-      subscribe('ELEMENT_UNSELECTED', () => {
-        logger.log('Element unselected');
-        setSelectedElement(null);
-      }),
-    ];
-
-    // Clean up subscriptions
-    return () => {
-      subscriptions.forEach((unsubscribe) => unsubscribe());
-    };
-  }, []);
-
   if (!selectedElement) {
     return (
-      <Card title="TagInjector">
+      <Card title="TagInjector" initialCollapsed={true}>
         <div className="style-editor-empty">{chrome.i18n.getMessage('tagInjectorEmptyState')}</div>
       </Card>
     );
   }
 
   return (
-    <Card title="TagInjector">
+    <Card title="TagInjector" initialCollapsed={true}>
       <textarea
         value={injectedTag}
         onChange={handleInjectTag}

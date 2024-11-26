@@ -11,7 +11,7 @@ import { formatElementTag } from './utils/htmlTagFormatter';
 
 interface ShareCaptureProps {
   onClose: () => void;
-  initialSelectedElement: ElementInfo | null;
+  selectedElement: ElementInfo | null;
   styleModifications: StyleModification[];
 }
 
@@ -25,12 +25,6 @@ interface CaptureResultPayload {
   imageDataUrl?: string;
   error?: string;
   url?: string;
-}
-
-interface ElementSelectionMessage {
-  payload: {
-    elementInfo: ElementInfo;
-  };
 }
 
 // Utility functions
@@ -51,7 +45,7 @@ const formatStyleModifications = (styleModifications: StyleModification[]) => {
 
 export const ShareCapture: React.FC<ShareCaptureProps> = ({
   onClose,
-  initialSelectedElement,
+  selectedElement,
   styleModifications,
 }) => {
   // State declarations
@@ -63,7 +57,7 @@ export const ShareCapture: React.FC<ShareCaptureProps> = ({
   const [imageDataUrl, setImageDataUrl] = useState<string>();
   const [captureInfo, setCaptureInfo] = useState<CaptureInfo>({
     ...initialCaptureInfo,
-    selectedElement: initialSelectedElement,
+    selectedElement: selectedElement,
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -116,20 +110,6 @@ export const ShareCapture: React.FC<ShareCaptureProps> = ({
         } else {
           logger.error('Capture failed:', error);
         }
-      }),
-
-      subscribe('ELEMENT_SELECTED', (message: ElementSelectionMessage) => {
-        setCaptureInfo((prev) => ({
-          ...prev,
-          selectedElement: message.payload.elementInfo,
-        }));
-      }),
-
-      subscribe('ELEMENT_UNSELECTED', () => {
-        setCaptureInfo((prev) => ({
-          ...prev,
-          selectedElement: null,
-        }));
       }),
     ];
 

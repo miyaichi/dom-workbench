@@ -82,6 +82,10 @@ export const App = () => {
     setStyleModifications(modifications);
   };
 
+  const handleOnSelectElement = (path: number[]) => {
+    sendMessage('SELECT_ELEMENT', { path });
+  }
+
   const toggleSelectionMode = () => {
     const enabled = !isSelectionMode;
     setIsSelectionMode(enabled);
@@ -121,16 +125,16 @@ export const App = () => {
           <SettingsPanel />
         ) : (
           <div className="components-container">
-            <DOMSelector />
+            <DOMSelector selectedElement={selectedElement} onSelectElement={handleOnSelectElement} />
             {showShareCapture && (
               <ShareCapture
                 onClose={handleShareClose}
-                initialSelectedElement={selectedElement}
+                selectedElement={selectedElement}
                 styleModifications={styleModifications}
               />
             )}
-            <StyleEditor onStylesChange={handleStylesChange} />
-            <TagInjector />
+            <StyleEditor selectedElement={selectedElement} onStylesChange={handleStylesChange} />
+            <TagInjector selectedElement={selectedElement} />
           </div>
         )}
       </div>
