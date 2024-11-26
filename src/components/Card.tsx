@@ -6,7 +6,6 @@ interface CardProps {
   title: string;
   children: React.ReactNode;
   initialCollapsed?: boolean;
-  onClose?: () => void;
 }
 
 export const Card: React.FC<CardProps> = ({ title, children, initialCollapsed = false }) => {
