@@ -32,10 +32,8 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({ selectedElement, onSty
   const updateElementStyle = useCallback(
     (property: keyof CSSStyleDeclaration, value: string) => {
       sendMessage('UPDATE_ELEMENT_STYLE', {
-        path: selectedElement?.path,
-        styles: {
-          [property]: value,
-        },
+        path: selectedElement?.path ?? [],
+        style: { [property]: value },
       });
       logger.log('Style updated:', property, value);
     },
@@ -55,13 +53,6 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({ selectedElement, onSty
   );
 
   // Non-memoized functions (simple state updates or no external dependencies)
-  const resetStyleEditorState = () => {
-    setEditedStyles({});
-    setIsAdding(false);
-    setNewProperty('');
-    setNewValue('');
-  };
-
   const handleStyleChange = (property: keyof CSSStyleDeclaration, value: string) => {
     setEditedStyles((prevStyles) => {
       const currentValue = selectedElement?.computedStyle?.[property] as string;

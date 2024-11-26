@@ -1,6 +1,5 @@
 import { Send, X } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
-import { useConnectionManager } from '../lib/connectionManager';
+import React, { useState } from 'react';
 import { Logger } from '../lib/logger';
 import { useSettings } from '../lib/settings';
 import { shareAsPDF } from '../lib/shareAsPDF';
@@ -12,29 +11,14 @@ import { formatElementTag } from './utils/htmlTagFormatter';
 interface ShareCaptureProps {
   onClose: () => void;
   selectedElement: ElementInfo | null;
-  styleModifications: StyleModification[];
-}
-
-interface CaptureInfo {
-  selectedElement: ElementInfo | null;
+  imageDataUrl: string | null;
   captureUrl: string | null;
-}
-
-interface CaptureResultPayload {
-  success: boolean;
-  imageDataUrl?: string;
-  error?: string;
-  url?: string;
+  styleModifications: StyleModification[];
 }
 
 // Utility functions
 const getShareFunction = (format: string) => {
   return format === 'pdf' ? shareAsPDF : shareAsPPT;
-};
-
-const initialCaptureInfo: CaptureInfo = {
-  selectedElement: null,
-  captureUrl: null,
 };
 
 const formatStyleModifications = (styleModifications: StyleModification[]) => {
@@ -46,26 +30,20 @@ const formatStyleModifications = (styleModifications: StyleModification[]) => {
 export const ShareCapture: React.FC<ShareCaptureProps> = ({
   onClose,
   selectedElement,
+  imageDataUrl,
+  captureUrl,
   styleModifications,
 }) => {
   // State declarations
   const { settings } = useSettings();
-  const { subscribe } = useConnectionManager();
   const logger = new Logger('ShareCapture');
 
   const [comment, setComment] = useState('');
-  const [imageDataUrl, setImageDataUrl] = useState<string>();
-  const [captureInfo, setCaptureInfo] = useState<CaptureInfo>({
-    ...initialCaptureInfo,
-    selectedElement: selectedElement,
-  });
   const [isLoading, setIsLoading] = useState(false);
 
   // Event handlers
   const handleClose = (): void => {
-    setImageDataUrl(undefined);
     setComment('');
-    setCaptureInfo(initialCaptureInfo);
     onClose();
   };
 
@@ -80,8 +58,8 @@ export const ShareCapture: React.FC<ShareCaptureProps> = ({
       await shareFunction(
         imageDataUrl,
         comment,
-        captureInfo.captureUrl || '',
-        captureInfo.selectedElement?.startTag || '',
+        captureUrl || '',
+        selectedElement?.startTag || '',
         formatStyleModifications(styleModifications)
       );
 
@@ -97,26 +75,6 @@ export const ShareCapture: React.FC<ShareCaptureProps> = ({
   const handleCommentChange = (e: React.ChangeEvent<HTMLTextAreaElement>): void => {
     setComment(e.target.value);
   };
-
-  // Message subscriptions
-  useEffect(() => {
-    const subscriptions = [
-      subscribe('CAPTURE_TAB_RESULT', (message: { payload: CaptureResultPayload }) => {
-        const { success, imageDataUrl, error, url } = message.payload;
-
-        if (success) {
-          setImageDataUrl(imageDataUrl);
-          setCaptureInfo((prev) => ({ ...prev, captureUrl: url || null }));
-        } else {
-          logger.error('Capture failed:', error);
-        }
-      }),
-    ];
-
-    return () => {
-      subscriptions.forEach((unsubscribe) => unsubscribe());
-    };
-  }, []);
 
   // UI rendering - preview section
   const renderPreview = () => {
@@ -139,17 +97,17 @@ export const ShareCapture: React.FC<ShareCaptureProps> = ({
   const renderElementInfo = () => {
     return (
       <>
-        {captureInfo.captureUrl && (
+        {captureUrl && (
           <div className="element-info">
-            <p>{captureInfo.captureUrl}</p>
+            <p>{captureUrl}</p>
           </div>
         )}
 
-        {captureInfo.selectedElement && (
+        {selectedElement && (
           <div className="element-info">
-            <p>[ {captureInfo.selectedElement.path.join(' > ')} ]</p>
+            <p>[ {selectedElement.path.join(' > ')} ]</p>
             <p>
-              {formatElementTag(captureInfo.selectedElement.startTag, {
+              {formatElementTag(selectedElement.startTag, {
                 showFullContent: true,
                 maxLength: 50,
               })}

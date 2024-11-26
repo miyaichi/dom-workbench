@@ -19,6 +19,8 @@ export const App = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showShareCapture, setShowShareCapture] = useState(false);
   const [selectedElement, setSelectedElement] = useState<ElementInfo | null>(null);
+  const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
+  const [captureUrl, setCaptureDataUrl] = useState<string | null>(null);
   const [styleModifications, setStyleModifications] = useState<StyleModification[]>([]);
   const { sendMessage, subscribe } = useConnectionManager();
 
@@ -52,6 +54,11 @@ export const App = () => {
   // Message subscriptions
   useEffect(() => {
     const subscriotions = [
+      subscribe('TAB_ACTIVATED', () => {
+        logger.log('Tab activated, cleaning up');
+        cleanup();
+      }),
+
       subscribe('ELEMENT_SELECTED', (message: { payload: { elementInfo: ElementInfo } }) => {
         logger.log('Element selected:', message.payload.elementInfo);
         setSelectedElement(message.payload.elementInfo);
@@ -60,6 +67,18 @@ export const App = () => {
       subscribe('ELEMENT_UNSELECTED', () => {
         logger.log('Element unselected');
         setSelectedElement(null);
+      }),
+
+      subscribe('CAPTURE_TAB_RESULT', (message) => {
+        logger.log('Capture result:', message.payload);
+        const { success, imageDataUrl, error, url } = message.payload;
+
+        if (success) {
+          setImageDataUrl(imageDataUrl || null);
+          setCaptureDataUrl(url || '');
+        } else {
+          logger.error('Capture failed:', error);
+        }
       }),
     ];
 
@@ -71,7 +90,7 @@ export const App = () => {
 
   const handleCapture = () => {
     setShowShareCapture(true);
-    sendMessage('CAPTURE_TAB', { timestamp: Date.now() });
+    sendMessage('CAPTURE_TAB', undefined);
   };
 
   const handleShareClose = () => {
@@ -133,6 +152,8 @@ export const App = () => {
               <ShareCapture
                 onClose={handleShareClose}
                 selectedElement={selectedElement}
+                imageDataUrl={imageDataUrl}
+                captureUrl={captureUrl}
                 styleModifications={styleModifications}
               />
             )}
