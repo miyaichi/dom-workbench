@@ -1,207 +1,158 @@
-import { ConnectionManager, Message } from './lib/connectionManager';
+import { ConnectionManager, Message, useConnectionManager } from './lib/connectionManager';
 import { Logger } from './lib/logger';
-import { ElementInfo } from './types/domSelection';
+import {
+  DOM_SELECTION_EVENTS,
+  SelectElementPayload,
+  SelectionModePayload,
+} from './types/domSelection';
 import { createElementInfo, getElementByPath } from './utils/domSelection';
 
-const logger = new Logger('contentScript');
+// Types
+type StyleProperty = 'backgroundColor' | 'outline' | 'border';
 
-class ContentScript {
-  private static instance: ContentScript | null = null;
-  private manager: ConnectionManager;
-  private isSelectionMode = false;
-  private hoveredElement: HTMLElement | null = null;
-  private selectedElementInfo: ElementInfo | null = null;
-
-  constructor() {
-    this.manager = ConnectionManager.getInstance();
-    this.initialize();
-  }
-
-  public static getInstance(): ContentScript {
-    if (!ContentScript.instance) {
-      ContentScript.instance = new ContentScript();
-    }
-    return ContentScript.instance;
-  }
-
-  private async initialize() {
-    logger.log('Initializing ...');
-    try {
-      this.manager.setContext('content');
-      this.injectStyles();
-      this.setupEventHandlers();
-      logger.log('initialization complete');
-    } catch (error) {
-      logger.error('Initialization failed:', error);
-    }
-  }
-
-  private injectStyles() {
-    const styleId = 'extension-styles';
-    if (!document.getElementById(styleId)) {
-      const style = document.createElement('style');
-      style.id = styleId;
-      style.textContent = this.getInjectedStyles();
-      document.head.appendChild(style);
-      logger.debug('Styles injected successfully');
-    }
-  }
-
-  private getInjectedStyles(): string {
-    return `
-      .extension-selection-mode,
-      .extension-selection-mode * {
-        cursor: crosshair !important;
-        user-select: none !important;
-      }
-      
-      .extension-highlight {
-        outline: 2px solid #ffd700 !important;
-        outline-offset: 2px;
-        background-color: rgba(255, 215, 0, 0.1) !important;
-        transition: all 0.2s ease;
-        pointer-events: auto !important;
-      }
-
-      .extension-selected {
-        outline: 2px solid #4682B4 !important;
-        outline-offset: 2px;
-        background-color: rgba(70, 130, 180, 0.1) !important;
-        transition: all 0.2s ease;
-      }
-
-      html.extension-selection-mode,
-      html.extension-selection-mode body,
-      html.extension-selection-mode * {
-        cursor: crosshair !important;
-      }
-    `;
-  }
-
-  private setupEventHandlers() {
-    // Mouse event listeners
-    document.addEventListener('mouseover', this.handleMouseOver.bind(this), true);
-    document.addEventListener('mouseout', this.handleMouseOut.bind(this), true);
-    document.addEventListener('click', this.handleClick.bind(this), true);
-
-    // Message subscribers
-    this.manager.subscribe('TOGGLE_SELECTION_MODE', (message: Message) => {
-      this.toggleSelectionMode(message.payload.enabled);
-    });
-
-    this.manager.subscribe('SELECT_ELEMENT', (message: Message) => {
-      const element = getElementByPath(message.payload.path);
-      if (element) {
-        this.handleElementSelection(element as HTMLElement);
-      }
-    });
-
-    this.manager.subscribe('INITIALIZE_CONTENT', () => {
-      this.clearSelection();
-    });
-  }
-
-  private handleMouseOver(event: MouseEvent) {
-    if (!this.isSelectionMode) return;
-
-    const target = event.target as HTMLElement;
-    if (!target || target === document.body || target === document.documentElement) return;
-
-    if (this.hoveredElement && this.hoveredElement !== target) {
-      this.hoveredElement.classList.remove('extension-highlight');
-    }
-
-    this.hoveredElement = target;
-    target.classList.add('extension-highlight');
-  }
-
-  private handleMouseOut(event: MouseEvent) {
-    if (!this.isSelectionMode || !this.hoveredElement) return;
-
-    const target = event.target as HTMLElement;
-    if (target === this.hoveredElement) {
-      target.classList.remove('extension-highlight');
-      this.hoveredElement = null;
-    }
-  }
-
-  private handleClick(event: MouseEvent) {
-    if (!this.isSelectionMode) return;
-
-    event.preventDefault();
-    event.stopPropagation();
-
-    const target = event.target as HTMLElement;
-    if (!target || target === document.body || target === document.documentElement) return;
-
-    this.handleElementSelection(target);
-  }
-
-  private handleElementSelection(element: HTMLElement) {
-    // Clear previously selected elements
-    const selectedElements = document.querySelectorAll('.extension-selected');
-    selectedElements.forEach((el) => {
-      el.classList.remove('extension-selected');
-    });
-
-    this.selectedElementInfo = createElementInfo(element);
-    logger.debug('Element selected:', this.selectedElementInfo);
-
-    element.classList.remove('extension-highlight');
-    element.classList.add('extension-selected');
-
-    this.manager.sendMessage('ELEMENT_SELECTED', {
-      elementInfo: this.selectedElementInfo,
-    });
-  }
-
-  private toggleSelectionMode(enabled: boolean) {
-    if (this.isSelectionMode === enabled) return;
-
-    this.isSelectionMode = enabled;
-
-    if (!enabled) {
-      this.clearSelection();
-    }
-
-    document.documentElement.classList.toggle('extension-selection-mode', enabled);
-    document.body.classList.toggle('extension-selection-mode', enabled);
-
-    logger.debug('Selection mode toggled:', {
-      enabled: this.isSelectionMode,
-      hasSelectionModeClass: document.documentElement.classList.contains(
-        'extension-selection-mode'
-      ),
-    });
-  }
-
-  private clearSelection() {
-    // Clear hovered element
-    if (this.hoveredElement) {
-      this.hoveredElement.classList.remove('extension-highlight');
-      this.hoveredElement = null;
-    }
-
-    // Clear selected elements
-    const selectedElements = document.querySelectorAll('.extension-selected');
-    selectedElements.forEach((element) => {
-      element.classList.remove('extension-selected');
-    });
-
-    // Clear selected element info
-    if (this.selectedElementInfo) {
-      this.manager.sendMessage('ELEMENT_UNSELECTED', {
-        elementInfo: this.selectedElementInfo,
-      });
-      this.selectedElementInfo = null;
-    }
-  }
+interface ElementStyle {
+  originalStyles: Partial<Pick<CSSStyleDeclaration, StyleProperty>>;
+  element: HTMLElement;
 }
 
-const contentScriptInstances = new WeakMap<Window, ContentScript>();
-if (!contentScriptInstances.has(window)) {
-  logger.log('Initializing ...');
-  contentScriptInstances.set(window, new ContentScript());
-} else {
-  logger.log('Already initialized');
+interface StyleConfig {
+  backgroundColor: string;
+  outline: string;
+  border: string;
 }
+
+// Constants
+const HIGHLIGHT_STYLES: StyleConfig = {
+  backgroundColor: 'rgba(255, 255, 0, 0.3)',
+  outline: '2px solid #ffd700',
+  border: '1px solid #ffd700',
+};
+
+const STYLE_PROPERTIES: StyleProperty[] = ['backgroundColor', 'outline', 'border'];
+
+// State declarations
+const logger = new Logger('ContentScript');
+const { sendMessage, subscribe } = useConnectionManager();
+const manager = ConnectionManager.getInstance();
+
+let selectionModeEnabled = false;
+let lastSelectedElement: HTMLElement | null = null;
+
+const updateCursorStyle = (enabled: boolean): void => {
+  document.body.style.cursor = enabled ? 'crosshair' : '';
+  logger.debug(`Cursor style updated: ${enabled ? 'crosshair' : 'default'}`);
+};
+
+const saveAndHighlightElement = (element: HTMLElement): void => {
+  // 前の要素のスタイルを復元
+  restoreElementStyle();
+
+  // 新しい要素の元のスタイルを保存して、ハイライトを適用
+  lastSelectedElement = element;
+
+  // ハイライトスタイルを適用
+  Object.entries(HIGHLIGHT_STYLES).forEach(([prop, value]) => {
+    element.style[prop as StyleProperty] = value;
+  });
+
+  logger.debug('Element highlighted', {
+    tagName: element.tagName,
+    id: element.id,
+    classes: element.className,
+  });
+};
+
+const restoreElementStyle = (): void => {
+  if (!lastSelectedElement) {
+    return;
+  }
+
+  // スタイルをデフォルトに戻す
+  STYLE_PROPERTIES.forEach((prop) => {
+    if (lastSelectedElement) {
+      lastSelectedElement.style[prop] = '';
+    }
+  });
+
+  lastSelectedElement = null;
+  logger.debug('Element styles restored');
+};
+
+const handleElementSelection = (element: HTMLElement): void => {
+  const elementInfo = createElementInfo(element);
+  logger.log('Element selected', {
+    tagName: element.tagName,
+    id: element.id,
+    classes: element.className,
+  });
+
+  saveAndHighlightElement(element);
+  sendMessage(DOM_SELECTION_EVENTS.ELEMENT_SELECTED, { elementInfo });
+};
+
+const handleElementClick = (event: MouseEvent): void => {
+  if (!selectionModeEnabled) return;
+
+  const element = event.target as HTMLElement;
+  if (!element || element === document.body) {
+    logger.debug('Invalid element clicked or body element');
+    return;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+  handleElementSelection(element);
+};
+
+const cleanup = (): void => {
+  logger.log('Performing content script cleanup');
+  restoreElementStyle();
+  document.removeEventListener('click', handleElementClick, true);
+};
+
+const handleSelectionModeToggle = (message: Message<SelectionModePayload>): void => {
+  logger.log('Selection mode changed:', message.payload.enabled);
+  selectionModeEnabled = message.payload.enabled;
+  updateCursorStyle(selectionModeEnabled);
+
+  if (!selectionModeEnabled) {
+    restoreElementStyle();
+  }
+};
+
+const handleSelectElement = (message: Message<SelectElementPayload>): void => {
+  const element = getElementByPath(message.payload.path);
+  if (!element) {
+    logger.error('Failed to find element with path:', message.payload.path);
+    return;
+  }
+  logger.log('Element found by path, processing selection');
+  handleElementSelection(element);
+};
+
+const handleClearSelection = (): void => {
+  logger.log('Clearing element selection');
+  restoreElementStyle();
+  sendMessage(DOM_SELECTION_EVENTS.ELEMENT_UNSELECTED, { timestamp: Date.now() });
+};
+
+const initialize = (): void => {
+  logger.log('Initializing content script');
+  manager.setContext('content');
+
+  subscribe(DOM_SELECTION_EVENTS.TOGGLE_SELECTION_MODE, handleSelectionModeToggle);
+  subscribe<SelectElementPayload>(DOM_SELECTION_EVENTS.SELECT_ELEMENT, handleSelectElement);
+  subscribe(DOM_SELECTION_EVENTS.CLEAR_SELECTION, handleClearSelection);
+
+  document.addEventListener('click', handleElementClick, true);
+  logger.debug('Event listeners registered');
+
+  chrome.runtime.onConnect.addListener((port) => {
+    logger.debug('Port connection established');
+    port.onDisconnect.addListener(cleanup);
+  });
+
+  logger.log('Content script initialization complete');
+};
+
+initialize();

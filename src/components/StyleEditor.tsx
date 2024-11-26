@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useConnectionManager } from '../lib/connectionManager';
 import { Logger } from '../lib/logger';
 import { ElementInfo, StyleModification } from '../types/domSelection';
+import { Card } from './Card';
 import './StyleEditor.css';
 
 interface StyleEditorProps {
@@ -143,21 +144,15 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({ onStylesChange }) => {
   // Render empty state
   if (!selectedElement?.computedStyle) {
     return (
-      <div className="card">
-        <div className="card-header">
-          <h2 className="card-title">Style Editor</h2>
-        </div>
+      <Card title="Style Editor" initialCollapsed={true}>
         <div className="style-editor-empty"> {chrome.i18n.getMessage('styleEditorEmptyState')}</div>
-      </div>
+      </Card>
     );
   }
 
   // Main render
   return (
-    <div className="card">
-      <div className="card-header">
-        <h2 className="card-title">Style Editor</h2>
-      </div>
+    <Card title="Style Editor" initialCollapsed={true}>
       <div className="style-editor">
         {/* Search Section */}
         <div className="style-editor-search">
@@ -240,6 +235,6 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({ onStylesChange }) => {
           </div>
         </div>
       </div>
-    </div>
+    </Card>
   );
 };
