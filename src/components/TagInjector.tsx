@@ -8,9 +8,7 @@ interface TagInjectorProps {
   selectedElement: ElementInfo | null;
 }
 
-export const TagInjector: React.FC<TagInjectorProps> = (
-  { selectedElement }: TagInjectorProps
-) => {
+export const TagInjector: React.FC<TagInjectorProps> = ({ selectedElement }: TagInjectorProps) => {
   // State declarations
   const [injectedTag, setInjectedTag] = useState('');
   const [injected, setInjected] = useState(false);

@@ -84,7 +84,7 @@ export const App = () => {
 
   const handleOnSelectElement = (path: number[]) => {
     sendMessage('SELECT_ELEMENT', { path });
-  }
+  };
 
   const toggleSelectionMode = () => {
     const enabled = !isSelectionMode;
@@ -125,7 +125,10 @@ export const App = () => {
           <SettingsPanel />
         ) : (
           <div className="components-container">
-            <DOMSelector selectedElement={selectedElement} onSelectElement={handleOnSelectElement} />
+            <DOMSelector
+              selectedElement={selectedElement}
+              onSelectElement={handleOnSelectElement}
+            />
             {showShareCapture && (
               <ShareCapture
                 onClose={handleShareClose}

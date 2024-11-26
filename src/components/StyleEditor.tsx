@@ -16,7 +16,7 @@ const isValidCSSProperty = (property: string): boolean => {
   return property in document.body.style;
 };
 
-export const StyleEditor: React.FC<StyleEditorProps> = ({ selectedElement,onStylesChange }) => {
+export const StyleEditor: React.FC<StyleEditorProps> = ({ selectedElement, onStylesChange }) => {
   // State declarations
   const [searchTerm, setSearchTerm] = useState('');
   const [editedStyles, setEditedStyles] = useState<Record<string, string>>({});

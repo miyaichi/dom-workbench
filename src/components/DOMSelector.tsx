@@ -25,10 +25,7 @@ const getParentPath = (path: number[]): number[] => {
  * DOMSelector component that allows users to select and navigate DOM elements
  * @returns A React element representing the DOM selector
  */
-export const DOMSelector: React.FC<DOMSelectorProps> = ({
-  selectedElement, 
-  onSelectElement 
-}) => {
+export const DOMSelector: React.FC<DOMSelectorProps> = ({ selectedElement, onSelectElement }) => {
   const logger = new Logger('DOMSelector');
 
   // Event handlers
