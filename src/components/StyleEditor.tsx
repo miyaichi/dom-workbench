@@ -7,7 +7,9 @@ import { Card } from './Card';
 import './StyleEditor.css';
 
 interface StyleEditorProps {
+  /** The currently selected element */
   selectedElement: ElementInfo | null;
+  /** Callback function to handle style changes */
   onStylesChange?: (modifications: StyleModification[]) => void;
 }
 
@@ -16,6 +18,12 @@ const isValidCSSProperty = (property: string): boolean => {
   return property in document.body.style;
 };
 
+/**
+ * Component to render a style editor for modifying element styles
+ * @param selectedElement - The currently selected element
+ * @param onStylesChange - Callback function to handle style changes
+ * @returns A React element representing the style editor
+ */
 export const StyleEditor: React.FC<StyleEditorProps> = ({ selectedElement, onStylesChange }) => {
   // State declarations
   const [searchTerm, setSearchTerm] = useState('');

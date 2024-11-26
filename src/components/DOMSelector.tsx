@@ -8,7 +8,9 @@ import { DOMTreeView } from './DOMTreeView';
 import { Tooltip } from './Tooltip';
 
 interface DOMSelectorProps {
+  /** The currently selected element */
   selectedElement: ElementInfo | null;
+  /** Callback function to handle element selection */
   onSelectElement: (path: number[]) => void;
 }
 
@@ -23,6 +25,8 @@ const getParentPath = (path: number[]): number[] => {
 
 /**
  * DOMSelector component that allows users to select and navigate DOM elements
+ * @param selectedElement - The currently selected element
+ * @param onSelectElement - Callback function to handle element selection
  * @returns A React element representing the DOM selector
  */
 export const DOMSelector: React.FC<DOMSelectorProps> = ({ selectedElement, onSelectElement }) => {
@@ -42,7 +46,6 @@ export const DOMSelector: React.FC<DOMSelectorProps> = ({ selectedElement, onSel
     onSelectElement(parentPath);
   };
 
-  // Main render
   if (!selectedElement) {
     return (
       <Card title="DOM Selector">

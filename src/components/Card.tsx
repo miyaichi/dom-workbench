@@ -3,11 +3,21 @@ import React, { useState } from 'react';
 import './Card.css';
 
 interface CardProps {
+  /** The title of the card */
   title: string;
+  /** The content of the card */
   children: React.ReactNode;
+  /** Whether the card should be collapsed by default */
   initialCollapsed?: boolean;
 }
 
+/**
+ * Card component that displays a collapsible card with a title and content
+ * @param title - The title of the card
+ * @param children - The content of the card
+ * @param initialCollapsed - Whether the card should be collapsed by default
+ * @returns A React element representing the card
+ */
 export const Card: React.FC<CardProps> = ({ title, children, initialCollapsed = false }) => {
   const [isCollapsed, setIsCollapsed] = useState(initialCollapsed);
 

@@ -9,10 +9,15 @@ import './ShareCapture.css';
 import { formatElementTag } from './utils/htmlTagFormatter';
 
 interface ShareCaptureProps {
+  /** Callback function to close the modal */
   onClose: () => void;
+  /** The currently selected element */
   selectedElement: ElementInfo | null;
+  /** The image data URL of the screen capture */
   imageDataUrl: string | null;
+  /** The URL of the captured page */
   captureUrl: string | null;
+  /** The style modifications applied to the selected element */
   styleModifications: StyleModification[];
 }
 
@@ -27,6 +32,15 @@ const formatStyleModifications = (styleModifications: StyleModification[]) => {
   return styleModifications.map((mod) => `${mod.property}: ${mod.value}`).join('\n');
 };
 
+/**
+ * Component to render a modal for sharing a screen capture
+ * @param onClose - Callback function to close the modal
+ * @param selectedElement - The currently selected element
+ * @param imageDataUrl - The image data URL of the screen capture
+ * @param captureUrl - The URL of the captured page
+ * @param styleModifications - The style modifications applied to the selected element
+ * @returns A React element representing the share capture modal
+ */
 export const ShareCapture: React.FC<ShareCaptureProps> = ({
   onClose,
   selectedElement,

@@ -7,12 +7,20 @@ import { Card } from './Card';
 import './TagInjector.css';
 
 interface TagInjectorProps {
+  /** The currently selected element */
   selectedElement: ElementInfo | null;
+  /** Options for validating the injected tag */
   validateOptions?: {
     checkDangerousElements?: boolean;
   };
 }
 
+/**
+ * Component to render a tag injector for injecting HTML tags
+ * @param selectedElement - The currently selected element
+ * @param validateOptions - Options for validating the injected tag
+ * @returns A React element representing the tag injector
+ */
 export const TagInjector: React.FC<TagInjectorProps> = ({
   selectedElement,
   validateOptions = { checkDangerousElements: false },
