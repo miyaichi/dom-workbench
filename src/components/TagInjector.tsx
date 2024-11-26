@@ -29,7 +29,7 @@ export const TagInjector: React.FC<TagInjectorProps> = ({
   const handleInjectTag = (e: React.ChangeEvent<HTMLTextAreaElement>): void => {
     const newValue = e.target.value;
     setInjectedTag(newValue);
-    
+
     if (!newValue.trim()) {
       setValidationError(undefined);
       return;
@@ -60,9 +60,7 @@ export const TagInjector: React.FC<TagInjectorProps> = ({
         className={`injection-tag ${validationError ? 'error' : ''}`}
       />
       {validationError && (
-        <div className="error-message">
-          {chrome.i18n.getMessage('tagInjectorValidationError')}
-        </div>
+        <div className="error-message">{chrome.i18n.getMessage('tagInjectorValidationError')}</div>
       )}
       <button
         className="inject-button"
