@@ -53,7 +53,7 @@ const initializeFonts = async (pdfDoc: PDFDocument): Promise<FontConfig> => {
     japanese: await pdfDoc.embedFont(fontBytes, { subset: false }),
     fallback: await pdfDoc.embedFont(StandardFonts.Helvetica),
   };
-  
+
   logger.debug('Fonts initialized successfully');
   return fonts;
 };
@@ -66,7 +66,7 @@ const calculateImageDimensions = async (
   dimensions: ImageDimensions;
 }> => {
   logger.debug('Processing image data for PDF...');
-  
+
   const imageBytes = Uint8Array.from(atob(imageData.split(',')[1]), (c) => c.charCodeAt(0));
   const image = await pdfDoc.embedPng(imageBytes);
   const imageDims = image.scale(1);
@@ -88,9 +88,9 @@ const calculateImageDimensions = async (
     y: (PAGE_CONFIG.HEIGHT - scaledHeight) / 2,
   };
 
-  logger.debug('Image dimensions calculated', { 
+  logger.debug('Image dimensions calculated', {
     originalSize: { width: imageDims.width, height: imageDims.height },
-    scaledSize: { width: scaledWidth, height: scaledHeight }
+    scaledSize: { width: scaledWidth, height: scaledHeight },
   });
 
   return { image, dimensions };
@@ -249,7 +249,7 @@ export const shareAsPDF = async (
   styleModifications: string
 ): Promise<true> => {
   logger.log('Starting PDF generation process');
-  
+
   if (!imageData) {
     logger.error('PDF generation failed: Image data is missing');
     throw new Error('Image data is required');
@@ -262,10 +262,10 @@ export const shareAsPDF = async (
   try {
     logger.log('Creating PDF document');
     const pdfDoc = await PDFDocument.create();
-    
+
     logger.debug('Initializing fonts');
     const fonts = await initializeFonts(pdfDoc);
-    
+
     logger.debug('Processing image');
     const { image, dimensions } = await calculateImageDimensions(pdfDoc, imageData);
 
@@ -291,7 +291,7 @@ export const shareAsPDF = async (
 
     const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
     const filename = generateFilename(now, 'pdf');
-    
+
     logger.log('Initiating PDF download', { filename });
     await downloadFile(pdfBlob, filename, {
       saveAs: false,

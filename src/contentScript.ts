@@ -46,19 +46,19 @@ const updateCursorStyle = (enabled: boolean): void => {
 const saveAndHighlightElement = (element: HTMLElement): void => {
   // 前の要素のスタイルを復元
   restoreElementStyle();
-  
+
   // 新しい要素の元のスタイルを保存して、ハイライトを適用
   lastSelectedElement = element;
-  
+
   // ハイライトスタイルを適用
   Object.entries(HIGHLIGHT_STYLES).forEach(([prop, value]) => {
     element.style[prop as StyleProperty] = value;
   });
-  
-  logger.debug('Element highlighted', { 
+
+  logger.debug('Element highlighted', {
     tagName: element.tagName,
     id: element.id,
-    classes: element.className
+    classes: element.className,
   });
 };
 
@@ -80,12 +80,12 @@ const restoreElementStyle = (): void => {
 
 const handleElementSelection = (element: HTMLElement): void => {
   const elementInfo = createElementInfo(element);
-  logger.log('Element selected', { 
+  logger.log('Element selected', {
     tagName: element.tagName,
     id: element.id,
-    classes: element.className
+    classes: element.className,
   });
-  
+
   saveAndHighlightElement(element);
   sendMessage(DOM_SELECTION_EVENTS.ELEMENT_SELECTED, { elementInfo });
 };
@@ -151,7 +151,7 @@ const initialize = (): void => {
     logger.debug('Port connection established');
     port.onDisconnect.addListener(cleanup);
   });
-  
+
   logger.log('Content script initialization complete');
 };
 

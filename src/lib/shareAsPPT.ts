@@ -45,7 +45,7 @@ const SlideStyle: Record<string, SlideStyleOptions> = {
 
 const calculateImageDimensions = (img: HTMLImageElement): ImageDimensions => {
   logger.debug('Calculating image dimensions', {
-    originalSize: { width: img.width, height: img.height }
+    originalSize: { width: img.width, height: img.height },
   });
 
   const imgRatio = img.width / img.height;
@@ -70,7 +70,7 @@ const calculateImageDimensions = (img: HTMLImageElement): ImageDimensions => {
   const dimensions = { width, height, x, y };
   logger.debug('Image dimensions calculated', {
     scaledSize: { width, height },
-    position: { x, y }
+    position: { x, y },
   });
 
   return dimensions;
@@ -106,7 +106,7 @@ const generatePPTX = async (pptxData: string): Promise<Blob> => {
     const byteArray = new Uint8Array(byteCharacters.split('').map((char) => char.charCodeAt(0)));
     const blob = new Blob([byteArray], { type: DEFAULTS.MIME_TYPE });
     logger.debug('PPTX blob generated successfully', {
-      size: blob.size
+      size: blob.size,
     });
     return blob;
   } catch (error) {
@@ -120,7 +120,7 @@ const createScreenshotSlide = async (pres: pptxgen, imageData: string) => {
   try {
     const slide = pres.addSlide();
     const imageDims = await getImageDimensions(imageData);
-    
+
     slide.addImage({
       data: imageData,
       x: imageDims.x,
@@ -128,7 +128,7 @@ const createScreenshotSlide = async (pres: pptxgen, imageData: string) => {
       w: imageDims.width,
       h: imageDims.height,
     });
-    
+
     logger.debug('Screenshot slide created successfully');
   } catch (error) {
     logger.error('Failed to create screenshot slide:', error);
@@ -138,7 +138,7 @@ const createScreenshotSlide = async (pres: pptxgen, imageData: string) => {
 
 const createInfoSlide = (pres: pptxgen, sections: SlideSection[]) => {
   logger.debug('Creating information slide', {
-    sectionCount: sections.length
+    sectionCount: sections.length,
   });
 
   try {
@@ -226,7 +226,7 @@ export const shareAsPPT = async (
 
     logger.debug('Converting PowerPoint to downloadable format');
     const pptxBlob = await generatePPTX(pptxOutput);
-    
+
     const filename = generateFilename(now, 'pptx');
     logger.log('Initiating PowerPoint download', { filename });
     await downloadFile(pptxBlob, filename, {
