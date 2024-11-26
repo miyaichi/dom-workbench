@@ -1,5 +1,5 @@
 // src/background/background.ts
-import { ConnectionManager, Message } from './lib/connectionManager';
+import { ConnectionManager } from './lib/connectionManager';
 import { Logger } from './lib/logger';
 
 const logger = new Logger('Background');
@@ -55,38 +55,34 @@ class BackgroundService {
   }
 
   // Capture the visible tab and send the result back to the content script
-  private async captureTab(message: Message): Promise<void> {
+  private async captureTab(): Promise<void> {
     logger.log('Received CAPTURE_TAB message');
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      const windowId = tab.windowId;
+      if (!tab) {
+        throw new Error('No active tab found');
+      }
 
+      const windowId = tab.windowId;
       const imageDataUrl = await chrome.tabs.captureVisibleTab(windowId, {
         format: 'png',
         quality: 100,
       });
 
       logger.log('Tab captured successfully');
-      await this.manager.sendMessage(
-        'CAPTURE_TAB_RESULT',
-        {
-          success: true,
-          imageDataUrl: imageDataUrl,
-          url: tab.url || null,
-        },
-        message.source
-      );
+      await this.manager.sendMessage('CAPTURE_TAB_RESULT', {
+        success: true,
+        imageDataUrl,
+        url: tab.url ?? null,
+      });
     } catch (error) {
       logger.error('Failed to capture tab:', error);
-      await this.manager.sendMessage(
-        'CAPTURE_TAB_RESULT',
-        {
-          success: false,
-          error: (error as Error).message,
-          url: null,
-        },
-        message.source
-      );
+      await this.manager.sendMessage('CAPTURE_TAB_RESULT', {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        imageDataUrl: undefined,
+        url: null,
+      });
     }
   }
 
@@ -139,7 +135,7 @@ class BackgroundService {
   private async handleTabChange(tabId: number): Promise<void> {
     logger.debug('Handling tab change:', tabId);
     try {
-      await this.manager.sendMessage('INITIALIZE_CONTENT', { timestamp: Date.now() });
+      await this.manager.sendMessage('TAB_ACTIVATED', undefined);
     } catch (error) {
       logger.error('Failed to send INITIALIZE_CONTENT message:', error);
     }

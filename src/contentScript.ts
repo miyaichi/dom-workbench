@@ -1,4 +1,4 @@
-import { ConnectionManager, Message } from './lib/connectionManager';
+import { ConnectionManager } from './lib/connectionManager';
 import { Logger } from './lib/logger';
 import { ElementInfo } from './types/domSelection';
 import { createElementInfo, getElementByPath } from './utils/domSelection';
@@ -85,19 +85,15 @@ class ContentScript {
     document.addEventListener('click', this.handleClick.bind(this), true);
 
     // Message subscribers
-    this.manager.subscribe('TOGGLE_SELECTION_MODE', (message: Message) => {
+    this.manager.subscribe('TOGGLE_SELECTION_MODE', (message) => {
       this.toggleSelectionMode(message.payload.enabled);
     });
 
-    this.manager.subscribe('SELECT_ELEMENT', (message: Message) => {
+    this.manager.subscribe('SELECT_ELEMENT', (message) => {
       const element = getElementByPath(message.payload.path);
       if (element) {
         this.handleElementSelection(element as HTMLElement);
       }
-    });
-
-    this.manager.subscribe('INITIALIZE_CONTENT', () => {
-      this.clearSelection();
     });
   }
 
@@ -190,6 +186,7 @@ class ContentScript {
 
     // Clear selected element info
     if (this.selectedElementInfo) {
+      logger.debug('Element unselected:', this.selectedElementInfo);
       this.manager.sendMessage('ELEMENT_UNSELECTED', {
         elementInfo: this.selectedElementInfo,
       });
