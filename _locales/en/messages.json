@@ -25,5 +25,8 @@
   },
   "tagInjectorEmptyState": {
     "message": "You can add tags to the selected element."
+  },
+  "tagInjectorValidationError": {
+    "message": "Please enter a valid tag name."
   }
 }

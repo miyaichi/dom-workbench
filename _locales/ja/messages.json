@@ -25,5 +25,8 @@
   },
   "tagInjectorEmptyState": {
     "message": "選択した要素のにタグを追加することができます。"
+  },
+  "tagInjectorValidationError": {
+    "message": "有効なタグを入力してください。"
   }
 }
