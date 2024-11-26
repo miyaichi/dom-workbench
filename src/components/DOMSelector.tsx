@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useConnectionManager } from '../lib/connectionManager';
 import { Logger } from '../lib/logger';
 import { DOM_SELECTION_EVENTS, ElementInfo, SelectElementPayload } from '../types/domSelection';
+import { Card } from './Card';
 import './DOMSelector.css';
 import { DOMTreeView } from './DOMTreeView';
 import { Tooltip } from './Tooltip';
@@ -74,20 +75,14 @@ export const DOMSelector: React.FC<DOMSelectorProps> = () => {
   // Main render
   if (!selectedElement) {
     return (
-      <div className="card">
-        <div className="card-header">
-          <h2 className="card-title">DOM Selector</h2>
-        </div>
+      <Card title="DOM Selector">
         <div className="style-editor-empty">{chrome.i18n.getMessage('domSelectorEmptyState')}</div>
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="card">
-      <div className="card-header">
-        <h2 className="card-title">DOM Selector</h2>
-      </div>
+    <Card title="DOM Selector">
       <div className="card-content">
         <div className="selected-element-info">
           <div className="element-header">
@@ -106,6 +101,6 @@ export const DOMSelector: React.FC<DOMSelectorProps> = () => {
         </div>
         <DOMTreeView elementInfo={selectedElement} onSelect={handleElementSelect} />
       </div>
-    </div>
+    </Card>
   );
 };
