@@ -194,7 +194,12 @@ export const shareAsPPT = async (
 
   try {
     logger.log('Initializing PowerPoint presentation');
+    const manifest = chrome.runtime.getManifest();
     const pres = new pptxgen();
+    pres.author = `${manifest.name} v${manifest.version}`;
+    pres.title = `Screenshot of ${url} at ${formatTimestamp(new Date())}`;
+    pres.company = '';
+
     pres.layout = DEFAULTS.LAYOUT;
 
     logger.debug('Processing image data');
