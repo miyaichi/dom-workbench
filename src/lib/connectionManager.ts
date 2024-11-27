@@ -16,40 +16,55 @@ interface IConnectionManager {
   ): () => void;
 }
 
-/**
- * A singleton class that manages connections and message passing between different contexts
- * in a Chrome extension (background, content scripts, and side panel).
- * Handles connection management, reconnection logic, and message broadcasting.
- */
+interface ConnectionState {
+  isSettingUp: boolean;
+  isInvalidated: boolean;
+  messageQueue: Message[];
+  port?: chrome.runtime.Port;
+}
+
 export class ConnectionManager implements IConnectionManager {
   private static instance: ConnectionManager;
   private static readonly RECONNECT_DELAY = 1000;
   private static readonly INITIAL_CONNECTION_DELAY = 100;
+  private static readonly MESSAGE_CLEANUP_DELAY = 5000;
+
   private context: Context = 'undefined';
-  private port?: chrome.runtime.Port;
   private ports: Map<string, chrome.runtime.Port> = new Map();
   private messageHandlers: Map<MessageType, ((message: Message) => void)[]> = new Map();
-  private isSettingUp = false;
-  private isInvalidated = false;
+  private processedMessageIds: Set<string> = new Set();
+  private state: ConnectionState = {
+    isSettingUp: false,
+    isInvalidated: false,
+    messageQueue: [],
+    port: undefined
+  };
   private logger: Logger;
-  private messageQueue: Message[] = [];
 
-  /**
-   * Private constructor to enforce singleton pattern
-   */
   private constructor() {
     this.logger = new Logger(this.context);
-    this.setupConnections();
-    this.initializeLogger();
+    this.initializeConnection();
   }
 
-  /**
-   * Initializes the logger with settings from storage
-   */
+  public static getInstance(): ConnectionManager {
+    if (!ConnectionManager.instance) {
+      ConnectionManager.instance = new ConnectionManager();
+    }
+    return ConnectionManager.instance;
+  }
+
+  private async initializeConnection() {
+    await this.initializeLogger();
+    this.setupConnections();
+  }
+
   private async initializeLogger() {
     const settings = await loadSettings();
     Logger.setLogLevel(settings.logLevel);
+    this.setupLogLevelListener();
+  }
 
+  private setupLogLevelListener() {
     if (chrome.storage?.sync) {
       chrome.storage.sync.onChanged.addListener((changes) => {
         if (changes.settings?.newValue?.logLevel) {
@@ -59,50 +74,38 @@ export class ConnectionManager implements IConnectionManager {
     }
   }
 
-  /**
-   * Gets the singleton instance of the ConnectionManager
-   */
-  public static getInstance(): ConnectionManager {
-    if (!ConnectionManager.instance) {
-      ConnectionManager.instance = new ConnectionManager();
-    }
-    return ConnectionManager.instance;
-  }
-
-  /**
-   * Sets the context for the ConnectionManager instance and reinitializes connections
-   */
   public setContext(context: Context) {
     this.logger.debug('Setting context:', context);
     this.context = context;
     this.logger = new Logger(context);
-    this.isSettingUp = false;
-    this.isInvalidated = false;
-    this.messageQueue = [];
+    this.resetState();
     this.setupConnections();
   }
 
-  /**
-   * Sets up connections based on the current context
-   */
-  private setupConnections() {
-    if (this.context === 'background') {
-      this.setupBackgroundConnections();
-      return;
-    }
+  private resetState() {
+    this.state = {
+      isSettingUp: false,
+      isInvalidated: false,
+      messageQueue: [],
+      port: undefined
+    };
+    this.processedMessageIds.clear();
+  }
 
-    this.setupClientConnections();
+  private setupConnections() {
+    this.context === 'background'
+      ? this.setupBackgroundConnections()
+      : this.setupClientConnections();
   }
 
   private setupClientConnections() {
-    if (this.isSettingUp) {
+    if (this.state.isSettingUp) {
       this.logger.debug('Setup already in progress, skipping...');
       return;
     }
 
-    this.isSettingUp = true;
+    this.state.isSettingUp = true;
     this.logger.debug('Setting up client connections...');
-
     setTimeout(this.connectToBackground, ConnectionManager.INITIAL_CONNECTION_DELAY);
   }
 
@@ -113,30 +116,104 @@ export class ConnectionManager implements IConnectionManager {
     }
 
     try {
-      this.port = chrome.runtime.connect({
-        name: `${this.context}-${Date.now()}`,
+      this.state.port = chrome.runtime.connect({
+        name: `${this.context}-${Date.now()}`
       });
-      this.logger.log(`Connected successfully as ${this.port.name}`);
+      this.logger.log(`Connected successfully as ${this.state.port.name}`);
 
-      this.port.onMessage.addListener((message: Message) => {
-        this.logger.debug('Received message:', message);
-        this.handleMessage(message);
-      });
-
-      this.port.onDisconnect.addListener(this.handleDisconnect);
+      this.setupClientMessageHandling(this.state.port);
+      this.state.port.onDisconnect.addListener(this.handleDisconnect);
       this.flushMessageQueue();
     } catch (error) {
-      this.logger.error('Connection error:', error);
-      this.scheduleReconnect();
+      this.handleConnectionError(error);
     }
   };
+
+  private setupClientMessageHandling(port: chrome.runtime.Port) {
+    port.onMessage.addListener((message: Message) => {
+      this.logger.debug('Received message:', message);
+      this.processMessageIfNew(message);
+    });
+  }
+
+  private processMessageIfNew(message: Message) {
+    if (!this.processedMessageIds.has(message.id)) {
+      this.processedMessageIds.add(message.id);
+      this.handleMessage(message);
+      this.scheduleMessageCleanup(message.id);
+    }
+  }
+
+  private setupBackgroundConnections() {
+    this.logger.debug('Setting up background connections...');
+
+    chrome.runtime.onConnect.addListener((port) => {
+      this.handleNewConnection(port);
+    });
+  }
+
+  private handleNewConnection(port: chrome.runtime.Port) {
+    this.logger.log(`New connection from ${port.name}`);
+    this.ports.set(port.name, port);
+
+    port.onMessage.addListener((message: Message) => {
+      this.handleBackgroundMessage(message, port);
+    });
+
+    port.onDisconnect.addListener(() => {
+      this.handlePortDisconnection(port);
+    });
+  }
+
+  private handleBackgroundMessage(message: Message, sourcePort: chrome.runtime.Port) {
+    this.logger.debug(`Received message from ${sourcePort.name}:`, message);
+
+    if (this.processedMessageIds.has(message.id)) {
+      this.logger.debug(`Skipping already processed message: ${message.id}`);
+      return;
+    }
+
+    this.processedMessageIds.add(message.id);
+    this.scheduleMessageCleanup(message.id);
+
+    if (message.target) {
+      this.routeMessageToTarget(message, sourcePort);
+    } else {
+      this.broadcast(message, sourcePort);
+    }
+
+    this.handleMessage(message);
+  }
+
+  private routeMessageToTarget(message: Message, sourcePort: chrome.runtime.Port) {
+    const targetPorts = Array.from(this.ports.entries())
+      .filter(([name]) => name.startsWith(message.target!))
+      .map(([, port]) => port);
+
+    targetPorts.forEach(targetPort => {
+      if (targetPort !== sourcePort) {
+        targetPort.postMessage(message);
+      }
+    });
+  }
+
+  private handlePortDisconnection(port: chrome.runtime.Port) {
+    const error = chrome.runtime.lastError;
+    this.logger.debug(`${port.name} disconnected, error:`, error);
+    this.ports.delete(port.name);
+  }
+
+  private handleConnectionError(error: unknown) {
+    this.logger.error('Connection error:', error);
+    this.scheduleReconnect();
+  }
 
   private handleDisconnect = () => {
     const error = chrome.runtime.lastError;
     this.logger.debug('Disconnected, error:', error);
 
     if (this.isExtensionContextInvalidated(error)) {
-      this.isInvalidated = true;
+      this.state.isInvalidated = true;
       this.logger.log('Context invalidated, stopping reconnection');
       return;
     }
@@ -146,61 +223,37 @@ export class ConnectionManager implements IConnectionManager {
       return;
     }
 
-    this.port = undefined;
+    this.state.port = undefined;
     this.scheduleReconnect();
   };
 
-  private isExtensionContextInvalidated(error: unknown): boolean {
-    if (!error || typeof error !== 'object') {
-      return false;
-    }
-
-    return (
-      'message' in error &&
-      typeof (error as { message: unknown }).message === 'string' &&
-      (error as { message: string }).message.includes('Extension context invalidated')
-    );
-  }
-
   private scheduleReconnect() {
-    if (this.context === 'background' || this.isInvalidated) {
-      return;
-    }
+    if (this.context === 'background' || this.state.isInvalidated) return;
 
     this.logger.debug('Scheduling reconnection...');
     setTimeout(this.connectToBackground, ConnectionManager.RECONNECT_DELAY);
   }
 
-  private setupBackgroundConnections() {
-    this.logger.debug('Setting up background connections...');
-
-    chrome.runtime.onConnect.addListener((port) => {
-      this.logger.log(`New connection from ${port.name}`);
-      this.ports.set(port.name, port);
-
-      port.onMessage.addListener((message: Message) => {
-        this.logger.debug(`Received message from ${port.name}:`, message);
-        this.handleMessage(message);
-        this.broadcast(message, port);
-      });
-
-      port.onDisconnect.addListener(() => {
-        const error = chrome.runtime.lastError;
-        this.logger.debug(`${port.name} disconnected, error:`, error);
-        this.ports.delete(port.name);
-      });
-    });
-  }
-
-  /**
-   * Sends a type-safe message to the specified target context
-   */
-  public sendMessage<T extends MessageType>(
+  public async sendMessage<T extends MessageType>(
     type: T,
     payload: Messages[T],
     target?: Context
   ): Promise<void> {
-    const message: Message<Messages[T]> = {
+    const message = this.createMessage(type, payload, target);
+
+    try {
+      await this.deliverMessage(message);
+    } catch (error) {
+      this.logger.error('Send error:', error);
+    }
+  }
+
+  private createMessage<T extends MessageType>(
+    type: T,
+    payload: Messages[T],
+    target?: Context
+  ): Message<Messages[T]> {
+    return {
       id: nanoid(),
       type,
       payload,
@@ -208,27 +261,19 @@ export class ConnectionManager implements IConnectionManager {
       target,
       timestamp: Date.now(),
     };
-
-    return new Promise((resolve) => {
-      try {
-        if (this.context === 'background') {
-          this.broadcast(message);
-        } else if (this.port) {
-          this.port.postMessage(message);
-        } else {
-          this.messageQueue.push(message);
-          this.logger.debug('Message queued:', message);
-        }
-      } catch (error) {
-        this.logger.error('Send error:', error);
-      }
-      resolve();
-    });
   }
 
-  /**
-   * Subscribes to messages of a specific type with type-safe handler
-   */
+  private async deliverMessage(message: Message): Promise<void> {
+    if (this.context === 'background') {
+      this.broadcast(message);
+    } else if (this.state.port) {
+      this.state.port.postMessage(message);
+    } else {
+      this.state.messageQueue.push(message);
+      this.logger.debug('Message queued:', message);
+    }
+  }
+
   public subscribe<T extends MessageType>(
     messageType: T,
     handler: (message: Message<Messages[T]>) => void
@@ -237,21 +282,28 @@ export class ConnectionManager implements IConnectionManager {
     handlers.push(handler as (message: Message) => void);
     this.messageHandlers.set(messageType, handlers);
 
-    return () => {
-      const handlers = this.messageHandlers.get(messageType) || [];
-      const index = handlers.indexOf(handler as (message: Message) => void);
-      if (index > -1) {
-        handlers.splice(index, 1);
-        this.messageHandlers.set(messageType, handlers);
-      }
-    };
+    return () => this.unsubscribeHandler(messageType, handler);
+  }
+
+  private unsubscribeHandler<T extends MessageType>(
+    messageType: T,
+    handler: (message: Message<Messages[T]>) => void
+  ) {
+    const handlers = this.messageHandlers.get(messageType) || [];
+    const index = handlers.indexOf(handler as (message: Message) => void);
+    if (index > -1) {
+      handlers.splice(index, 1);
+      this.messageHandlers.set(messageType, handlers);
+    }
   }
 
   private handleMessage(message: Message) {
     this.logger.debug('Handling message:', message, this.context);
-    const handlers = this.messageHandlers.get(message.type) || [];
-    const debugHandlers = this.messageHandlers.get('DEBUG' as MessageType) || [];
-    [...handlers, ...debugHandlers].forEach((handler) => handler(message));
+    const handlers = [
+      ...(this.messageHandlers.get(message.type) || []),
+      ...(this.messageHandlers.get('DEBUG' as MessageType) || [])
+    ];
+    handlers.forEach(handler => handler(message));
   }
 
   private broadcast(message: Message, excludePort?: chrome.runtime.Port) {
@@ -261,6 +313,7 @@ export class ConnectionManager implements IConnectionManager {
       if (port !== excludePort) {
         try {
           port.postMessage(message);
+          this.logger.debug(`Broadcast message to ${port.name}:`, message);
         } catch (error) {
           this.logger.error(`Broadcast error to ${port.name}:`, error);
         }
@@ -268,27 +321,40 @@ export class ConnectionManager implements IConnectionManager {
     });
   }
 
+  private scheduleMessageCleanup(messageId: string) {
+    setTimeout(() => {
+      this.processedMessageIds.delete(messageId);
+    }, ConnectionManager.MESSAGE_CLEANUP_DELAY);
+  }
+
   private async flushMessageQueue() {
-    this.logger.debug(`Flushing message queue (${this.messageQueue.length} messages)`);
-    while (this.messageQueue.length > 0) {
-      const message = this.messageQueue.shift();
-      if (message && this.port) {
+    this.logger.debug(`Flushing message queue (${this.state.messageQueue.length} messages)`);
+    while (this.state.messageQueue.length > 0) {
+      const message = this.state.messageQueue.shift();
+      if (message && this.state.port) {
         try {
-          this.port.postMessage(message);
+          this.state.port.postMessage(message);
           this.logger.debug('Queued message sent:', message);
         } catch (error) {
           this.logger.error('Failed to send queued message:', error);
-          this.messageQueue.unshift(message);
+          this.state.messageQueue.unshift(message);
           break;
         }
       }
     }
   }
+
+  private isExtensionContextInvalidated(error: unknown): boolean {
+    if (!error || typeof error !== 'object') return false;
+
+    return (
+      'message' in error &&
+      typeof (error as { message: unknown }).message === 'string' &&
+      (error as { message: string }).message.includes('Extension context invalidated')
+    );
+  }
 }
 
-/**
- * Hook for using the ConnectionManager with type safety
- */
 export const useConnectionManager = () => {
   const manager = ConnectionManager.getInstance();
   return {
