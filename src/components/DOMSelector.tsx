@@ -2,10 +2,10 @@ import { ChevronUp } from 'lucide-react';
 import React from 'react';
 import { Logger } from '../lib/logger';
 import { ElementInfo } from '../types/domSelection';
-import { Card } from './Card';
+import { Card } from './common/Card';
+import { Tooltip } from './common/Tooltip';
 import './DOMSelector.css';
 import { DOMTreeView } from './DOMTreeView';
-import { Tooltip } from './Tooltip';
 
 interface DOMSelectorProps {
   /** The currently selected element */

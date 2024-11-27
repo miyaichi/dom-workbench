@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Logger } from '../lib/logger';
 import { ElementInfo } from '../types/domSelection';
 import { validateHtmlTag } from '../utils/htmlValidator';
-import { Card } from './Card';
+import { Card } from './common/Card';
 import './TagInjector.css';
 
 interface TagInjectorProps {

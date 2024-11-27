@@ -3,7 +3,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import React, { useState } from 'react';
 import { ElementInfo } from '../types/domSelection';
 import './DOMTreeView.css';
-import { Tooltip } from './Tooltip';
+import { Tooltip } from './common/Tooltip';
 import { formatElementTag } from './utils/htmlTagFormatter';
 
 interface Props {

@@ -2,7 +2,7 @@ import { Check, Plus, Search, X } from 'lucide-react';
 import React, { useCallback, useMemo, useState } from 'react';
 import { Logger } from '../lib/logger';
 import { ElementInfo, StyleModification } from '../types/domSelection';
-import { Card } from './Card';
+import { Card } from './common/Card';
 import './StyleEditor.css';
 
 interface StyleEditorProps {

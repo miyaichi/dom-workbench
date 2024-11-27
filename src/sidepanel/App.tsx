@@ -6,7 +6,7 @@ import { SettingsPanel } from '../components/SettingsPanel';
 import { ShareCapture } from '../components/ShareCapture';
 import { StyleEditor } from '../components/StyleEditor';
 import { TagInjector } from '../components/TagInjector';
-import { Tooltip } from '../components/Tooltip';
+import { Tooltip } from '../components/common/Tooltip';
 import { useConnectionManager } from '../lib/connectionManager';
 import { Logger } from '../lib/logger';
 import '../styles/common.css';

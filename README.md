@@ -84,9 +84,12 @@ DOM Workbench is a Chrome extension designed to simplify DOM operations on web p
 │   ├── contentScript.ts         # Content script
 │   ├── sidepanel                # Side panel
 │   ├── components/              # React components
+|   |   |  ├── common/           # Common components
+|   |   |  └── utils/            # Utility components
 │   │   ├── DOMSelector.tsx      # DOM selection interface
 │   │   ├── SettingPanel.tsx     # Settings configuration
 │   │   ├── ShareCapture.tsx     # Capture sharing modal
+|   |   ├── StyleEditor.tsx      # Style modification interface
 │   │   └── TagInjection.tsx     # HTML tag injection
 │   ├── lib/                     # Core utilities
 │   └── utils/                   # Helper functions
