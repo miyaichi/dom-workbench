@@ -2,6 +2,7 @@ import { nanoid } from 'nanoid';
 import { ConnectionManager } from './lib/connectionManager';
 import { Logger } from './lib/logger';
 import { ElementInfo } from './types/domSelection';
+import { Context } from './types/messages';
 import { createElementInfo, getElementByPath } from './utils/domSelection';
 
 const logger = new Logger('contentScript');
@@ -9,9 +10,12 @@ const logger = new Logger('contentScript');
 class ContentScript {
   private static instance: ContentScript | null = null;
   private manager: ConnectionManager;
-  private isSelectionMode = false;
-  private hoveredElement: HTMLElement | null = null;
-  private selectedElementInfo: ElementInfo | null = null;
+  private context: Context = `content-${nanoid()}`;
+  private state = {
+    isSelectionMode: false,
+    selectedElementInfo: null as ElementInfo | null,
+    hoveredElement: null as HTMLElement | null,
+  };
 
   constructor() {
     this.manager = ConnectionManager.getInstance();
@@ -28,7 +32,7 @@ class ContentScript {
   private async initialize() {
     logger.log('Initializing ...');
     try {
-      this.manager.setContext(`content-${nanoid()}`);
+      this.manager.setContext(this.context);
       this.injectStyles();
       this.setupEventHandlers();
       logger.log('initialization complete');
@@ -86,6 +90,11 @@ class ContentScript {
     document.addEventListener('click', this.handleClick.bind(this), true);
 
     // Message subscribers
+    this.manager.subscribe('GET_CONTENT_STATE', async () => {
+      logger.debug('Received GET_CONTENT_STATE request');
+      await this.sendCurrentState();
+    });
+
     this.manager.subscribe('TOGGLE_SELECTION_MODE', (message) => {
       this.toggleSelectionMode(message.payload.enabled);
     });
@@ -99,31 +108,31 @@ class ContentScript {
   }
 
   private handleMouseOver(event: MouseEvent) {
-    if (!this.isSelectionMode) return;
+    if (!this.state.isSelectionMode) return;
 
     const target = event.target as HTMLElement;
     if (!target || target === document.body || target === document.documentElement) return;
 
-    if (this.hoveredElement && this.hoveredElement !== target) {
-      this.hoveredElement.classList.remove('extension-highlight');
+    if (this.state.hoveredElement && this.state.hoveredElement !== target) {
+      this.state.hoveredElement.classList.remove('extension-highlight');
     }
 
-    this.hoveredElement = target;
+    this.state.hoveredElement = target;
     target.classList.add('extension-highlight');
   }
 
   private handleMouseOut(event: MouseEvent) {
-    if (!this.isSelectionMode || !this.hoveredElement) return;
+    if (!this.state.isSelectionMode || !this.state.hoveredElement) return;
 
     const target = event.target as HTMLElement;
-    if (target === this.hoveredElement) {
+    if (target === this.state.hoveredElement) {
       target.classList.remove('extension-highlight');
-      this.hoveredElement = null;
+      this.state.hoveredElement = null;
     }
   }
 
   private handleClick(event: MouseEvent) {
-    if (!this.isSelectionMode) return;
+    if (!this.state.isSelectionMode) return;
 
     event.preventDefault();
     event.stopPropagation();
@@ -141,21 +150,29 @@ class ContentScript {
       el.classList.remove('extension-selected');
     });
 
-    this.selectedElementInfo = createElementInfo(element);
-    logger.debug('Element selected:', this.selectedElementInfo);
+    this.state.selectedElementInfo = createElementInfo(element);
+    logger.debug('Element selected:', this.state.selectedElementInfo);
 
     element.classList.remove('extension-highlight');
     element.classList.add('extension-selected');
 
     this.manager.sendMessage('ELEMENT_SELECTED', {
-      elementInfo: this.selectedElementInfo,
+      elementInfo: this.state.selectedElementInfo,
     });
   }
 
+  private async sendCurrentState() {
+    logger.log(`Sending current state ${this.state} from ${this.context}`);
+    await this.manager.sendMessage('CONTENT_STATE_UPDATE', {
+      isSelectionMode: this.state.isSelectionMode,
+      selectedElementInfo: this.state.selectedElementInfo,
+    });
+  }
+  
   private toggleSelectionMode(enabled: boolean) {
-    if (this.isSelectionMode === enabled) return;
+    if (this.state.isSelectionMode === enabled) return;
 
-    this.isSelectionMode = enabled;
+    this.state.isSelectionMode = enabled;
 
     if (!enabled) {
       this.clearSelection();
@@ -165,7 +182,7 @@ class ContentScript {
     document.body.classList.toggle('extension-selection-mode', enabled);
 
     logger.debug('Selection mode toggled:', {
-      enabled: this.isSelectionMode,
+      enabled: this.state.isSelectionMode,
       hasSelectionModeClass: document.documentElement.classList.contains(
         'extension-selection-mode'
       ),
@@ -174,9 +191,9 @@ class ContentScript {
 
   private clearSelection() {
     // Clear hovered element
-    if (this.hoveredElement) {
-      this.hoveredElement.classList.remove('extension-highlight');
-      this.hoveredElement = null;
+    if (this.state.hoveredElement) {
+      this.state.hoveredElement.classList.remove('extension-highlight');
+      this.state.hoveredElement = null;
     }
 
     // Clear selected elements
@@ -186,12 +203,12 @@ class ContentScript {
     });
 
     // Clear selected element info
-    if (this.selectedElementInfo) {
-      logger.debug('Element unselected:', this.selectedElementInfo);
+    if (this.state.selectedElementInfo) {
+      logger.debug('Element unselected:', this.state.selectedElementInfo);
       this.manager.sendMessage('ELEMENT_UNSELECTED', {
-        elementInfo: this.selectedElementInfo,
+        elementInfo: this.state.selectedElementInfo,
       });
-      this.selectedElementInfo = null;
+      this.state.selectedElementInfo = null;
     }
   }
 }
