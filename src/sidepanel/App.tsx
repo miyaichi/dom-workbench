@@ -1,5 +1,5 @@
 import { Camera, Power, Settings } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { DOMSelector } from '../components/DOMSelector';
 import { SettingsPanel } from '../components/SettingsPanel';
 import { ShareCapture } from '../components/ShareCapture';
@@ -24,69 +24,82 @@ export const App = () => {
   const [styleModifications, setStyleModifications] = useState<StyleModification[]>([]);
   const { sendMessage, subscribe } = useConnectionManager();
 
-  // Cleanup
-  const cleanup = () => {
-    logger.log('Cleaning up');
+  // Memoize handlers to prevent unnecessary re-renders
+  const handleTabActivated = useCallback(() => {
+    logger.log('Tab activated, cleaning up');
+    setShowSettings(false);
+    setShowShareCapture(false);
+  }, []);
+
+  const handleContentStateUpdate = useCallback((message: any) => {
+    const { isSelectionMode, selectedElementInfo } = message.payload;
+    setIsSelectionMode(isSelectionMode);
+    setSelectedElement(selectedElementInfo);
+  }, []);
+
+  const handleElementSelected = useCallback((message: { payload: { elementInfo: ElementInfo } }) => {
+    logger.log('Element selected:', message.payload.elementInfo);
+    setSelectedElement(message.payload.elementInfo);
+  }, []);
+
+  const handleElementUnselected = useCallback(() => {
+    logger.log('Element unselected');
     setSelectedElement(null);
-    setIsSelectionMode(false);
-    sendMessage('TOGGLE_SELECTION_MODE', { enabled: false });
-    if (showSettings) {
-      setShowSettings(false);
+  }, []);
+
+  const handleCaptureResult = useCallback((message: any) => {
+    logger.log('Capture result:', message.payload);
+    const { success, imageDataUrl, error, url } = message.payload;
+
+    if (success) {
+      setImageDataUrl(imageDataUrl || null);
+      setCaptureDataUrl(url || '');
+    } else {
+      logger.error('Capture failed:', error);
     }
-    if (showShareCapture) {
-      setShowShareCapture(false);
-    }
-  };
+  }, []);
 
   // Monitor visibility change
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden) {
         logger.log('Document hidden, cleaning up');
-        cleanup();
+        setShowSettings(false);
+        setShowShareCapture(false);
       }
     };
 
-    logger.log('Monitoring visibility change');
     document.addEventListener('visibilitychange', handleVisibilityChange);
-  }, [isSelectionMode, showSettings]);
-
-  // Message subscriptions
-  useEffect(() => {
-    const subscriotions = [
-      subscribe('TAB_ACTIVATED', () => {
-        logger.log('Tab activated, cleaning up');
-        cleanup();
-      }),
-
-      subscribe('ELEMENT_SELECTED', (message: { payload: { elementInfo: ElementInfo } }) => {
-        logger.log('Element selected:', message.payload.elementInfo);
-        setSelectedElement(message.payload.elementInfo);
-      }),
-
-      subscribe('ELEMENT_UNSELECTED', () => {
-        logger.log('Element unselected');
-        setSelectedElement(null);
-      }),
-
-      subscribe('CAPTURE_TAB_RESULT', (message) => {
-        logger.log('Capture result:', message.payload);
-        const { success, imageDataUrl, error, url } = message.payload;
-
-        if (success) {
-          setImageDataUrl(imageDataUrl || null);
-          setCaptureDataUrl(url || '');
-        } else {
-          logger.error('Capture failed:', error);
-        }
-      }),
-    ];
-
-    // Clean up subscriptions
     return () => {
-      subscriotions.forEach((unsubscribe) => unsubscribe());
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
+
+  // Setup message subscriptions
+  useEffect(() => {
+    let mounted = true;
+    const subscriptions = new Map();
+
+    if (mounted) {
+      subscriptions.set('TAB_ACTIVATED', subscribe('TAB_ACTIVATED', handleTabActivated));
+      subscriptions.set('CONTENT_STATE_UPDATE', subscribe('CONTENT_STATE_UPDATE', handleContentStateUpdate));
+      subscriptions.set('ELEMENT_SELECTED', subscribe('ELEMENT_SELECTED', handleElementSelected));
+      subscriptions.set('ELEMENT_UNSELECTED', subscribe('ELEMENT_UNSELECTED', handleElementUnselected));
+      subscriptions.set('CAPTURE_TAB_RESULT', subscribe('CAPTURE_TAB_RESULT', handleCaptureResult));
+    }
+
+    return () => {
+      mounted = false;
+      subscriptions.forEach(unsubscribe => unsubscribe());
+      subscriptions.clear();
+    };
+  }, [
+    handleTabActivated,
+    handleContentStateUpdate,
+    handleElementSelected,
+    handleElementUnselected,
+    handleCaptureResult
+  ]);
 
   const handleCapture = () => {
     setShowShareCapture(true);
