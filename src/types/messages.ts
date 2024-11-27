@@ -1,7 +1,7 @@
 import { Properties as CSSStyleDeclaration } from 'csstype';
 import { ElementInfo } from './domSelection';
 
-export type StaticContext = 'background' | 'sidepanel' | 'content' | 'undefined';
+export type StaticContext = 'background' | 'sidepanel' | 'undefined';
 export type ContentContext = `content-${string}`;
 export type Context = StaticContext | ContentContext;
 
