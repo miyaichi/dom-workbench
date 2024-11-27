@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import './Tooltip.css';
 
 interface TooltipProps {
   /** The content to be displayed inside the tooltip */
