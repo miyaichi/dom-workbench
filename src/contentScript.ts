@@ -142,7 +142,7 @@ class ContentScript {
     });
 
     this.selectedElementInfo = createElementInfo(element);
-    logger.debug('cElement selected:', this.selectedElementInfo);
+    logger.debug('Element selected:', this.selectedElementInfo);
 
     element.classList.remove('extension-highlight');
     element.classList.add('extension-selected');
