@@ -363,8 +363,9 @@ export class ConnectionManager implements IConnectionManager {
   }
 }
 
-export const useConnectionManager = () => {
+export const useConnectionManager = (context: Context) => {
   const manager = ConnectionManager.getInstance();
+  manager.setContext(context);
   return {
     sendMessage: manager.sendMessage.bind(manager),
     subscribe: manager.subscribe.bind(manager),

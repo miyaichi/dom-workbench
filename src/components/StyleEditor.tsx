@@ -1,6 +1,5 @@
 import { Check, Plus, Search, X } from 'lucide-react';
 import React, { useCallback, useMemo, useState } from 'react';
-import { useConnectionManager } from '../lib/connectionManager';
 import { Logger } from '../lib/logger';
 import { ElementInfo, StyleModification } from '../types/domSelection';
 import { Card } from './Card';
@@ -9,7 +8,7 @@ import './StyleEditor.css';
 interface StyleEditorProps {
   /** The currently selected element */
   selectedElement: ElementInfo | null;
-  /** Callback function to handle style changes */
+  /** Callback function to handle style modifications */
   onStylesChange?: (modifications: StyleModification[]) => void;
 }
 
@@ -33,21 +32,9 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({ selectedElement, onSty
   const [isAdding, setIsAdding] = useState(false);
 
   // Utility instances
-  const { subscribe, sendMessage } = useConnectionManager();
   const logger = new Logger('StyleEditor');
 
   // Memoized functions that depend on props or state
-  const updateElementStyle = useCallback(
-    (property: keyof CSSStyleDeclaration, value: string) => {
-      sendMessage('UPDATE_ELEMENT_STYLE', {
-        path: selectedElement?.path ?? [],
-        style: { [property]: value },
-      });
-      logger.log('Style updated:', property, value);
-    },
-    [selectedElement?.path, sendMessage]
-  );
-
   const notifyStyleChanges = useCallback(
     (newStyles: Record<string, string>) => {
       const modifications = Object.entries(newStyles).map(([prop, val]) => ({
@@ -73,7 +60,10 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({ selectedElement, onSty
         };
 
         setTimeout(() => notifyStyleChanges(newStyles), 0);
-        updateElementStyle(property, value);
+        //
+        // Apply the new style to selected element
+        // Under development
+        //
         return newStyles;
       }
 

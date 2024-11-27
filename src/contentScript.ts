@@ -161,17 +161,23 @@ class ContentScript {
     element.classList.remove('extension-highlight');
     element.classList.add('extension-selected');
 
-    this.manager.sendMessage('ELEMENT_SELECTED', {
-      elementInfo: this.state.selectedElementInfo,
-    });
+    this.manager.sendMessage(
+      'ELEMENT_SELECTED',
+      { elementInfo: this.state.selectedElementInfo },
+      'sidepanel'
+    );
   }
 
   private async sendCurrentState() {
     logger.log(`Sending current state ${this.state} from ${this.context}`);
-    await this.manager.sendMessage('CONTENT_STATE_UPDATE', {
-      isSelectionMode: this.state.isSelectionMode,
-      selectedElementInfo: this.state.selectedElementInfo,
-    });
+    await this.manager.sendMessage(
+      'CONTENT_STATE_UPDATE',
+      {
+        isSelectionMode: this.state.isSelectionMode,
+        selectedElementInfo: this.state.selectedElementInfo,
+      },
+      'sidepanel'
+    );
   }
 
   private toggleSelectionMode(enabled: boolean) {

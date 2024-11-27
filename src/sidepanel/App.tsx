@@ -17,6 +17,7 @@ import './App.css';
 const logger = new Logger('SidePanel');
 
 export const App = () => {
+  const [currentTabId, setCurrentTabId] = useState<number | null>(null);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showShareCapture, setShowShareCapture] = useState(false);
@@ -24,12 +25,21 @@ export const App = () => {
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [captureUrl, setCaptureDataUrl] = useState<string | null>(null);
   const [styleModifications, setStyleModifications] = useState<StyleModification[]>([]);
-  const { sendMessage, subscribe } = useConnectionManager();
+  const { sendMessage, subscribe } = useConnectionManager('sidepanel');
+
+  useEffect(() => {
+    chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
+      if (tab?.id) {
+        setCurrentTabId(tab.id);
+      }
+    });
+  }, []);
 
   const handleTabActivated = useCallback(
     async (message: { payload: { tabId: number } }) => {
       const { tabId } = message.payload;
       logger.debug('Tab activated with ID:', tabId);
+      setCurrentTabId(tabId);
       const contentScriptContext = getContentScriptContext(tabId);
       await sendMessage('GET_CONTENT_STATE', undefined, contentScriptContext);
     },
@@ -114,8 +124,9 @@ export const App = () => {
   ]);
 
   const handleCapture = () => {
+    if (!currentTabId) return;
     setShowShareCapture(true);
-    sendMessage('CAPTURE_TAB', undefined);
+    sendMessage('CAPTURE_TAB', undefined, 'background');
   };
 
   const handleShareClose = () => {
@@ -127,24 +138,17 @@ export const App = () => {
   };
 
   const handleOnSelectElement = (path: number[]) => {
-    sendMessage('SELECT_ELEMENT', { path });
+    if (!currentTabId) return;
+    const contentScriptContext = getContentScriptContext(currentTabId);
+    sendMessage('SELECT_ELEMENT', { path }, contentScriptContext);
   };
 
   const toggleSelectionMode = async () => {
-    try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (!tab?.id) {
-        logger.error('No active tab found');
-        return;
-      }
-
-      const enabled = !isSelectionMode;
-      setIsSelectionMode(enabled);
-      const contentScriptContext = getContentScriptContext(tab.id);
-      await sendMessage('TOGGLE_SELECTION_MODE', { enabled }, contentScriptContext);
-    } catch (error) {
-      logger.error('Failed to toggle selection mode:', error);
-    }
+    if (!currentTabId) return;
+    const enabled = !isSelectionMode;
+    setIsSelectionMode(enabled);
+    const contentScriptContext = getContentScriptContext(currentTabId);
+    await sendMessage('TOGGLE_SELECTION_MODE', { enabled }, contentScriptContext);
   };
 
   return (
