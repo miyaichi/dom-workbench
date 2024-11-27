@@ -78,11 +78,22 @@ export const App = () => {
   }, []);
 
   useEffect(() => {
-    const handleVisibilityChange = () => {
+    const handleVisibilityChange = async () => {
       if (document.hidden) {
         logger.log('Document hidden, cleaning up');
         setShowSettings(false);
         setShowShareCapture(false);
+
+        if (currentTabId && isSelectionMode) {
+          try {
+            const contentScriptContext = getContentScriptContext(currentTabId);
+            await sendMessage('TOGGLE_SELECTION_MODE', { enabled: false }, contentScriptContext);
+            logger.debug('Selection mode disable message sent');
+          } catch (error) {
+            logger.error('Failed to send disable selection mode message:', error);
+          }
+          setIsSelectionMode(false);
+        }
       }
     };
 
@@ -90,7 +101,7 @@ export const App = () => {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [currentTabId, isSelectionMode, sendMessage]);
 
   useEffect(() => {
     let mounted = true;
