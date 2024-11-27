@@ -1,12 +1,14 @@
 // src/background/background.ts
 import { ConnectionManager } from './lib/connectionManager';
 import { Logger } from './lib/logger';
+import { Context } from './types/messages';
 
 const logger = new Logger('Background');
 
 class BackgroundService {
   private static instance: BackgroundService | null = null;
   private manager: ConnectionManager;
+  private context: Context = 'background';
   private activeTabId: number | null = null;
 
   private constructor() {
@@ -50,7 +52,7 @@ class BackgroundService {
 
   // Message subscription
   private setupMessageSubscription(): void {
-    this.manager.setContext('background');
+    this.manager.setContext(this.context);
     this.manager.subscribe('CAPTURE_TAB', this.captureTab.bind(this));
   }
 
@@ -135,7 +137,12 @@ class BackgroundService {
   private async handleTabChange(tabId: number): Promise<void> {
     logger.debug('Handling tab change:', tabId);
     try {
+      // Change the context and clear the old message queue
+      this.manager.setContext(this.context);
+
+      // Send messages to the new tab
       await this.manager.sendMessage('TAB_ACTIVATED', undefined);
+      await this.manager.sendMessage('GET_CONTENT_STATE', undefined);
     } catch (error) {
       logger.error('Failed to send INITIALIZE_CONTENT message:', error);
     }

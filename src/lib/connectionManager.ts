@@ -25,7 +25,7 @@ export class ConnectionManager implements IConnectionManager {
   private static instance: ConnectionManager;
   private static readonly RECONNECT_DELAY = 1000;
   private static readonly INITIAL_CONNECTION_DELAY = 100;
-  private context: Context = 'content';
+  private context: Context = 'undefined';
   private port?: chrome.runtime.Port;
   private ports: Map<string, chrome.runtime.Port> = new Map();
   private messageHandlers: Map<MessageType, ((message: Message) => void)[]> = new Map();
@@ -73,15 +73,12 @@ export class ConnectionManager implements IConnectionManager {
    * Sets the context for the ConnectionManager instance and reinitializes connections
    */
   public setContext(context: Context) {
-    if (this.context === context) {
-      this.logger.debug('Context already set, skipping...');
-      return;
-    }
-
+    this.logger.debug('Setting context:', context);
     this.context = context;
     this.logger = new Logger(context);
     this.isSettingUp = false;
     this.isInvalidated = false;
+    this.messageQueue = [];
     this.setupConnections();
   }
 
@@ -251,7 +248,7 @@ export class ConnectionManager implements IConnectionManager {
   }
 
   private handleMessage(message: Message) {
-    this.logger.debug('Handling message:', message);
+    this.logger.debug('Handling message:', message, this.context);
     const handlers = this.messageHandlers.get(message.type) || [];
     const debugHandlers = this.messageHandlers.get('DEBUG' as MessageType) || [];
     [...handlers, ...debugHandlers].forEach((handler) => handler(message));
