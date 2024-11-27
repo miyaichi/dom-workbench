@@ -1,8 +1,9 @@
-import { nanoid } from 'nanoid';
+// src/contentScript.ts
 import { ConnectionManager } from './lib/connectionManager';
 import { Logger } from './lib/logger';
 import { ElementInfo } from './types/domSelection';
 import { Context } from './types/messages';
+import { getContentScriptContext } from './utils/contextHelpers';
 import { createElementInfo, getElementByPath } from './utils/domSelection';
 
 const logger = new Logger('contentScript');
@@ -10,21 +11,25 @@ const logger = new Logger('contentScript');
 class ContentScript {
   private static instance: ContentScript | null = null;
   private manager: ConnectionManager;
-  private context: Context = `content-${nanoid()}`;
+  private context: Context;
   private state = {
     isSelectionMode: false,
     selectedElementInfo: null as ElementInfo | null,
     hoveredElement: null as HTMLElement | null,
   };
 
-  constructor() {
+  constructor(sender: chrome.runtime.MessageSender) {
+    if (!sender.tab?.id) {
+      throw new Error('Tab ID not available');
+    }
+    this.context = getContentScriptContext(sender.tab.id);
     this.manager = ConnectionManager.getInstance();
     this.initialize();
   }
 
-  public static getInstance(): ContentScript {
+  public static getInstance(sender: chrome.runtime.MessageSender): ContentScript {
     if (!ContentScript.instance) {
-      ContentScript.instance = new ContentScript();
+      ContentScript.instance = new ContentScript(sender);
     }
     return ContentScript.instance;
   }
@@ -168,7 +173,7 @@ class ContentScript {
       selectedElementInfo: this.state.selectedElementInfo,
     });
   }
-  
+
   private toggleSelectionMode(enabled: boolean) {
     if (this.state.isSelectionMode === enabled) return;
 
@@ -213,10 +218,22 @@ class ContentScript {
   }
 }
 
+// ContentScript initialization
 const contentScriptInstances = new WeakMap<Window, ContentScript>();
+
+// Ensure content script is initialized immediately
 if (!contentScriptInstances.has(window)) {
-  logger.log('Initializing ...');
-  contentScriptInstances.set(window, new ContentScript());
-} else {
-  logger.log('Already initialized');
+  logger.log('Initializing content script...');
+  chrome.runtime.sendMessage({ type: 'GET_TAB_ID' }, (response) => {
+    if (chrome.runtime.lastError) {
+      logger.error('Failed to get tab ID:', chrome.runtime.lastError);
+      return;
+    }
+
+    const sender = {
+      tab: { id: response.tabId },
+    } as chrome.runtime.MessageSender;
+
+    contentScriptInstances.set(window, new ContentScript(sender));
+  });
 }

@@ -6,7 +6,7 @@ export type ContentContext = `content-${string}`;
 export type Context = StaticContext | ContentContext;
 
 export interface Messages {
-  TAB_ACTIVATED: void;
+  TAB_ACTIVATED: { tabId: number };
   GET_CONTENT_STATE: void;
   CONTENT_STATE_UPDATE: { isSelectionMode: boolean; selectedElementInfo: ElementInfo | null };
   TOGGLE_SELECTION_MODE: { enabled: boolean };

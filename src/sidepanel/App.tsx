@@ -1,3 +1,4 @@
+// src/App.tsx
 import { Camera, Power, Settings } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { DOMSelector } from '../components/DOMSelector';
@@ -10,6 +11,7 @@ import { useConnectionManager } from '../lib/connectionManager';
 import { Logger } from '../lib/logger';
 import '../styles/common.css';
 import { ElementInfo, StyleModification } from '../types/domSelection';
+import { getContentScriptContext } from '../utils/contextHelpers';
 import './App.css';
 
 const logger = new Logger('SidePanel');
@@ -24,12 +26,15 @@ export const App = () => {
   const [styleModifications, setStyleModifications] = useState<StyleModification[]>([]);
   const { sendMessage, subscribe } = useConnectionManager();
 
-  // Memoize handlers to prevent unnecessary re-renders
-  const handleTabActivated = useCallback(() => {
-    logger.log('Tab activated, cleaning up');
-    setShowSettings(false);
-    setShowShareCapture(false);
-  }, []);
+  const handleTabActivated = useCallback(
+    async (message: { payload: { tabId: number } }) => {
+      const { tabId } = message.payload;
+      logger.debug('Tab activated with ID:', tabId);
+      const contentScriptContext = getContentScriptContext(tabId);
+      await sendMessage('GET_CONTENT_STATE', undefined, contentScriptContext);
+    },
+    [sendMessage]
+  );
 
   const handleContentStateUpdate = useCallback((message: any) => {
     const { isSelectionMode, selectedElementInfo } = message.payload;
@@ -37,10 +42,13 @@ export const App = () => {
     setSelectedElement(selectedElementInfo);
   }, []);
 
-  const handleElementSelected = useCallback((message: { payload: { elementInfo: ElementInfo } }) => {
-    logger.log('Element selected:', message.payload.elementInfo);
-    setSelectedElement(message.payload.elementInfo);
-  }, []);
+  const handleElementSelected = useCallback(
+    (message: { payload: { elementInfo: ElementInfo } }) => {
+      logger.log('Element selected:', message.payload.elementInfo);
+      setSelectedElement(message.payload.elementInfo);
+    },
+    []
+  );
 
   const handleElementUnselected = useCallback(() => {
     logger.log('Element unselected');
@@ -59,7 +67,6 @@ export const App = () => {
     }
   }, []);
 
-  // Monitor visibility change
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden) {
@@ -75,22 +82,27 @@ export const App = () => {
     };
   }, []);
 
-  // Setup message subscriptions
   useEffect(() => {
     let mounted = true;
     const subscriptions = new Map();
 
     if (mounted) {
       subscriptions.set('TAB_ACTIVATED', subscribe('TAB_ACTIVATED', handleTabActivated));
-      subscriptions.set('CONTENT_STATE_UPDATE', subscribe('CONTENT_STATE_UPDATE', handleContentStateUpdate));
+      subscriptions.set(
+        'CONTENT_STATE_UPDATE',
+        subscribe('CONTENT_STATE_UPDATE', handleContentStateUpdate)
+      );
       subscriptions.set('ELEMENT_SELECTED', subscribe('ELEMENT_SELECTED', handleElementSelected));
-      subscriptions.set('ELEMENT_UNSELECTED', subscribe('ELEMENT_UNSELECTED', handleElementUnselected));
+      subscriptions.set(
+        'ELEMENT_UNSELECTED',
+        subscribe('ELEMENT_UNSELECTED', handleElementUnselected)
+      );
       subscriptions.set('CAPTURE_TAB_RESULT', subscribe('CAPTURE_TAB_RESULT', handleCaptureResult));
     }
 
     return () => {
       mounted = false;
-      subscriptions.forEach(unsubscribe => unsubscribe());
+      subscriptions.forEach((unsubscribe) => unsubscribe());
       subscriptions.clear();
     };
   }, [
@@ -98,7 +110,7 @@ export const App = () => {
     handleContentStateUpdate,
     handleElementSelected,
     handleElementUnselected,
-    handleCaptureResult
+    handleCaptureResult,
   ]);
 
   const handleCapture = () => {
@@ -118,10 +130,21 @@ export const App = () => {
     sendMessage('SELECT_ELEMENT', { path });
   };
 
-  const toggleSelectionMode = () => {
-    const enabled = !isSelectionMode;
-    setIsSelectionMode(enabled);
-    sendMessage('TOGGLE_SELECTION_MODE', { enabled: enabled });
+  const toggleSelectionMode = async () => {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tab?.id) {
+        logger.error('No active tab found');
+        return;
+      }
+
+      const enabled = !isSelectionMode;
+      setIsSelectionMode(enabled);
+      const contentScriptContext = getContentScriptContext(tab.id);
+      await sendMessage('TOGGLE_SELECTION_MODE', { enabled }, contentScriptContext);
+    } catch (error) {
+      logger.error('Failed to toggle selection mode:', error);
+    }
   };
 
   return (

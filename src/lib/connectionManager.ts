@@ -1,5 +1,6 @@
 import { nanoid } from 'nanoid';
 import { Context, Message, MessageType, Messages } from '../types/messages';
+import { getTabIdFromContext, isContentScriptContext } from '../utils/contextHelpers';
 import { Logger } from './logger';
 import { loadSettings } from './settings';
 
@@ -37,7 +38,7 @@ export class ConnectionManager implements IConnectionManager {
     isSettingUp: false,
     isInvalidated: false,
     messageQueue: [],
-    port: undefined
+    port: undefined,
   };
   private logger: Logger;
 
@@ -87,7 +88,7 @@ export class ConnectionManager implements IConnectionManager {
       isSettingUp: false,
       isInvalidated: false,
       messageQueue: [],
-      port: undefined
+      port: undefined,
     };
     this.processedMessageIds.clear();
   }
@@ -117,7 +118,7 @@ export class ConnectionManager implements IConnectionManager {
 
     try {
       this.state.port = chrome.runtime.connect({
-        name: `${this.context}-${Date.now()}`
+        name: `${this.context}-${Date.now()}`,
       });
       this.logger.log(`Connected successfully as ${this.state.port.name}`);
 
@@ -190,7 +191,7 @@ export class ConnectionManager implements IConnectionManager {
       .filter(([name]) => name.startsWith(message.target!))
       .map(([, port]) => port);
 
-    targetPorts.forEach(targetPort => {
+    targetPorts.forEach((targetPort) => {
       if (targetPort !== sourcePort) {
         targetPort.postMessage(message);
       }
@@ -301,15 +302,22 @@ export class ConnectionManager implements IConnectionManager {
     this.logger.debug('Handling message:', message, this.context);
     const handlers = [
       ...(this.messageHandlers.get(message.type) || []),
-      ...(this.messageHandlers.get('DEBUG' as MessageType) || [])
+      ...(this.messageHandlers.get('DEBUG' as MessageType) || []),
     ];
-    handlers.forEach(handler => handler(message));
+    handlers.forEach((handler) => handler(message));
   }
 
   private broadcast(message: Message, excludePort?: chrome.runtime.Port) {
     if (this.context !== 'background') return;
 
     this.ports.forEach((port) => {
+      // Only broadcast to content script contexts if target is specified
+      if (message.target && isContentScriptContext(message.target)) {
+        const targetTabId = getTabIdFromContext(message.target);
+        const portTabId = getTabIdFromContext(port.name as Context);
+        if (targetTabId !== portTabId) return;
+      }
+
       if (port !== excludePort) {
         try {
           port.postMessage(message);

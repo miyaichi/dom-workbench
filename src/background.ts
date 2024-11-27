@@ -2,6 +2,7 @@
 import { ConnectionManager } from './lib/connectionManager';
 import { Logger } from './lib/logger';
 import { Context } from './types/messages';
+import { getContentScriptContext } from './utils/contextHelpers';
 
 const logger = new Logger('Background');
 
@@ -16,7 +17,6 @@ class BackgroundService {
     this.initialize();
   }
 
-  // Singleton instance getter
   public static getInstance(): BackgroundService {
     if (!BackgroundService.instance) {
       BackgroundService.instance = new BackgroundService();
@@ -24,7 +24,6 @@ class BackgroundService {
     return BackgroundService.instance;
   }
 
-  // Initialize the background service
   private async initialize(): Promise<void> {
     logger.log('Initializing ...');
     try {
@@ -40,7 +39,6 @@ class BackgroundService {
     }
   }
 
-  // Extension installed listener
   private setupInstallListener(): void {
     chrome.runtime.onInstalled.addListener(() => {
       logger.log('Extension installed');
@@ -50,13 +48,18 @@ class BackgroundService {
     });
   }
 
-  // Message subscription
   private setupMessageSubscription(): void {
     this.manager.setContext(this.context);
     this.manager.subscribe('CAPTURE_TAB', this.captureTab.bind(this));
+
+    // Add listener for GET_TAB_ID message
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (message.type === 'GET_TAB_ID' && sender.tab?.id) {
+        sendResponse({ tabId: sender.tab.id });
+      }
+    });
   }
 
-  // Capture the visible tab and send the result back to the content script
   private async captureTab(): Promise<void> {
     logger.log('Received CAPTURE_TAB message');
     try {
@@ -88,7 +91,6 @@ class BackgroundService {
     }
   }
 
-  // Tab activated listener
   private setupTabListeners(): void {
     chrome.tabs.onActivated.addListener(async (activeInfo) => {
       logger.debug('Tab activated:', activeInfo.tabId);
@@ -104,7 +106,6 @@ class BackgroundService {
     });
   }
 
-  // Window event listeners setup
   private setupWindowListeners(): void {
     chrome.windows.onFocusChanged.addListener(async (windowId) => {
       if (windowId !== chrome.windows.WINDOW_ID_NONE) {
@@ -120,7 +121,6 @@ class BackgroundService {
     });
   }
 
-  // Initialize the active tab
   private async initializeActiveTab(): Promise<void> {
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -133,22 +133,22 @@ class BackgroundService {
     }
   }
 
-  // Active tab change handler
   private async handleTabChange(tabId: number): Promise<void> {
     logger.debug('Handling tab change:', tabId);
     try {
+      const contentScriptContext = getContentScriptContext(tabId);
+
       // Change the context and clear the old message queue
       this.manager.setContext(this.context);
 
-      // Send messages to the new tab
-      await this.manager.sendMessage('TAB_ACTIVATED', undefined);
-      await this.manager.sendMessage('GET_CONTENT_STATE', undefined);
+      // Send messages to the specific content script
+      await this.manager.sendMessage('TAB_ACTIVATED', { tabId }, contentScriptContext);
+      await this.manager.sendMessage('GET_CONTENT_STATE', undefined, contentScriptContext);
     } catch (error) {
-      logger.error('Failed to send INITIALIZE_CONTENT message:', error);
+      logger.error('Failed to send GET_CONTENT_STATE message:', error);
     }
   }
 
-  // Initialize the side panel
   private async initializeSidePanel(): Promise<void> {
     try {
       await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
