@@ -1,3 +1,4 @@
+import { nanoid } from 'nanoid';
 import { ConnectionManager } from './lib/connectionManager';
 import { Logger } from './lib/logger';
 import { ElementInfo } from './types/domSelection';
@@ -27,7 +28,7 @@ class ContentScript {
   private async initialize() {
     logger.log('Initializing ...');
     try {
-      this.manager.setContext('content');
+      this.manager.setContext(`content-${nanoid()}`);
       this.injectStyles();
       this.setupEventHandlers();
       logger.log('initialization complete');
@@ -141,7 +142,7 @@ class ContentScript {
     });
 
     this.selectedElementInfo = createElementInfo(element);
-    logger.debug('Element selected:', this.selectedElementInfo);
+    logger.debug('cElement selected:', this.selectedElementInfo);
 
     element.classList.remove('extension-highlight');
     element.classList.add('extension-selected');
