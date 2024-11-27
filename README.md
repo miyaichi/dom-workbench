@@ -1,19 +1,53 @@
 # DOM Workbench
 
-DOM Workbench is a Chrome extension designed to simplify DOM operations on web pages. It offers features such as screen capturing of selected DOM elements, adding comments, editing computed styles, and sharing annotated captures in PDF or PPT formats.
+DOM Workbench is a Chrome extension designed to simplify DOM operations on web pages. It provides a powerful side panel interface for DOM element inspection, manipulation, and capture sharing capabilities.
 
 ## Features
 
-- **Select and Display DOM Elements**: Easily select DOM elements and view their information.
-- **Screen Capture with Annotations**: Capture selected elements and add comments directly.
-- **Edit Computed Styles**: Modify the computed styles of elements in real-time.
-- **Share Captures**: Export annotated captures as PDF or PPT files for sharing.
-- **Intuitive Side Panel UI**: Navigate and operate through a user-friendly side panel interface.
+### DOM Selection and Navigation
+- **Interactive DOM Element Selection**: Click to select any DOM element on the page
+- **DOM Path Display**: View the full DOM path of selected elements
+- **Parent Navigation**: Easily navigate to parent elements using the dedicated button
+- **DOM Tree View**: Visualize and interact with the DOM structure
+
+### Element Manipulation
+- **Tag Injection**:
+  - Inject custom HTML tags into selected elements
+  - Real-time HTML tag validation
+  - Safe injection with dangerous element checking
+  - Add or remove injected tags dynamically
+
+### Screen Capture and Sharing
+- **Element Capture**: Take screenshots of selected DOM elements
+- **Annotation Support**: Add comments to captured elements
+- **Multiple Export Formats**: Share captures as PDF or PPT
+- **Contextual Information**: Automatically includes:
+  - Page URL
+  - DOM path
+  - Element tag information
+  - Applied style modifications
+
+### Style Management
+- **Style Modifications**: Track and display style changes applied to elements
+- **Style Preview**: See style changes in real-time
+- **Style History**: Keep track of all style modifications
+
+### Configuration
+- **Customizable Settings**:
+  - Log Level configuration (Error, Warning, Info, Debug)
+  - Share Format preference (PDF/PPT)
+- **Persistent Settings**: Settings are saved and maintained between sessions
 
 ## Technology Stack
 
 - **Language**: TypeScript
-- **Library/Framework**: React
+- **Framework**: React with Hooks
+- **UI Components**: 
+  - Custom Card components
+  - Tooltips
+  - Modal dialogs
+  - Tree views
+- **Icons**: Lucide React icons
 - **Tools**: Webpack, PostCSS
 
 ## Installation and Setup
@@ -32,69 +66,57 @@ DOM Workbench is a Chrome extension designed to simplify DOM operations on web p
    npm run build
    ```
 4. **Load the Extension into Chrome**
-   - Open Chrome and navigate to `chrome://extensions/`.
-   - Enable "Developer mode" in the top right corner.
-   - Click "Load unpacked" and select the `dist` directory from the project.
-
-## Usage
-
-1. Click the DOM Workbench extension icon to open the side panel.
-2. Use the DOM selector tool to click on the element you wish to select.
-3. Utilize the screen capture tool to capture the selected element.
-4. Add comments or edit computed styles as needed.
-5. Share your annotated capture by exporting it as a PDF or PPT file.
+   - Open Chrome and navigate to `chrome://extensions/`
+   - Enable "Developer mode"
+   - Click "Load unpacked" and select the `dist` directory
 
 ## Directory Structure
 
 ```plaintext
 ├── assets/
-│   └── fonts/                   # Font files
+│   └── fonts/                   # Font files for PDF creation
 ├── dist/                        # Compiled files (git ignored)
 ├── node_modules/                # Node modules (git ignored)
 ├── public/
 │   └── sidepanel.html           # Side panel HTML
 ├── src/
 │   ├── background.ts            # Background script
-│   ├── components/
-│   │   ├── utils/               # Component-specific utilities
-│   │   │   └── htmlTagFormatter.tsx # HTML tag formatting utility
-│   │   ├── DOMSelector.css
-│   │   ├── DOMSelector.tsx      # DOM selector component
-│   │   ├── SettingPanel.css
-│   │   ├── SettingPanel.tsx     # Settings panel component
-│   │   ├── ShareCapture.css
-│   │   ├── ShareCapture.tsx     # Share capture component
-│   │   ├── TagInjection.css
-│   │   └── TagInjection.tsx     # Tag injection component
 │   ├── contentScript.ts         # Content script
-│   ├── lib/
-│   │   ├── connectionManager.ts # Connection manager
-│   │   ├── logger.ts            # Logger utility
-│   │   ├── settings.ts          # Settings management
-│   │   ├── shareAsPDF.ts        # PDF export functionality
-│   │   └── shareAsPPT.ts        # PPT export functionality
-│   ├── sidepanel/
-│   │   ├── App.css
-│   │   ├── App.tsx              # Side panel application
-│   │   └── index.tsx
-│   ├── styles/
-│   │   └── common.css           # Common styles
-│   └── utils/                   # General utilities
-│       ├── domSelection.ts      # DOM selection utility
-│       ├── download.ts          # Download utility
-│       └── formatter.ts         # Formatter utility
-├── .gitignore                   # Git ignore file
-├── .prettierrc                  # Prettier configuration
-├── custom.d.ts                  # Custom type definitions
-├── LICENSE                      # License file
-├── manifest.json                # Chrome extension manifest
-├── package-lock.json            # NPM lock file
-├── package.json                 # NPM configuration
-├── postcss.config.js            # PostCSS configuration
-├── README.md                    # Readme file
-├── tsconfig.json                # TypeScript configuration
-└── webpack.config.js            # Webpack configuration
+│   ├── sidepanel                # Side panel
+│   ├── components/              # React components
+│   │   ├── DOMSelector.tsx      # DOM selection interface
+│   │   ├── SettingPanel.tsx     # Settings configuration
+│   │   ├── ShareCapture.tsx     # Capture sharing modal
+│   │   └── TagInjection.tsx     # HTML tag injection
+│   ├── lib/                     # Core utilities
+│   └── utils/                   # Helper functions
+└── [Other configuration files]
 ```
+
+## Usage Guide
+
+1. **DOM Selection**
+   - Click the DOM Workbench extension icon to open the side panel
+   - Use the DOM selector to click and select page elements
+   - Navigate the DOM hierarchy using the parent navigation button
+   - View detailed element information in the DOM tree view
+
+2. **Tag Injection**
+   - Select a target element
+   - Enter valid HTML in the tag injector
+   - Click "Inject" to add the tag
+   - Use "Remove" to revert changes
+
+3. **Screen Capture and Sharing**
+   - Select an element to capture
+   - Add comments in the capture modal
+   - Choose between PDF or PPT export format
+   - Share the annotated capture with included context
+
+4. **Settings Configuration**
+   - Adjust log levels for debugging
+   - Set preferred sharing format
+   - Access settings through the settings panel
 
 ## License
 
@@ -102,7 +124,12 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ## Contributing
 
-Contributions are welcome! Please fork the repository and submit a pull request with your changes.
+Contributions are welcome! Please follow these steps:
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Submit a pull request
 
 ## Contact
 
