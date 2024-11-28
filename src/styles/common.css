@@ -1,5 +1,6 @@
-/* common styles */
+/* Variables */
 :root {
+  /* Colors */
   --primary-color: #3b82f6;
   --text-color: #1f2937;
   --text-color-secondary: #6b7280;
@@ -8,15 +9,22 @@
   --bg-color-white: #ffffff;
   --hover-color: #f3f4f6;
   --focus-ring-color: #3b82f6;
+
+  /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+
+  /* Tree View */
   --tree-indent: 0.75rem;
   --tree-line-color: #e5e7eb;
   --tree-chevron-color: #6b7280;
   --tree-tag-color: #2563eb;
+
+  /* Typography */
   --monospace-font: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
+/* Base styles */
 *,
 *::before,
 *::after {
@@ -42,7 +50,7 @@ button:hover {
   background-color: var(--hover-color);
 }
 
-/* Commmom card style */
+/* Card Component */
 .card {
   background-color: var(--bg-color-white);
   border-radius: 8px;
@@ -70,6 +78,7 @@ button:hover {
 
 .card-content {
   padding-top: 12px;
+  animation: slideDown 0.2s ease-out;
 }
 
 .card-actions {
@@ -78,7 +87,7 @@ button:hover {
   margin-top: 12px;
 }
 
-/* Button style */
+/* Button Component */
 .icon-button {
   padding: 8px;
   border-radius: 9999px;
@@ -97,23 +106,7 @@ button:hover {
   outline-offset: 2px;
 }
 
-/* Slide down animation */
-.card-content {
-  animation: slideDown 0.2s ease-out;
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Base style for tooltip */
+/* Tooltip Component */
 .tooltip {
   position: fixed;
   background-color: rgba(55, 65, 81, 0.9);
@@ -126,28 +119,25 @@ button:hover {
   overflow: hidden;
   text-overflow: ellipsis;
   z-index: 1000;
-  font-family: ui-monospace, monospace;
+  font-family: var(--monospace-font);
   box-shadow: var(--shadow-sm);
   backdrop-filter: blur(4px);
 }
 
-/* Tooltip container */
 .tooltip-container {
   position: relative;
   display: inline-block;
 }
 
-/* Extend style: Error tooltip */
 .tooltip.error {
   background-color: rgba(220, 38, 38, 0.9);
 }
 
-/* Extend style: Success tooltip */
 .tooltip.success {
   background-color: rgba(34, 197, 94, 0.9);
 }
 
-/* Tree view styles */
+/* Tree View Component */
 .tree-container {
   padding: 8px 0;
   font-family: var(--monospace-font);
@@ -214,4 +204,16 @@ button:hover {
   bottom: 0;
   width: 1px;
   background-color: var(--tree-line-color);
+}
+
+/* Animations */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
