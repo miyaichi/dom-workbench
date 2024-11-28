@@ -1,7 +1,5 @@
 import React from 'react';
 import { LogLevel, ShareFormat, useSettings } from '../lib/settings';
-import '../styles/common.css';
-import './SettingsPanel.css';
 
 /**
  * SettingsPanel component that allows users to configure application settings
@@ -16,7 +14,7 @@ export const SettingsPanel: React.FC = () => {
         <div className="card-header">
           <h2 className="card-title">Settings Error</h2>
         </div>
-        <div className="card-content error-message">Failed to load settings: {error}</div>
+        <div className="error-message">Failed to load settings: {error}</div>
       </div>
     );
   }
@@ -27,7 +25,7 @@ export const SettingsPanel: React.FC = () => {
         <div className="card-header">
           <h2 className="card-title">Settings</h2>
         </div>
-        <div className="card-content loading-message">Loading settings...</div>
+        <div className="loading-message">Loading settings...</div>
       </div>
     );
   }
@@ -50,7 +48,6 @@ export const SettingsPanel: React.FC = () => {
             <option value="debug">Debug</option>
           </select>
         </div>
-
         <div className="setting-group">
           <label>Share Format</label>
           <select

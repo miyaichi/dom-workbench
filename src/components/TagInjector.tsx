@@ -4,7 +4,6 @@ import { Logger } from '../lib/logger';
 import { ElementInfo } from '../types/domSelection';
 import { validateHtmlTag } from '../utils/htmlValidator';
 import { Card } from './common/Card';
-import './TagInjector.css';
 
 interface TagInjectorProps {
   /** The currently selected element */
@@ -61,23 +60,27 @@ export const TagInjector: React.FC<TagInjectorProps> = ({
 
   return (
     <Card title="Tag Injector" initialCollapsed={true}>
-      <textarea
-        value={injectedTag}
-        onChange={handleInjectTag}
-        placeholder="Add a tag..."
-        className={`injection-tag ${validationError ? 'error' : ''}`}
-      />
-      {validationError && (
-        <div className="error-message">{chrome.i18n.getMessage('tagInjectorValidationError')}</div>
-      )}
-      <button
-        className="inject-button"
-        onClick={handleOnClick}
-        disabled={injectedTag.length === 0 || validationError}
-      >
-        <Send size={16} />
-        {injected ? 'Remove' : 'Inject'}
-      </button>
+      <div className="tag-injector-content">
+        <textarea
+          value={injectedTag}
+          onChange={handleInjectTag}
+          placeholder="Add a tag..."
+          className={`injection-tag ${validationError ? 'error' : ''}`}
+        />
+        {validationError && (
+          <div className="error-message">
+            {chrome.i18n.getMessage('tagInjectorValidationError')}
+          </div>
+        )}
+        <button
+          className="inject-button"
+          onClick={() => setInjected(!injected)}
+          disabled={!injectedTag || validationError}
+        >
+          <Send size={16} />
+          {injected ? 'Remove' : 'Inject'}
+        </button>
+      </div>
     </Card>
   );
 };

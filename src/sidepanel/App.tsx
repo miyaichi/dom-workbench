@@ -11,7 +11,6 @@ import { Logger } from '../lib/logger';
 import '../styles/common.css';
 import { ElementInfo, StyleModification } from '../types/domSelection';
 import { getContentScriptContext } from '../utils/contextHelpers';
-import './App.css';
 
 const logger = new Logger('SidePanel');
 

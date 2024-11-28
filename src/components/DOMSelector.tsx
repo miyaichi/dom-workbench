@@ -5,7 +5,6 @@ import { ElementInfo } from '../types/domSelection';
 import { Card } from './common/Card';
 import { DOMTreeView } from './common/DOMTreeView';
 import { Tooltip } from './common/Tooltip';
-import './DOMSelector.css';
 
 interface DOMSelectorProps {
   /** The currently selected element */
@@ -56,24 +55,22 @@ export const DOMSelector: React.FC<DOMSelectorProps> = ({ selectedElement, onSel
 
   return (
     <Card title="DOM Selector">
-      <div className="card-content">
-        <div className="selected-element-info">
-          <div className="element-header">
-            <h3>Selected Element:</h3>
-            {hasParentElement(selectedElement) && (
-              <Tooltip content={chrome.i18n.getMessage('tooltipParentElement')}>
-                <button onClick={handleParentSelect} className="parent-nav-button">
-                  <ChevronUp size={16} />
-                </button>
-              </Tooltip>
-            )}
-          </div>
-          <Tooltip content={chrome.i18n.getMessage('labelDOMPath')}>
-            <div className="element-path">{selectedElement.path.join(' > ')}</div>
-          </Tooltip>
+      <div className="selected-element-info">
+        <div className="element-header">
+          <h3>Selected Element:</h3>
+          {hasParentElement(selectedElement) && (
+            <Tooltip content={chrome.i18n.getMessage('tooltipParentElement')}>
+              <button onClick={handleParentSelect} className="parent-nav-button">
+                <ChevronUp size={16} />
+              </button>
+            </Tooltip>
+          )}
         </div>
-        <DOMTreeView elementInfo={selectedElement} onSelect={handleElementInfoSelect} />
+        <Tooltip content={chrome.i18n.getMessage('labelDOMPath')}>
+          <div className="element-path">{selectedElement.path.join(' > ')}</div>
+        </Tooltip>
       </div>
+      <DOMTreeView elementInfo={selectedElement} onSelect={handleElementInfoSelect} />
     </Card>
   );
 };
