@@ -3,9 +3,9 @@ import React from 'react';
 import { Logger } from '../lib/logger';
 import { ElementInfo } from '../types/domSelection';
 import { Card } from './common/Card';
+import { DOMTreeView } from './common/DOMTreeView';
 import { Tooltip } from './common/Tooltip';
 import './DOMSelector.css';
-import { DOMTreeView } from './DOMTreeView';
 
 interface DOMSelectorProps {
   /** The currently selected element */

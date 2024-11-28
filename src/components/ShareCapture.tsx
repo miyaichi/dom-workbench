@@ -1,12 +1,12 @@
 import { Send, X } from 'lucide-react';
 import React, { useState } from 'react';
+import { formatElementTag } from '..//utils/htmlTagFormatter';
 import { Logger } from '../lib/logger';
 import { useSettings } from '../lib/settings';
 import { shareAsPDF } from '../lib/shareAsPDF';
 import { shareAsPPT } from '../lib/shareAsPPT';
 import { ElementInfo, StyleModification } from '../types/domSelection';
 import './ShareCapture.css';
-import { formatElementTag } from './utils/htmlTagFormatter';
 
 interface ShareCaptureProps {
   /** Callback function to close the modal */
