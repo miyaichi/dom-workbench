@@ -6,6 +6,8 @@ export interface ElementInfo {
   computedStyle: CSSStyleDeclaration;
   /** Array of indices representing the path from root to this element */
   path: number[];
+  /** Text content of the element */
+  textContent?: string;
   /** Child nodes in the element tree */
   children: ElementInfo[];
 }
