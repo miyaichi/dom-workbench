@@ -79,7 +79,7 @@ class BackgroundService {
         success: true,
         imageDataUrl,
         url: tab.url ?? null,
-      });
+      }, 'sidepanel');
     } catch (error) {
       logger.error('Failed to capture tab:', error);
       await this.manager.sendMessage('CAPTURE_TAB_RESULT', {
@@ -87,7 +87,7 @@ class BackgroundService {
         error: error instanceof Error ? error.message : 'Unknown error',
         imageDataUrl: undefined,
         url: null,
-      });
+      }, 'sidepanel');
     }
   }
 
@@ -142,7 +142,7 @@ class BackgroundService {
       this.manager.setContext(this.context);
 
       // Send messages to the specific content script
-      await this.manager.sendMessage('TAB_ACTIVATED', { tabId }, contentScriptContext);
+      await this.manager.sendMessage('TAB_ACTIVATED', { tabId }, 'sidepanel');
       await this.manager.sendMessage('GET_CONTENT_STATE', undefined, contentScriptContext);
     } catch (error) {
       logger.error('Failed to send GET_CONTENT_STATE message:', error);
