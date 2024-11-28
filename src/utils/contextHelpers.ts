@@ -1,4 +1,3 @@
-// src/utils/contextHelpers.ts
 import { Context } from '../types/messages';
 
 /**

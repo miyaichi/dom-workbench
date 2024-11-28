@@ -1,4 +1,3 @@
-// src/background/background.ts
 import { ConnectionManager } from './lib/connectionManager';
 import { Logger } from './lib/logger';
 import { Context } from './types/messages';

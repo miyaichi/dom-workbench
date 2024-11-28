@@ -1,4 +1,3 @@
-// src/utils/domSelection.ts
 import { ElementInfo } from '../types/domSelection';
 
 /**

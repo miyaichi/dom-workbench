@@ -1,5 +1,3 @@
-// src/utils/formatters.ts
-
 /**
  * Format a timestamp to a string in the format "YYYY/MM/DD HH:MM:SS"
  * @param date - The date object to format

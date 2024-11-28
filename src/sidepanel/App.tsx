@@ -1,4 +1,3 @@
-// src/App.tsx
 import { Camera, Power, Settings } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { DOMSelector } from '../components/DOMSelector';

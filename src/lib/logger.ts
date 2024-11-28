@@ -1,4 +1,3 @@
-// src/lib/logger.ts
 import { LogLevel } from './settings';
 
 const LOG_LEVEL_PRIORITIES: Record<LogLevel, number> = {

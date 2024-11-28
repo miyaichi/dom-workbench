@@ -1,4 +1,3 @@
-// src/components/utils/htmlTagFormatter.ts
 import React from 'react';
 
 // Syntax highlighting styles

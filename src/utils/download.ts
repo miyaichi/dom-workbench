@@ -1,5 +1,3 @@
-// src/utils/download.ts
-
 /**
  * Downloads a file using the Chrome downloads API
  * @param blob - The file data as a Blob

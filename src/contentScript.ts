@@ -1,4 +1,3 @@
-// src/contentScript.ts
 import { ConnectionManager } from './lib/connectionManager';
 import { Logger } from './lib/logger';
 import { ElementInfo } from './types/domSelection';
