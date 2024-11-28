@@ -1,10 +1,9 @@
 // DOMTreeView.tsx
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import React, { useState } from 'react';
-import { ElementInfo } from '../types/domSelection';
-import './DOMTreeView.css';
+import { ElementInfo } from '../../types/domSelection';
+import { formatElementTag } from '../../utils/htmlTagFormatter';
 import { Tooltip } from './Tooltip';
-import { formatElementTag } from './utils/htmlTagFormatter';
 
 interface Props {
   /** The element information to display in the tree view */
@@ -39,9 +38,7 @@ export const DOMTreeView = ({ elementInfo, onSelect }: Props) => {
           {hasChildren ? (
             <Tooltip
               content={
-                isExpanded
-                  ? chrome.i18n.getMessage('tooltipCollapse')
-                  : chrome.i18n.getMessage('tooltipExpand')
+                isExpanded ? chrome.i18n.getMessage('collapse') : chrome.i18n.getMessage('expand')
               }
             >
               <div className="tree-chevron" onClick={() => toggleNode(currentPath)}>

@@ -1,4 +1,3 @@
-// src/components/SettingsPanel.tsx
 import React from 'react';
 import { LogLevel, ShareFormat, useSettings } from '../lib/settings';
 import '../styles/common.css';

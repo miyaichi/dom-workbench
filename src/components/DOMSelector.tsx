@@ -1,19 +1,17 @@
 import { ChevronUp } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
-import { useConnectionManager } from '../lib/connectionManager';
+import React from 'react';
 import { Logger } from '../lib/logger';
-import { DOM_SELECTION_EVENTS, ElementInfo, SelectElementPayload } from '../types/domSelection';
-import { Card } from './Card';
+import { ElementInfo } from '../types/domSelection';
+import { Card } from './common/Card';
+import { DOMTreeView } from './common/DOMTreeView';
+import { Tooltip } from './common/Tooltip';
 import './DOMSelector.css';
-import { DOMTreeView } from './DOMTreeView';
-import { Tooltip } from './Tooltip';
 
-interface DOMSelectorProps {}
-
-interface ElementSelectionMessage {
-  payload: {
-    elementInfo: ElementInfo;
-  };
+interface DOMSelectorProps {
+  /** The currently selected element */
+  selectedElement: ElementInfo | null;
+  /** Callback function to handle element selection */
+  onSelectElement: (path: number[]) => void;
 }
 
 // Utility functions
@@ -27,19 +25,17 @@ const getParentPath = (path: number[]): number[] => {
 
 /**
  * DOMSelector component that allows users to select and navigate DOM elements
+ * @param selectedElement - The currently selected element
+ * @param onSelectElement - Callback function to handle element selection
  * @returns A React element representing the DOM selector
  */
-export const DOMSelector: React.FC<DOMSelectorProps> = () => {
-  // State declarations
-  const [selectedElement, setSelectedElement] = useState<ElementInfo | null>(null);
-  const { subscribe, sendMessage } = useConnectionManager();
+export const DOMSelector: React.FC<DOMSelectorProps> = ({ selectedElement, onSelectElement }) => {
   const logger = new Logger('DOMSelector');
 
   // Event handlers
-  const handleElementSelect = (elementInfo: ElementInfo): void => {
-    sendMessage<SelectElementPayload>(DOM_SELECTION_EVENTS.SELECT_ELEMENT, {
-      path: elementInfo.path,
-    });
+  const handleElementInfoSelect = (elementInfo: ElementInfo): void => {
+    logger.log('Element selected:', elementInfo);
+    onSelectElement(elementInfo.path);
   };
 
   const handleParentSelect = (): void => {
@@ -47,32 +43,9 @@ export const DOMSelector: React.FC<DOMSelectorProps> = () => {
 
     logger.log('Parent element selected');
     const parentPath = getParentPath(selectedElement.path);
-    sendMessage<SelectElementPayload>(DOM_SELECTION_EVENTS.SELECT_ELEMENT, {
-      path: parentPath,
-    });
+    onSelectElement(parentPath);
   };
 
-  // Message subscriptions
-  useEffect(() => {
-    const subscriptions = [
-      subscribe(DOM_SELECTION_EVENTS.ELEMENT_SELECTED, (message: ElementSelectionMessage) => {
-        logger.log('Element selected:', message.payload.elementInfo);
-        setSelectedElement(message.payload.elementInfo);
-      }),
-
-      subscribe(DOM_SELECTION_EVENTS.ELEMENT_UNSELECTED, () => {
-        logger.log('Element unselected');
-        setSelectedElement(null);
-      }),
-    ];
-
-    // Clean up subscriptions
-    return () => {
-      subscriptions.forEach((unsubscribe) => unsubscribe());
-    };
-  }, []);
-
-  // Main render
   if (!selectedElement) {
     return (
       <Card title="DOM Selector">
@@ -99,7 +72,7 @@ export const DOMSelector: React.FC<DOMSelectorProps> = () => {
             <div className="element-path">{selectedElement.path.join(' > ')}</div>
           </Tooltip>
         </div>
-        <DOMTreeView elementInfo={selectedElement} onSelect={handleElementSelect} />
+        <DOMTreeView elementInfo={selectedElement} onSelect={handleElementInfoSelect} />
       </div>
     </Card>
   );

@@ -1,4 +1,3 @@
-// src/lib/settings.ts
 import { useEffect, useState } from 'react';
 
 /** Represents the available log levels for the application */

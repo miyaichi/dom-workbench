@@ -1,19 +1,15 @@
 import { Check, Plus, Search, X } from 'lucide-react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useConnectionManager } from '../lib/connectionManager';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Logger } from '../lib/logger';
-import { DOM_SELECTION_EVENTS, ElementInfo, StyleModification } from '../types/domSelection';
-import { Card } from './Card';
+import { ElementInfo, StyleModification } from '../types/domSelection';
+import { Card } from './common/Card';
 import './StyleEditor.css';
 
 interface StyleEditorProps {
+  /** The currently selected element */
+  selectedElement: ElementInfo | null;
+  /** Callback function to handle style modifications */
   onStylesChange?: (modifications: StyleModification[]) => void;
-}
-
-interface ElementSelectionMessage {
-  payload: {
-    elementInfo: ElementInfo;
-  };
 }
 
 // Utility functions
@@ -21,9 +17,14 @@ const isValidCSSProperty = (property: string): boolean => {
   return property in document.body.style;
 };
 
-export const StyleEditor: React.FC<StyleEditorProps> = ({ onStylesChange }) => {
+/**
+ * Component to render a style editor for modifying element styles
+ * @param selectedElement - The currently selected element
+ * @param onStylesChange - Callback function to handle style changes
+ * @returns A React element representing the style editor
+ */
+export const StyleEditor: React.FC<StyleEditorProps> = ({ selectedElement, onStylesChange }) => {
   // State declarations
-  const [selectedElement, setSelectedElement] = useState<ElementInfo | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [editedStyles, setEditedStyles] = useState<Record<string, string>>({});
   const [newProperty, setNewProperty] = useState('');
@@ -31,23 +32,9 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({ onStylesChange }) => {
   const [isAdding, setIsAdding] = useState(false);
 
   // Utility instances
-  const { subscribe, sendMessage } = useConnectionManager();
   const logger = new Logger('StyleEditor');
 
   // Memoized functions that depend on props or state
-  const updateElementStyle = useCallback(
-    (property: keyof CSSStyleDeclaration, value: string) => {
-      sendMessage(DOM_SELECTION_EVENTS.UPDATE_ELEMENT_STYLE, {
-        path: selectedElement?.path,
-        styles: {
-          [property]: value,
-        },
-      });
-      logger.log('Style updated:', property, value);
-    },
-    [selectedElement?.path, sendMessage]
-  );
-
   const notifyStyleChanges = useCallback(
     (newStyles: Record<string, string>) => {
       const modifications = Object.entries(newStyles).map(([prop, val]) => ({
@@ -61,13 +48,6 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({ onStylesChange }) => {
   );
 
   // Non-memoized functions (simple state updates or no external dependencies)
-  const resetStyleEditorState = () => {
-    setEditedStyles({});
-    setIsAdding(false);
-    setNewProperty('');
-    setNewValue('');
-  };
-
   const handleStyleChange = (property: keyof CSSStyleDeclaration, value: string) => {
     setEditedStyles((prevStyles) => {
       const currentValue = selectedElement?.computedStyle?.[property] as string;
@@ -80,7 +60,10 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({ onStylesChange }) => {
         };
 
         setTimeout(() => notifyStyleChanges(newStyles), 0);
-        updateElementStyle(property, value);
+        //
+        // Apply the new style to selected element
+        // Under development
+        //
         return newStyles;
       }
 
@@ -104,27 +87,6 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({ onStylesChange }) => {
       logger.warn('Invalid CSS property:', trimmedProperty);
     }
   };
-
-  // Message subscriptions
-  useEffect(() => {
-    const subscriptions = [
-      subscribe(DOM_SELECTION_EVENTS.ELEMENT_SELECTED, (message: ElementSelectionMessage) => {
-        logger.log('Element selected:', message.payload.elementInfo);
-        setSelectedElement(message.payload.elementInfo);
-        resetStyleEditorState();
-      }),
-
-      subscribe(DOM_SELECTION_EVENTS.ELEMENT_UNSELECTED, () => {
-        logger.log('Element unselected');
-        setSelectedElement(null);
-      }),
-    ];
-
-    // Clean up subscriptions
-    return () => {
-      subscriptions.forEach((unsubscribe) => unsubscribe());
-    };
-  }, []);
 
   // Memoized computed values
   const styleEntries = useMemo(() => {

@@ -1,15 +1,15 @@
 {
+  "expand": {
+    "message": "Expand"
+  },
+  "collapse": {
+    "message": "Collapse"
+  },
   "tooltipCapture": {
     "message": "Capture a screenshot of the current tab"
   },
   "tooltipSettings": {
     "message": "Settings"
-  },
-  "tooltipExpand": {
-    "message": "Expand"
-  },
-  "tooltipCollapse": {
-    "message": "Collapse"
   },
   "tooltipParentElement": {
     "message": "Go to parent element"
@@ -22,5 +22,11 @@
   },
   "styleEditorEmptyState": {
     "message": "You can check and modify the computed style of the selected element."
+  },
+  "tagInjectorEmptyState": {
+    "message": "You can add tags to the selected element."
+  },
+  "tagInjectorValidationError": {
+    "message": "Please enter a valid tag name."
   }
 }

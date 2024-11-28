@@ -1,51 +1,29 @@
 import { Send, X } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
-import { useConnectionManager } from '../lib/connectionManager';
+import React, { useState } from 'react';
+import { formatElementTag } from '..//utils/htmlTagFormatter';
 import { Logger } from '../lib/logger';
 import { useSettings } from '../lib/settings';
 import { shareAsPDF } from '../lib/shareAsPDF';
 import { shareAsPPT } from '../lib/shareAsPPT';
-import {
-  DOM_SELECTION_EVENTS,
-  ElementInfo,
-  StyleModification,
-  UI_EVENTS,
-} from '../types/domSelection';
+import { ElementInfo, StyleModification } from '../types/domSelection';
 import './ShareCapture.css';
-import { formatElementTag } from './utils/htmlTagFormatter';
 
 interface ShareCaptureProps {
+  /** Callback function to close the modal */
   onClose: () => void;
-  initialSelectedElement: ElementInfo | null;
-  styleModifications: StyleModification[];
-}
-
-interface CaptureInfo {
+  /** The currently selected element */
   selectedElement: ElementInfo | null;
+  /** The image data URL of the screen capture */
+  imageDataUrl: string | null;
+  /** The URL of the captured page */
   captureUrl: string | null;
-}
-
-interface CaptureResultPayload {
-  success: boolean;
-  imageDataUrl?: string;
-  error?: string;
-  url?: string;
-}
-
-interface ElementSelectionMessage {
-  payload: {
-    elementInfo: ElementInfo;
-  };
+  /** The style modifications applied to the selected element */
+  styleModifications: StyleModification[];
 }
 
 // Utility functions
 const getShareFunction = (format: string) => {
   return format === 'pdf' ? shareAsPDF : shareAsPPT;
-};
-
-const initialCaptureInfo: CaptureInfo = {
-  selectedElement: null,
-  captureUrl: null,
 };
 
 const formatStyleModifications = (styleModifications: StyleModification[]) => {
@@ -54,29 +32,32 @@ const formatStyleModifications = (styleModifications: StyleModification[]) => {
   return styleModifications.map((mod) => `${mod.property}: ${mod.value}`).join('\n');
 };
 
+/**
+ * Component to render a modal for sharing a screen capture
+ * @param onClose - Callback function to close the modal
+ * @param selectedElement - The currently selected element
+ * @param imageDataUrl - The image data URL of the screen capture
+ * @param captureUrl - The URL of the captured page
+ * @param styleModifications - The style modifications applied to the selected element
+ * @returns A React element representing the share capture modal
+ */
 export const ShareCapture: React.FC<ShareCaptureProps> = ({
   onClose,
-  initialSelectedElement,
+  selectedElement,
+  imageDataUrl,
+  captureUrl,
   styleModifications,
 }) => {
   // State declarations
   const { settings } = useSettings();
-  const { subscribe } = useConnectionManager();
   const logger = new Logger('ShareCapture');
 
   const [comment, setComment] = useState('');
-  const [imageDataUrl, setImageDataUrl] = useState<string>();
-  const [captureInfo, setCaptureInfo] = useState<CaptureInfo>({
-    ...initialCaptureInfo,
-    selectedElement: initialSelectedElement,
-  });
   const [isLoading, setIsLoading] = useState(false);
 
   // Event handlers
   const handleClose = (): void => {
-    setImageDataUrl(undefined);
     setComment('');
-    setCaptureInfo(initialCaptureInfo);
     onClose();
   };
 
@@ -91,8 +72,8 @@ export const ShareCapture: React.FC<ShareCaptureProps> = ({
       await shareFunction(
         imageDataUrl,
         comment,
-        captureInfo.captureUrl || '',
-        captureInfo.selectedElement?.startTag || '',
+        captureUrl || '',
+        selectedElement?.startTag || '',
         formatStyleModifications(styleModifications)
       );
 
@@ -108,40 +89,6 @@ export const ShareCapture: React.FC<ShareCaptureProps> = ({
   const handleCommentChange = (e: React.ChangeEvent<HTMLTextAreaElement>): void => {
     setComment(e.target.value);
   };
-
-  // Message subscriptions
-  useEffect(() => {
-    const subscriptions = [
-      subscribe(UI_EVENTS.CAPTURE_TAB_RESULT, (message: { payload: CaptureResultPayload }) => {
-        const { success, imageDataUrl, error, url } = message.payload;
-
-        if (success) {
-          setImageDataUrl(imageDataUrl);
-          setCaptureInfo((prev) => ({ ...prev, captureUrl: url || null }));
-        } else {
-          logger.error('Capture failed:', error);
-        }
-      }),
-
-      subscribe(DOM_SELECTION_EVENTS.ELEMENT_SELECTED, (message: ElementSelectionMessage) => {
-        setCaptureInfo((prev) => ({
-          ...prev,
-          selectedElement: message.payload.elementInfo,
-        }));
-      }),
-
-      subscribe(DOM_SELECTION_EVENTS.ELEMENT_UNSELECTED, () => {
-        setCaptureInfo((prev) => ({
-          ...prev,
-          selectedElement: null,
-        }));
-      }),
-    ];
-
-    return () => {
-      subscriptions.forEach((unsubscribe) => unsubscribe());
-    };
-  }, []);
 
   // UI rendering - preview section
   const renderPreview = () => {
@@ -164,17 +111,17 @@ export const ShareCapture: React.FC<ShareCaptureProps> = ({
   const renderElementInfo = () => {
     return (
       <>
-        {captureInfo.captureUrl && (
+        {captureUrl && (
           <div className="element-info">
-            <p>{captureInfo.captureUrl}</p>
+            <p>{captureUrl}</p>
           </div>
         )}
 
-        {captureInfo.selectedElement && (
+        {selectedElement && (
           <div className="element-info">
-            <p>[ {captureInfo.selectedElement.path.join(' > ')} ]</p>
+            <p>[ {selectedElement.path.join(' > ')} ]</p>
             <p>
-              {formatElementTag(captureInfo.selectedElement.startTag, {
+              {formatElementTag(selectedElement.startTag, {
                 showFullContent: true,
                 maxLength: 50,
               })}

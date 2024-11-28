@@ -261,7 +261,10 @@ export const shareAsPDF = async (
 
   try {
     logger.log('Creating PDF document');
+    const manifest = chrome.runtime.getManifest();
     const pdfDoc = await PDFDocument.create();
+    pdfDoc.setAuthor(`${manifest.name} v${manifest.version}`);
+    pdfDoc.setTitle(`Screenshot of ${url} at ${formatTimestamp(new Date())}`);
 
     logger.debug('Initializing fonts');
     const fonts = await initializeFonts(pdfDoc);

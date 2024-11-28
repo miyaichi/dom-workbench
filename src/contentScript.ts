@@ -1,158 +1,244 @@
-import { ConnectionManager, Message, useConnectionManager } from './lib/connectionManager';
+import { ConnectionManager } from './lib/connectionManager';
 import { Logger } from './lib/logger';
-import {
-  DOM_SELECTION_EVENTS,
-  SelectElementPayload,
-  SelectionModePayload,
-} from './types/domSelection';
+import { ElementInfo } from './types/domSelection';
+import { Context } from './types/messages';
+import { getContentScriptContext } from './utils/contextHelpers';
 import { createElementInfo, getElementByPath } from './utils/domSelection';
 
-// Types
-type StyleProperty = 'backgroundColor' | 'outline' | 'border';
+const logger = new Logger('contentScript');
 
-interface ElementStyle {
-  originalStyles: Partial<Pick<CSSStyleDeclaration, StyleProperty>>;
-  element: HTMLElement;
-}
+class ContentScript {
+  private static instance: ContentScript | null = null;
+  private manager: ConnectionManager;
+  private context: Context;
+  private state = {
+    isSelectionMode: false,
+    selectedElementInfo: null as ElementInfo | null,
+    hoveredElement: null as HTMLElement | null,
+  };
 
-interface StyleConfig {
-  backgroundColor: string;
-  outline: string;
-  border: string;
-}
-
-// Constants
-const HIGHLIGHT_STYLES: StyleConfig = {
-  backgroundColor: 'rgba(255, 255, 0, 0.3)',
-  outline: '2px solid #ffd700',
-  border: '1px solid #ffd700',
-};
-
-const STYLE_PROPERTIES: StyleProperty[] = ['backgroundColor', 'outline', 'border'];
-
-// State declarations
-const logger = new Logger('ContentScript');
-const { sendMessage, subscribe } = useConnectionManager();
-const manager = ConnectionManager.getInstance();
-
-let selectionModeEnabled = false;
-let lastSelectedElement: HTMLElement | null = null;
-
-const updateCursorStyle = (enabled: boolean): void => {
-  document.body.style.cursor = enabled ? 'crosshair' : '';
-  logger.debug(`Cursor style updated: ${enabled ? 'crosshair' : 'default'}`);
-};
-
-const saveAndHighlightElement = (element: HTMLElement): void => {
-  // 前の要素のスタイルを復元
-  restoreElementStyle();
-
-  // 新しい要素の元のスタイルを保存して、ハイライトを適用
-  lastSelectedElement = element;
-
-  // ハイライトスタイルを適用
-  Object.entries(HIGHLIGHT_STYLES).forEach(([prop, value]) => {
-    element.style[prop as StyleProperty] = value;
-  });
-
-  logger.debug('Element highlighted', {
-    tagName: element.tagName,
-    id: element.id,
-    classes: element.className,
-  });
-};
-
-const restoreElementStyle = (): void => {
-  if (!lastSelectedElement) {
-    return;
-  }
-
-  // スタイルをデフォルトに戻す
-  STYLE_PROPERTIES.forEach((prop) => {
-    if (lastSelectedElement) {
-      lastSelectedElement.style[prop] = '';
+  constructor(sender: chrome.runtime.MessageSender) {
+    if (!sender.tab?.id) {
+      throw new Error('Tab ID not available');
     }
-  });
-
-  lastSelectedElement = null;
-  logger.debug('Element styles restored');
-};
-
-const handleElementSelection = (element: HTMLElement): void => {
-  const elementInfo = createElementInfo(element);
-  logger.log('Element selected', {
-    tagName: element.tagName,
-    id: element.id,
-    classes: element.className,
-  });
-
-  saveAndHighlightElement(element);
-  sendMessage(DOM_SELECTION_EVENTS.ELEMENT_SELECTED, { elementInfo });
-};
-
-const handleElementClick = (event: MouseEvent): void => {
-  if (!selectionModeEnabled) return;
-
-  const element = event.target as HTMLElement;
-  if (!element || element === document.body) {
-    logger.debug('Invalid element clicked or body element');
-    return;
+    this.context = getContentScriptContext(sender.tab.id);
+    this.manager = ConnectionManager.getInstance();
+    this.initialize();
   }
 
-  event.preventDefault();
-  event.stopPropagation();
-  handleElementSelection(element);
-};
-
-const cleanup = (): void => {
-  logger.log('Performing content script cleanup');
-  restoreElementStyle();
-  document.removeEventListener('click', handleElementClick, true);
-};
-
-const handleSelectionModeToggle = (message: Message<SelectionModePayload>): void => {
-  logger.log('Selection mode changed:', message.payload.enabled);
-  selectionModeEnabled = message.payload.enabled;
-  updateCursorStyle(selectionModeEnabled);
-
-  if (!selectionModeEnabled) {
-    restoreElementStyle();
+  public static getInstance(sender: chrome.runtime.MessageSender): ContentScript {
+    if (!ContentScript.instance) {
+      ContentScript.instance = new ContentScript(sender);
+    }
+    return ContentScript.instance;
   }
-};
 
-const handleSelectElement = (message: Message<SelectElementPayload>): void => {
-  const element = getElementByPath(message.payload.path);
-  if (!element) {
-    logger.error('Failed to find element with path:', message.payload.path);
-    return;
+  private async initialize() {
+    logger.log('Initializing ...');
+    try {
+      this.manager.setContext(this.context);
+      this.injectStyles();
+      this.setupEventHandlers();
+      logger.log('initialization complete');
+    } catch (error) {
+      logger.error('Initialization failed:', error);
+    }
   }
-  logger.log('Element found by path, processing selection');
-  handleElementSelection(element);
-};
 
-const handleClearSelection = (): void => {
-  logger.log('Clearing element selection');
-  restoreElementStyle();
-  sendMessage(DOM_SELECTION_EVENTS.ELEMENT_UNSELECTED, { timestamp: Date.now() });
-};
+  private injectStyles() {
+    const styleId = 'extension-styles';
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = this.getInjectedStyles();
+      document.head.appendChild(style);
+      logger.debug('Styles injected successfully');
+    }
+  }
 
-const initialize = (): void => {
-  logger.log('Initializing content script');
-  manager.setContext('content');
+  private getInjectedStyles(): string {
+    return `
+      .extension-selection-mode,
+      .extension-selection-mode * {
+        cursor: crosshair !important;
+        user-select: none !important;
+      }
+      
+      .extension-highlight {
+        outline: 2px solid #ffd700 !important;
+        outline-offset: 2px;
+        background-color: rgba(255, 215, 0, 0.1) !important;
+        transition: all 0.2s ease;
+        pointer-events: auto !important;
+      }
 
-  subscribe(DOM_SELECTION_EVENTS.TOGGLE_SELECTION_MODE, handleSelectionModeToggle);
-  subscribe<SelectElementPayload>(DOM_SELECTION_EVENTS.SELECT_ELEMENT, handleSelectElement);
-  subscribe(DOM_SELECTION_EVENTS.CLEAR_SELECTION, handleClearSelection);
+      .extension-selected {
+        outline: 2px solid #4682B4 !important;
+        outline-offset: 2px;
+        background-color: rgba(70, 130, 180, 0.1) !important;
+        transition: all 0.2s ease;
+      }
 
-  document.addEventListener('click', handleElementClick, true);
-  logger.debug('Event listeners registered');
+      html.extension-selection-mode,
+      html.extension-selection-mode body,
+      html.extension-selection-mode * {
+        cursor: crosshair !important;
+      }
+    `;
+  }
 
-  chrome.runtime.onConnect.addListener((port) => {
-    logger.debug('Port connection established');
-    port.onDisconnect.addListener(cleanup);
+  private setupEventHandlers() {
+    // Mouse event listeners
+    document.addEventListener('mouseover', this.handleMouseOver.bind(this), true);
+    document.addEventListener('mouseout', this.handleMouseOut.bind(this), true);
+    document.addEventListener('click', this.handleClick.bind(this), true);
+
+    // Message subscribers
+    this.manager.subscribe('GET_CONTENT_STATE', async () => {
+      logger.debug('Received GET_CONTENT_STATE request');
+      await this.sendCurrentState();
+    });
+
+    this.manager.subscribe('TOGGLE_SELECTION_MODE', (message) => {
+      this.toggleSelectionMode(message.payload.enabled);
+    });
+
+    this.manager.subscribe('SELECT_ELEMENT', (message) => {
+      const element = getElementByPath(message.payload.path);
+      if (element) {
+        this.handleElementSelection(element as HTMLElement);
+      }
+    });
+  }
+
+  private handleMouseOver(event: MouseEvent) {
+    if (!this.state.isSelectionMode) return;
+
+    const target = event.target as HTMLElement;
+    if (!target || target === document.body || target === document.documentElement) return;
+
+    if (this.state.hoveredElement && this.state.hoveredElement !== target) {
+      this.state.hoveredElement.classList.remove('extension-highlight');
+    }
+
+    this.state.hoveredElement = target;
+    target.classList.add('extension-highlight');
+  }
+
+  private handleMouseOut(event: MouseEvent) {
+    if (!this.state.isSelectionMode || !this.state.hoveredElement) return;
+
+    const target = event.target as HTMLElement;
+    if (target === this.state.hoveredElement) {
+      target.classList.remove('extension-highlight');
+      this.state.hoveredElement = null;
+    }
+  }
+
+  private handleClick(event: MouseEvent) {
+    if (!this.state.isSelectionMode) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const target = event.target as HTMLElement;
+    if (!target || target === document.body || target === document.documentElement) return;
+
+    this.handleElementSelection(target);
+  }
+
+  private handleElementSelection(element: HTMLElement) {
+    // Clear previously selected elements
+    const selectedElements = document.querySelectorAll('.extension-selected');
+    selectedElements.forEach((el) => {
+      el.classList.remove('extension-selected');
+    });
+
+    this.state.selectedElementInfo = createElementInfo(element);
+    logger.debug('Element selected:', this.state.selectedElementInfo);
+
+    element.classList.remove('extension-highlight');
+    element.classList.add('extension-selected');
+
+    this.manager.sendMessage(
+      'ELEMENT_SELECTED',
+      { elementInfo: this.state.selectedElementInfo },
+      'sidepanel'
+    );
+  }
+
+  private async sendCurrentState() {
+    logger.log(`Sending current state ${this.state} from ${this.context}`);
+    await this.manager.sendMessage(
+      'CONTENT_STATE_UPDATE',
+      {
+        isSelectionMode: this.state.isSelectionMode,
+        selectedElementInfo: this.state.selectedElementInfo,
+      },
+      'sidepanel'
+    );
+  }
+
+  private toggleSelectionMode(enabled: boolean) {
+    if (this.state.isSelectionMode === enabled) return;
+
+    this.state.isSelectionMode = enabled;
+
+    if (!enabled) {
+      this.clearSelection();
+    }
+
+    document.documentElement.classList.toggle('extension-selection-mode', enabled);
+    document.body.classList.toggle('extension-selection-mode', enabled);
+
+    logger.debug('Selection mode toggled:', {
+      enabled: this.state.isSelectionMode,
+      hasSelectionModeClass: document.documentElement.classList.contains(
+        'extension-selection-mode'
+      ),
+    });
+  }
+
+  private clearSelection() {
+    // Clear hovered element
+    if (this.state.hoveredElement) {
+      this.state.hoveredElement.classList.remove('extension-highlight');
+      this.state.hoveredElement = null;
+    }
+
+    // Clear selected elements
+    const selectedElements = document.querySelectorAll('.extension-selected');
+    selectedElements.forEach((element) => {
+      element.classList.remove('extension-selected');
+    });
+
+    // Clear selected element info
+    if (this.state.selectedElementInfo) {
+      logger.debug('Element unselected:', this.state.selectedElementInfo);
+      this.manager.sendMessage('ELEMENT_UNSELECTED', {
+        elementInfo: this.state.selectedElementInfo,
+      });
+      this.state.selectedElementInfo = null;
+    }
+  }
+}
+
+// ContentScript initialization
+const contentScriptInstances = new WeakMap<Window, ContentScript>();
+
+// Ensure content script is initialized immediately
+if (!contentScriptInstances.has(window)) {
+  logger.log('Initializing content script...');
+  chrome.runtime.sendMessage({ type: 'GET_TAB_ID' }, (response) => {
+    if (chrome.runtime.lastError) {
+      logger.error('Failed to get tab ID:', chrome.runtime.lastError);
+      return;
+    }
+
+    const sender = {
+      tab: { id: response.tabId },
+    } as chrome.runtime.MessageSender;
+
+    contentScriptInstances.set(window, new ContentScript(sender));
   });
-
-  logger.log('Content script initialization complete');
-};
-
-initialize();
+}
