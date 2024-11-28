@@ -229,6 +229,7 @@ const contentScriptInstances = new WeakMap<Window, ContentScript>();
 // Ensure content script is initialized immediately
 if (!contentScriptInstances.has(window)) {
   logger.log('Initializing content script...');
+  // Get the tab ID from the background
   chrome.runtime.sendMessage({ type: 'GET_TAB_ID' }, (response) => {
     if (chrome.runtime.lastError) {
       logger.error('Failed to get tab ID:', chrome.runtime.lastError);

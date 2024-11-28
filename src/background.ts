@@ -27,6 +27,7 @@ class BackgroundService {
     logger.log('Initializing ...');
     try {
       this.setupInstallListener();
+      this.setupTagIdListener();
       this.setupMessageSubscription();
       this.setupTabListeners();
       this.setupWindowListeners();
@@ -47,16 +48,18 @@ class BackgroundService {
     });
   }
 
-  private setupMessageSubscription(): void {
-    this.manager.setContext(this.context);
-    this.manager.subscribe('CAPTURE_TAB', this.captureTab.bind(this));
-
-    // Add listener for GET_TAB_ID message
+  private setupTagIdListener(): void {
+    // This listener is used for the contentScript to obtain its Tab ID
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.type === 'GET_TAB_ID' && sender.tab?.id) {
         sendResponse({ tabId: sender.tab.id });
       }
     });
+  }
+
+  private setupMessageSubscription(): void {
+    this.manager.setContext(this.context);
+    this.manager.subscribe('CAPTURE_TAB', this.captureTab.bind(this));
   }
 
   private async captureTab(): Promise<void> {
