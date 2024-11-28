@@ -75,19 +75,27 @@ class BackgroundService {
       });
 
       logger.log('Tab captured successfully');
-      await this.manager.sendMessage('CAPTURE_TAB_RESULT', {
-        success: true,
-        imageDataUrl,
-        url: tab.url ?? null,
-      }, 'sidepanel');
+      await this.manager.sendMessage(
+        'CAPTURE_TAB_RESULT',
+        {
+          success: true,
+          imageDataUrl,
+          url: tab.url ?? null,
+        },
+        'sidepanel'
+      );
     } catch (error) {
       logger.error('Failed to capture tab:', error);
-      await this.manager.sendMessage('CAPTURE_TAB_RESULT', {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        imageDataUrl: undefined,
-        url: null,
-      }, 'sidepanel');
+      await this.manager.sendMessage(
+        'CAPTURE_TAB_RESULT',
+        {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          imageDataUrl: undefined,
+          url: null,
+        },
+        'sidepanel'
+      );
     }
   }
 
