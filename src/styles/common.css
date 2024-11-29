@@ -137,6 +137,14 @@ button:hover {
   cursor: not-allowed;
 }
 
+.icon-button-success {
+  background-color: var(--bg-color-white);
+}
+
+.icon-button-success:hover {
+  background-color: var(--color-green-light);
+}
+
 .selection-button {
   display: flex;
   align-items: center;

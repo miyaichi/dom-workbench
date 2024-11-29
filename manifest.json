@@ -4,7 +4,15 @@
   "version": "1.0",
   "description": "Workbench for analyzing the DOM of the Active Tab.",
   "default_locale": "en",
-  "permissions": ["activeTab", "downloads", "scripting", "sidePanel", "storage", "tabs"],
+  "permissions": [
+    "activeTab",
+    "downloads",
+    "scripting",
+    "sidePanel",
+    "storage",
+    "tabs",
+    "clipboardWrite"
+  ],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js"

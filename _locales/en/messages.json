@@ -28,5 +28,11 @@
   },
   "tagInjectorValidationError": {
     "message": "Please enter a valid tag name."
+  },
+  "copyToClipboard": {
+    "message": "Copy to clipboard"
+  },
+  "coppiedToClipboard": {
+    "message": "Copied!"
   }
 }

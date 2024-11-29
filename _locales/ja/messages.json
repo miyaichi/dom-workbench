@@ -28,5 +28,11 @@
   },
   "tagInjectorValidationError": {
     "message": "有効なタグを入力してください。"
+  },
+  "copyToClipboard": {
+    "message": "クリップボードにコピーします"
+  },
+  "coppiedToClipboard": {
+    "message": "コピーしました!"
   }
 }
