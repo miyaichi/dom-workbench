@@ -1,36 +1,106 @@
-import { Check, Plus, Search, X } from 'lucide-react';
+import { Check, Plus, RotateCcw, Search, X } from 'lucide-react';
+import { nanoid } from 'nanoid';
 import React, { useMemo, useState } from 'react';
 import { Logger } from '../lib/logger';
 import { ElementInfo } from '../types/domSelection';
 import { Card } from './common/Card';
+import { Tooltip } from './common/Tooltip';
 
 interface StyleEditorProps {
-  /** The currently selected element */
   selectedElement: ElementInfo | null;
 }
 
-// Utility functions
+interface StyleHistoryEntry {
+  id: string;
+  timestamp: number;
+  property: keyof CSSStyleDeclaration;
+  oldValue: string;
+  newValue: string;
+}
+
 const isValidCSSProperty = (property: string): boolean => {
   return property in document.body.style;
 };
 
-/**
- * Component to render a style editor for modifying element styles
- * @param selectedElement - The currently selected element
- * @returns A React element representing the style editor
- */
 export const StyleEditor: React.FC<StyleEditorProps> = ({ selectedElement }) => {
-  // State declarations
   const [searchTerm, setSearchTerm] = useState('');
   const [newProperty, setNewProperty] = useState('');
   const [newValue, setNewValue] = useState('');
   const [isAdding, setIsAdding] = useState(false);
+  const [styleHistory, setStyleHistory] = useState<StyleHistoryEntry[]>([]);
+  const [currentStyles, setCurrentStyles] = useState<Record<string, string>>({});
+  const [focusValue, setFocusValue] = useState<string | null>(null);
 
-  // Utility instances
   const logger = new Logger('StyleEditor');
 
+  React.useEffect(() => {
+    if (selectedElement?.computedStyle) {
+      const initialStyles = Object.fromEntries(
+        Object.entries(selectedElement.computedStyle)
+          .filter(
+            ([key]) =>
+              typeof key === 'string' &&
+              isNaN(Number(key)) &&
+              typeof selectedElement.computedStyle[key as keyof CSSStyleDeclaration] !== 'function'
+          )
+          .map(([key, value]) => [key, String(value)])
+      );
+      setCurrentStyles(initialStyles);
+    }
+  }, [selectedElement]);
+
+  const updateStyleWithHistory = (
+    property: keyof CSSStyleDeclaration,
+    newValue: string,
+    oldValue: string
+  ) => {
+    if (oldValue === newValue) return;
+
+    const historyEntry: StyleHistoryEntry = {
+      id: nanoid(),
+      timestamp: Date.now(),
+      property,
+      oldValue,
+      newValue,
+    };
+
+    setStyleHistory((prev) => [historyEntry, ...prev]);
+    logger.log('Style updated:', property, newValue);
+  };
+
   const handleStyleChange = (property: keyof CSSStyleDeclaration, value: string) => {
-    // Under development
+    if (!selectedElement?.computedStyle) return;
+
+    setCurrentStyles((prev) => ({
+      ...prev,
+      [property]: value,
+    }));
+  };
+
+  const handleStyleFocus = (property: keyof CSSStyleDeclaration) => {
+    setFocusValue(currentStyles[property] || '');
+  };
+
+  const handleStyleBlur = (property: keyof CSSStyleDeclaration) => {
+    if (focusValue === null) return;
+
+    const newValue = currentStyles[property] || '';
+    updateStyleWithHistory(property, newValue, focusValue);
+    setFocusValue(null);
+  };
+
+  const handleUndoLatest = () => {
+    if (styleHistory.length === 0) return;
+
+    const latestEntry = styleHistory[0];
+
+    setCurrentStyles((prev) => ({
+      ...prev,
+      [latestEntry.property]: latestEntry.oldValue,
+    }));
+
+    setStyleHistory((prev) => prev.slice(1));
+    logger.log('Style reverted:', latestEntry.property, latestEntry.oldValue);
   };
 
   const handleAddStyle = () => {
@@ -40,8 +110,10 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({ selectedElement }) => 
     if (!trimmedProperty || !trimmedValue) return;
 
     if (isValidCSSProperty(trimmedProperty)) {
-      logger.log('Adding new style:', trimmedProperty, trimmedValue);
-      handleStyleChange(trimmedProperty as keyof CSSStyleDeclaration, trimmedValue);
+      const property = trimmedProperty as keyof CSSStyleDeclaration;
+      const oldValue = currentStyles[property] || '';
+      handleStyleChange(property, trimmedValue);
+      updateStyleWithHistory(property, trimmedValue, oldValue);
       setNewProperty('');
       setNewValue('');
       setIsAdding(false);
@@ -50,7 +122,6 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({ selectedElement }) => 
     }
   };
 
-  // Memoized computed values
   const styleEntries = useMemo(() => {
     if (!selectedElement?.computedStyle) return [];
 
@@ -65,20 +136,17 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({ selectedElement }) => 
       .sort(([a], [b]) => a.localeCompare(b));
   }, [selectedElement?.computedStyle, searchTerm]);
 
-  // Render empty state
   if (!selectedElement?.computedStyle) {
     return (
       <Card title="Style Editor" initialCollapsed={true}>
-        <div className="style-editor-empty"> {chrome.i18n.getMessage('styleEditorEmptyState')}</div>
+        <div className="style-editor-empty">{chrome.i18n.getMessage('styleEditorEmptyState')}</div>
       </Card>
     );
   }
 
-  // Main render
   return (
     <Card title="Style Editor" initialCollapsed={true}>
       <div className="style-editor">
-        {/* Search Section */}
         <div className="style-editor-search">
           <Search className="style-editor-search-icon" size={16} />
           <input
@@ -90,20 +158,52 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({ selectedElement }) => 
           />
         </div>
 
+        {/* Style History Section */}
+        {styleHistory.length > 0 && (
+          <div className="style-history">
+            <div className="style-history-header">
+              <h4 className="style-history-title">Style Changes ({styleHistory.length})</h4>
+              <Tooltip content={chrome.i18n.getMessage('styleHistoryUndoTooltip')}>
+                <button
+                  className="style-editor-button style-editor-button-secondary"
+                  onClick={handleUndoLatest}
+                  aria-label="Undo latest change"
+                >
+                  <RotateCcw size={16} />
+                </button>
+              </Tooltip>
+            </div>
+            {styleHistory.map((entry) => (
+              <div key={entry.id} className="style-history-item">
+                <div className="style-history-meta">
+                  {new Date(entry.timestamp).toLocaleTimeString()}
+                </div>
+                <div className="style-history-content">
+                  <span className="style-history-property">{entry.property}</span>
+                  <span className="style-history-old">{entry.oldValue}</span>
+                  <span className="style-history-arrow">→</span>
+                  <span className="style-history-new">{entry.newValue}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Styles Section */}
         <div className="style-editor-content">
-          {/* Style Grid */}
           <div className="style-editor-grid">
-            {styleEntries.map(([property, value]) => (
+            {styleEntries.map(([property]) => (
               <React.Fragment key={property}>
                 <div className="style-editor-property" title={property}>
                   {property}
                 </div>
                 <input
-                  key={property}
-                  defaultValue={String(value)}
-                  onBlur={(e) =>
+                  value={currentStyles[property] || ''}
+                  onChange={(e) =>
                     handleStyleChange(property as keyof CSSStyleDeclaration, e.target.value)
                   }
+                  onFocus={() => handleStyleFocus(property as keyof CSSStyleDeclaration)}
+                  onBlur={() => handleStyleBlur(property as keyof CSSStyleDeclaration)}
                   className="style-editor-input"
                 />
               </React.Fragment>

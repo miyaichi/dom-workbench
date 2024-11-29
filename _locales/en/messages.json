@@ -26,6 +26,9 @@
   "styleEditorEmptyState": {
     "message": "You can check and modify the computed style of the selected element."
   },
+  "styleHistoryUndoTooltip": {
+    "message": "Undo style change"
+  },
   "tagInjectorEmptyState": {
     "message": "You can add tags to the selected element."
   },

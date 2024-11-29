@@ -26,6 +26,9 @@
   "styleEditorEmptyState": {
     "message": "選択した要素のスタイル情報を確認・編集することができます。"
   },
+  "styleHistoryUndoTooltip": {
+    "message": "スタイルの修正を取り消す"
+  },
   "tagInjectorEmptyState": {
     "message": "選択した要素のにタグを追加することができます。"
   },
