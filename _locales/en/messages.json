@@ -29,6 +29,15 @@
   "tagInjectorValidationError": {
     "message": "Please enter a valid tag name."
   },
+  "tagInjectorPlaceholder": {
+    "message": "Enter HTML tag to inject"
+  },
+  "tagInjectorInjectTooltip": {
+    "message": "Inject this tag into the selected element"
+  },
+  "tagInjectorRemoveTooltip": {
+    "message": "Remove this injected tag"
+  },
   "copyToClipboard": {
     "message": "Copy to clipboard"
   },

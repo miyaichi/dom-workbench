@@ -29,6 +29,15 @@
   "tagInjectorValidationError": {
     "message": "有効なタグを入力してください。"
   },
+  "tagInjectorPlaceholder": {
+    "message": "挿入する HTML タグを入力してください"
+  },
+  "tagInjectorInjectTooltip": {
+    "message": "選択した要素にこのタグを挿入します"
+  },
+  "tagInjectorRemoveTooltip": {
+    "message": "挿入したタグを削除します。"
+  },
   "copyToClipboard": {
     "message": "クリップボードにコピー"
   },
