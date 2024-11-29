@@ -8,7 +8,7 @@ import { TagInjector } from '../components/TagInjector';
 import { Tooltip } from '../components/common/Tooltip';
 import { useConnectionManager } from '../lib/connectionManager';
 import { Logger } from '../lib/logger';
-import { ElementInfo, StyleModification } from '../types/domSelection';
+import { ElementInfo } from '../types/domSelection';
 import { getContentScriptContext } from '../utils/contextHelpers';
 
 const logger = new Logger('SidePanel');
@@ -33,7 +33,6 @@ export const App = () => {
   const [selectedElement, setSelectedElement] = useState<ElementInfo | null>(null);
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [captureUrl, setCaptureDataUrl] = useState<string | null>(null);
-  const [styleModifications, setStyleModifications] = useState<StyleModification[]>([]);
   const [pendingTagInjection, setPendingTagInjection] = useState<{
     resolve: (tagId: string) => void;
     reject: (error: Error) => void;
@@ -191,10 +190,6 @@ export const App = () => {
     setShowShareCapture(false);
   };
 
-  const handleStylesChange = (modifications: StyleModification[]) => {
-    setStyleModifications(modifications);
-  };
-
   const handleInjectTag = useCallback(
     (tag: string): Promise<string> => {
       if (!currentTabId) {
@@ -280,10 +275,9 @@ export const App = () => {
                 selectedElement={selectedElement}
                 imageDataUrl={imageDataUrl}
                 captureUrl={captureUrl}
-                styleModifications={styleModifications}
               />
             )}
-            <StyleEditor selectedElement={selectedElement} onStylesChange={handleStylesChange} />
+            <StyleEditor selectedElement={selectedElement} />
             <TagInjector
               selectedElement={selectedElement}
               onInjectTag={handleInjectTag}

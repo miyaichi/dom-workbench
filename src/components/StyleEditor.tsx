@@ -1,14 +1,12 @@
 import { Check, Plus, Search, X } from 'lucide-react';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Logger } from '../lib/logger';
-import { ElementInfo, StyleModification } from '../types/domSelection';
+import { ElementInfo } from '../types/domSelection';
 import { Card } from './common/Card';
 
 interface StyleEditorProps {
   /** The currently selected element */
   selectedElement: ElementInfo | null;
-  /** Callback function to handle style modifications */
-  onStylesChange?: (modifications: StyleModification[]) => void;
 }
 
 // Utility functions
@@ -19,13 +17,11 @@ const isValidCSSProperty = (property: string): boolean => {
 /**
  * Component to render a style editor for modifying element styles
  * @param selectedElement - The currently selected element
- * @param onStylesChange - Callback function to handle style changes
  * @returns A React element representing the style editor
  */
-export const StyleEditor: React.FC<StyleEditorProps> = ({ selectedElement, onStylesChange }) => {
+export const StyleEditor: React.FC<StyleEditorProps> = ({ selectedElement }) => {
   // State declarations
   const [searchTerm, setSearchTerm] = useState('');
-  const [editedStyles, setEditedStyles] = useState<Record<string, string>>({});
   const [newProperty, setNewProperty] = useState('');
   const [newValue, setNewValue] = useState('');
   const [isAdding, setIsAdding] = useState(false);
@@ -33,41 +29,8 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({ selectedElement, onSty
   // Utility instances
   const logger = new Logger('StyleEditor');
 
-  // Memoized functions that depend on props or state
-  const notifyStyleChanges = useCallback(
-    (newStyles: Record<string, string>) => {
-      const modifications = Object.entries(newStyles).map(([prop, val]) => ({
-        property: prop,
-        value: val,
-      }));
-      logger.log('Styles changed:', modifications);
-      onStylesChange?.(modifications);
-    },
-    [onStylesChange]
-  );
-
-  // Non-memoized functions (simple state updates or no external dependencies)
   const handleStyleChange = (property: keyof CSSStyleDeclaration, value: string) => {
-    setEditedStyles((prevStyles) => {
-      const currentValue = selectedElement?.computedStyle?.[property] as string;
-      const previousEditedValue = prevStyles[property];
-
-      if (value !== currentValue && value !== previousEditedValue) {
-        const newStyles = {
-          ...prevStyles,
-          [property]: value,
-        };
-
-        setTimeout(() => notifyStyleChanges(newStyles), 0);
-        //
-        // Apply the new style to selected element
-        // Under development
-        //
-        return newStyles;
-      }
-
-      return prevStyles;
-    });
+    // Under development
   };
 
   const handleAddStyle = () => {
@@ -137,7 +100,7 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({ selectedElement, onSty
                 </div>
                 <input
                   key={property}
-                  defaultValue={editedStyles[property] ?? String(value)}
+                  defaultValue={String(value)}
                   onBlur={(e) =>
                     handleStyleChange(property as keyof CSSStyleDeclaration, e.target.value)
                   }

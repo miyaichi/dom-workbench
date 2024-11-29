@@ -23,10 +23,3 @@ export interface SelectionModePayload {
   /** Boolean indicating whether selection mode is enabled */
   enabled: boolean;
 }
-
-/** Interface for a style modification */
-export interface StyleModification {
-  /** CSS property to be modified */
-  property: string;
-  value: string;
-}

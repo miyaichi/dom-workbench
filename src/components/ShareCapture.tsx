@@ -5,7 +5,7 @@ import { Logger } from '../lib/logger';
 import { useSettings } from '../lib/settings';
 import { shareAsPDF } from '../lib/shareAsPDF';
 import { shareAsPPT } from '../lib/shareAsPPT';
-import { ElementInfo, StyleModification } from '../types/domSelection';
+import { ElementInfo } from '../types/domSelection';
 import './ShareCapture.css';
 
 interface ShareCaptureProps {
@@ -17,19 +17,11 @@ interface ShareCaptureProps {
   imageDataUrl: string | null;
   /** The URL of the captured page */
   captureUrl: string | null;
-  /** The style modifications applied to the selected element */
-  styleModifications: StyleModification[];
 }
 
 // Utility functions
 const getShareFunction = (format: string) => {
   return format === 'pdf' ? shareAsPDF : shareAsPPT;
-};
-
-const formatStyleModifications = (styleModifications: StyleModification[]) => {
-  if (styleModifications.length === 0) return '';
-
-  return styleModifications.map((mod) => `${mod.property}: ${mod.value}`).join('\n');
 };
 
 /**
@@ -38,7 +30,6 @@ const formatStyleModifications = (styleModifications: StyleModification[]) => {
  * @param selectedElement - The currently selected element
  * @param imageDataUrl - The image data URL of the screen capture
  * @param captureUrl - The URL of the captured page
- * @param styleModifications - The style modifications applied to the selected element
  * @returns A React element representing the share capture modal
  */
 export const ShareCapture: React.FC<ShareCaptureProps> = ({
@@ -46,7 +37,6 @@ export const ShareCapture: React.FC<ShareCaptureProps> = ({
   selectedElement,
   imageDataUrl,
   captureUrl,
-  styleModifications,
 }) => {
   // State declarations
   const { settings } = useSettings();
@@ -69,13 +59,7 @@ export const ShareCapture: React.FC<ShareCaptureProps> = ({
 
     try {
       const shareFunction = getShareFunction(settings.shareFormat);
-      await shareFunction(
-        imageDataUrl,
-        comment,
-        captureUrl || '',
-        selectedElement?.startTag || '',
-        formatStyleModifications(styleModifications)
-      );
+      await shareFunction(imageDataUrl, comment, captureUrl || '', selectedElement?.startTag || '');
 
       logger.debug('Capture shared');
       handleClose();
