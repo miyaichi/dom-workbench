@@ -30,7 +30,7 @@
     "message": "有効なタグを入力してください。"
   },
   "copyToClipboard": {
-    "message": "クリップボードにコピーします"
+    "message": "クリップボードにコピー"
   },
   "coppiedToClipboard": {
     "message": "コピーしました!"
