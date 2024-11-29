@@ -8,6 +8,7 @@ import { Tooltip } from './common/Tooltip';
 
 interface StyleEditorProps {
   selectedElement: ElementInfo | null;
+  onStyleChange?: (property: keyof CSSStyleDeclaration, value: string) => Promise<void>;
 }
 
 interface StyleHistoryEntry {
@@ -22,7 +23,7 @@ const isValidCSSProperty = (property: string): boolean => {
   return property in document.body.style;
 };
 
-export const StyleEditor: React.FC<StyleEditorProps> = ({ selectedElement }) => {
+export const StyleEditor: React.FC<StyleEditorProps> = ({ selectedElement, onStyleChange }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [newProperty, setNewProperty] = useState('');
   const [newValue, setNewValue] = useState('');
