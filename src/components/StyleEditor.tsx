@@ -8,7 +8,7 @@ import { Tooltip } from './common/Tooltip';
 
 interface StyleEditorProps {
   selectedElement: ElementInfo | null;
-  onStyleChange?: (property: keyof CSSStyleDeclaration, value: string) => Promise<void>;
+  onStyleChange?: (property: keyof CSSStyleDeclaration, value: string) => void;
 }
 
 interface StyleHistoryEntry {
