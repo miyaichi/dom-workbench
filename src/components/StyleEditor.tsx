@@ -102,7 +102,7 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({ selectedElement, onSty
     }));
 
     onStyleChange?.(latestEntry.property, latestEntry.oldValue);
-    
+
     setStyleHistory((prev) => prev.slice(1));
     logger.log('Style reverted:', latestEntry.property, latestEntry.oldValue);
   };
