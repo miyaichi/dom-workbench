@@ -21,6 +21,10 @@ export interface Messages {
     imageDataUrl?: string;
     url: string | null;
   };
+  INJECT_TAG: { tag: string };
+  INJECT_TAG_RESULT: { success: boolean; tagId?: string; error?: string };
+  REMOVE_TAG: { tagId: string };
+  REMOVE_TAG_RESULT: { success: boolean; tagId: string; error?: string };
   DEBUG: void;
 }
 

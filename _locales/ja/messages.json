@@ -14,6 +14,9 @@
   "tooltipParentElement": {
     "message": "親要素に移動"
   },
+  "tooltipTagInjectorRemove": {
+    "message": "挿入した HTML タグを削除"
+  },
   "labelDOMPath": {
     "message": "DOM パス"
   },

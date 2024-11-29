@@ -1,3 +1,4 @@
+import { nanoid } from 'nanoid';
 import { ConnectionManager } from './lib/connectionManager';
 import { Logger } from './lib/logger';
 import { ElementInfo } from './types/domSelection';
@@ -98,16 +99,21 @@ class ContentScript {
       logger.debug('Received GET_CONTENT_STATE request');
       await this.sendCurrentState();
     });
-
     this.manager.subscribe('TOGGLE_SELECTION_MODE', (message) => {
       this.toggleSelectionMode(message.payload.enabled);
     });
-
     this.manager.subscribe('SELECT_ELEMENT', (message) => {
       const element = getElementByPath(message.payload.path);
       if (element) {
         this.handleElementSelection(element as HTMLElement);
       }
+    });
+    this.manager.subscribe('INJECT_TAG', (message) => {
+      this.handleTagInjection(message.payload.tag);
+    });
+
+    this.manager.subscribe('REMOVE_TAG', (message) => {
+      this.handleTagRemoval(message.payload.tagId);
     });
   }
 
@@ -219,6 +225,50 @@ class ContentScript {
         elementInfo: this.state.selectedElementInfo,
       });
       this.state.selectedElementInfo = null;
+    }
+  }
+
+  private handleTagInjection(tag: string) {
+    if (!this.state.selectedElementInfo) {
+      this.manager.sendMessage(
+        'INJECT_TAG_RESULT',
+        { success: false, error: 'No element selected' },
+        'sidepanel'
+      );
+      return;
+    }
+
+    try {
+      const tagId = nanoid();
+
+      logger.log('Tag injection simulated:', {
+        tagId,
+        tag,
+        targetElement: this.state.selectedElementInfo,
+      });
+      this.manager.sendMessage('INJECT_TAG_RESULT', { success: true, tagId }, 'sidepanel');
+    } catch (error) {
+      logger.error('Tag injection failed:', error);
+      this.manager.sendMessage(
+        'INJECT_TAG_RESULT',
+        { success: false, error: (error as Error).message },
+        'sidepanel'
+      );
+    }
+  }
+
+  private handleTagRemoval(tagId: string) {
+    try {
+      logger.log('Tag removal simulated:', { tagId });
+
+      this.manager.sendMessage('REMOVE_TAG_RESULT', { success: true, tagId }, 'sidepanel');
+    } catch (error) {
+      logger.error('Tag removal failed:', error);
+      this.manager.sendMessage(
+        'REMOVE_TAG_RESULT',
+        { success: false, tagId, error: (error as Error).message },
+        'sidepanel'
+      );
     }
   }
 }

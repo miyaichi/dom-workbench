@@ -523,6 +523,45 @@ button:hover {
   cursor: not-allowed;
 }
 
+.injected-tags-title {
+  font-size: var(--font-sm);
+  font-weight: 500;
+  color: var(--text-color);
+  margin: 0 0 var(--spacing-3) 0;
+  padding-bottom: var(--spacing-2);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.injected-tag-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--spacing-3);
+  align-items: center;
+  padding: var(--spacing-2) var(--spacing-3);
+  background-color: var(--bg-color-light);
+  border-radius: var(--radius-base);
+  margin-bottom: var(--spacing-2);
+  font-family: var(--monospace-font);
+  font-size: var(--font-xs);
+}
+
+.injected-tag-meta {
+  color: var(--text-color-secondary);
+  white-space: nowrap;
+}
+
+.injected-tag-preview {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-color);
+}
+
+/* Overwrite syntax-tag class styles */
+.injected-tag-preview :where(.syntax-tag, .syntax-attr, .syntax-value, .syntax-punctuation) {
+  font-size: inherit;
+}
+
 /* Settings specific styles */
 .setting-group {
   margin-bottom: 1.5rem;

@@ -14,6 +14,18 @@ import { getContentScriptContext } from '../utils/contextHelpers';
 
 const logger = new Logger('SidePanel');
 
+interface TagInjectionResult {
+  success: boolean;
+  tagId?: string;
+  error?: string;
+}
+
+interface TagRemovalResult {
+  success: boolean;
+  tagId: string;
+  error?: string;
+}
+
 export const App = () => {
   const [currentTabId, setCurrentTabId] = useState<number | null>(null);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -23,6 +35,11 @@ export const App = () => {
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [captureUrl, setCaptureDataUrl] = useState<string | null>(null);
   const [styleModifications, setStyleModifications] = useState<StyleModification[]>([]);
+  const [pendingTagInjection, setPendingTagInjection] = useState<{
+    resolve: (tagId: string) => void;
+    reject: (error: Error) => void;
+  } | null>(null);
+
   const { sendMessage, subscribe } = useConnectionManager('sidepanel');
 
   useEffect(() => {
@@ -75,6 +92,29 @@ export const App = () => {
     }
   }, []);
 
+  const handleTagInjectionResult = useCallback(
+    (message: { payload: TagInjectionResult }) => {
+      const { success, tagId, error } = message.payload;
+
+      if (pendingTagInjection) {
+        if (success && tagId) {
+          pendingTagInjection.resolve(tagId);
+        } else {
+          pendingTagInjection.reject(new Error(error || 'Failed to inject tag'));
+        }
+        setPendingTagInjection(null);
+      }
+    },
+    [pendingTagInjection]
+  );
+
+  const handleTagRemovalResult = useCallback((message: { payload: TagRemovalResult }) => {
+    const { success, error } = message.payload;
+    if (!success) {
+      logger.error('Tag removal failed:', error);
+    }
+  }, []);
+
   useEffect(() => {
     const handleVisibilityChange = async () => {
       if (document.hidden) {
@@ -117,6 +157,14 @@ export const App = () => {
         subscribe('ELEMENT_UNSELECTED', handleElementUnselected)
       );
       subscriptions.set('CAPTURE_TAB_RESULT', subscribe('CAPTURE_TAB_RESULT', handleCaptureResult));
+      subscriptions.set(
+        'INJECT_TAG_RESULT',
+        subscribe('INJECT_TAG_RESULT', handleTagInjectionResult)
+      );
+      subscriptions.set(
+        'REMOVE_TAG_RESULT',
+        subscribe('REMOVE_TAG_RESULT', handleTagRemovalResult)
+      );
     }
 
     return () => {
@@ -130,6 +178,8 @@ export const App = () => {
     handleElementSelected,
     handleElementUnselected,
     handleCaptureResult,
+    handleTagInjectionResult,
+    handleTagRemovalResult,
   ]);
 
   const handleCapture = () => {
@@ -145,6 +195,34 @@ export const App = () => {
   const handleStylesChange = (modifications: StyleModification[]) => {
     setStyleModifications(modifications);
   };
+
+  const handleInjectTag = useCallback(
+    (tag: string): Promise<string> => {
+      if (!currentTabId) {
+        return Promise.reject(new Error('No active tab'));
+      }
+
+      return new Promise((resolve, reject) => {
+        setPendingTagInjection({ resolve, reject });
+        const contentScriptContext = getContentScriptContext(currentTabId);
+        sendMessage('INJECT_TAG', { tag }, contentScriptContext);
+      });
+    },
+    [currentTabId, sendMessage]
+  );
+
+  const handleRemoveTag = useCallback(
+    (tagId: string): Promise<void> => {
+      if (!currentTabId) {
+        return Promise.reject(new Error('No active tab'));
+      }
+
+      const contentScriptContext = getContentScriptContext(currentTabId);
+      sendMessage('REMOVE_TAG', { tagId }, contentScriptContext);
+      return Promise.resolve();
+    },
+    [currentTabId, sendMessage]
+  );
 
   const handleOnSelectElement = (path: number[]) => {
     if (!currentTabId) return;
@@ -207,7 +285,11 @@ export const App = () => {
               />
             )}
             <StyleEditor selectedElement={selectedElement} onStylesChange={handleStylesChange} />
-            <TagInjector selectedElement={selectedElement} />
+            <TagInjector
+              selectedElement={selectedElement}
+              onInjectTag={handleInjectTag}
+              onRemoveTag={handleRemoveTag}
+            />
           </div>
         )}
       </div>

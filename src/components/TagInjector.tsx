@@ -150,13 +150,13 @@ export const TagInjector: React.FC<TagInjectorProps> = ({
             <h4 className="injected-tags-title">Active Tags ({injectedTags.length})</h4>
             {injectedTags.map((tagInfo) => (
               <div key={tagInfo.id} className="injected-tag-item">
-                <div className="injected-tag-preview">
-                  {formatElementTag(tagInfo.tag, { maxLength: 30 })}
-                  <div className="injected-tag-meta">
-                    {new Date(tagInfo.timestamp).toLocaleTimeString()}
-                  </div>
+                <div className="injected-tag-meta">
+                  {new Date(tagInfo.timestamp).toLocaleTimeString()}
                 </div>
-                <Tooltip content={chrome.i18n.getMessage('tagInjectorRemoveTooltip')}>
+                <div className="injected-tag-preview">
+                  {formatElementTag(tagInfo.tag, { maxLength: 50 })}
+                </div>
+                <Tooltip content={chrome.i18n.getMessage('tooltipTagInjectorRemove')}>
                   <button
                     className="style-editor-button style-editor-button-danger"
                     onClick={() => handleRemove(tagInfo)}
