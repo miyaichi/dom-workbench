@@ -76,6 +76,7 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({ selectedElement, onSty
       ...prev,
       [property]: value,
     }));
+    onStyleChange?.(property, value);
   };
 
   const handleStyleFocus = (property: keyof CSSStyleDeclaration) => {
@@ -100,6 +101,8 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({ selectedElement, onSty
       [latestEntry.property]: latestEntry.oldValue,
     }));
 
+    onStyleChange?.(latestEntry.property, latestEntry.oldValue);
+    
     setStyleHistory((prev) => prev.slice(1));
     logger.log('Style reverted:', latestEntry.property, latestEntry.oldValue);
   };
