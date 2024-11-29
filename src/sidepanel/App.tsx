@@ -8,7 +8,6 @@ import { TagInjector } from '../components/TagInjector';
 import { Tooltip } from '../components/common/Tooltip';
 import { useConnectionManager } from '../lib/connectionManager';
 import { Logger } from '../lib/logger';
-import '../styles/common.css';
 import { ElementInfo, StyleModification } from '../types/domSelection';
 import { getContentScriptContext } from '../utils/contextHelpers';
 
