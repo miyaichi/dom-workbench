@@ -4,6 +4,7 @@ import { ElementInfo } from './types/domSelection';
 import { Context } from './types/messages';
 import { getContentScriptContext } from './utils/contextHelpers';
 import { createElementInfo, getElementByPath } from './utils/domSelection';
+import { htmlToDoc } from './utils/htmlToDoc';
 
 const logger = new Logger('contentScript');
 
@@ -240,26 +241,97 @@ class ContentScript {
     }
   }
 
-  private handleTagInjection(tag: string, tagId: string) {
+  private async handleTagInjection(tag: string, tagId: string) {
     if (!this.state.selectedElementInfo) {
       return;
     }
+
     try {
-      logger.log('Tag injection simulated:', {
-        tagId,
-        tag,
-        targetElement: this.state.selectedElementInfo,
+      const targetElement = getElementByPath(this.state.selectedElementInfo.path);
+      if (!targetElement) {
+        throw new Error('Target element not found');
+      }
+
+      const TAG_ID_ATTRIBUTE = 'data-injected-tag-id';
+
+      const domElement = await htmlToDoc(tag, {
+        async: true,
+        preserveOrder: true,
+        onScriptsLoaded: () => {
+          logger.debug(`Scripts loaded for tag ${tagId}`);
+          this.manager.sendMessage(
+            'SHOW_TOAST',
+            {
+              message: 'Tag scripts loaded successfully',
+              type: 'success',
+              duration: 2000,
+            },
+            'sidepanel'
+          );
+        },
       });
+
+      // Set tag ID to the root element of the injected tag
+      if (domElement instanceof DocumentFragment) {
+        Array.from(domElement.children).forEach((child) => {
+          child.setAttribute(TAG_ID_ATTRIBUTE, tagId);
+        });
+      } else if (domElement instanceof Element) {
+        domElement.setAttribute(TAG_ID_ATTRIBUTE, tagId);
+      }
+
+      targetElement.appendChild(domElement);
+
+      logger.log('Tag injected successfully:', {
+        tagId,
+        targetPath: this.state.selectedElementInfo.path,
+      });
+
+      this.manager.sendMessage(
+        'SHOW_TOAST',
+        { message: 'Tag injected successfully', type: 'success' },
+        'sidepanel'
+      );
     } catch (error) {
       logger.error('Tag injection failed:', error);
+      this.manager.sendMessage(
+        'SHOW_TOAST',
+        { message: 'Failed to inject tag. Please try again.', type: 'error' },
+        'sidepanel'
+      );
     }
   }
 
   private handleTagRemoval(tagId: string) {
     try {
-      logger.log('Tag removal simulated:', { tagId });
+      const TAG_ID_ATTRIBUTE = 'data-injected-tag-id';
+      const injectedElements = document.querySelectorAll(`[${TAG_ID_ATTRIBUTE}="${tagId}"]`);
+
+      if (injectedElements.length === 0) {
+        throw new Error(`No elements found with tag ID: ${tagId}`);
+      }
+
+      injectedElements.forEach((element) => {
+        element.remove();
+      });
+
+      logger.log('Tag removed successfully:', { tagId });
+
+      this.manager.sendMessage(
+        'SHOW_TOAST',
+        { message: 'Tag removed successfully', type: 'success' },
+        'sidepanel'
+      );
     } catch (error) {
       logger.error('Tag removal failed:', error);
+      this.manager.sendMessage(
+        'SHOW_TOAST',
+        {
+          message: 'Failed to remove tag. Please refresh the page if issues persist.',
+          type: 'error',
+        },
+        'sidepanel'
+      );
     }
   }
 }

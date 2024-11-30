@@ -5,14 +5,6 @@ export type ContentContext = `content-${string}`;
 export type Context = StaticContext | ContentContext;
 
 export interface Messages {
-  TAB_ACTIVATED: { tabId: number };
-  GET_CONTENT_STATE: void;
-  CONTENT_STATE_UPDATE: { isSelectionMode: boolean; selectedElementInfo: ElementInfo | null };
-  TOGGLE_SELECTION_MODE: { enabled: boolean };
-  ELEMENT_SELECTED: { elementInfo: ElementInfo };
-  ELEMENT_UNSELECTED: { elementInfo: ElementInfo };
-  SELECT_ELEMENT: { path: number[] };
-  UPDATE_ELEMENT_STYLE: { property: string; value: string };
   CAPTURE_TAB: void;
   CAPTURE_TAB_RESULT: {
     success: boolean;
@@ -20,9 +12,18 @@ export interface Messages {
     imageDataUrl?: string;
     url: string | null;
   };
+  CONTENT_STATE_UPDATE: { isSelectionMode: boolean; selectedElementInfo: ElementInfo | null };
+  DEBUG: void;
+  ELEMENT_SELECTED: { elementInfo: ElementInfo };
+  ELEMENT_UNSELECTED: { elementInfo: ElementInfo };
+  GET_CONTENT_STATE: void;
   INJECT_TAG: { tag: string; tagId: string };
   REMOVE_TAG: { tagId: string };
-  DEBUG: void;
+  SELECT_ELEMENT: { path: number[] };
+  SHOW_TOAST: { message: string; type?: 'success' | 'error'; duration?: number };
+  TAB_ACTIVATED: { tabId: number };
+  TOGGLE_SELECTION_MODE: { enabled: boolean };
+  UPDATE_ELEMENT_STYLE: { property: string; value: string };
 }
 
 export type MessageType = keyof Messages;

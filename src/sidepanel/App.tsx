@@ -5,6 +5,7 @@ import { SettingsPanel } from '../components/SettingsPanel';
 import { ShareCapture } from '../components/ShareCapture';
 import { StyleEditor } from '../components/StyleEditor';
 import { TagInjector } from '../components/TagInjector';
+import { ToastNotification } from '../components/common/ToastNotification';
 import { Tooltip } from '../components/common/Tooltip';
 import { useConnectionManager } from '../lib/connectionManager';
 import { Logger } from '../lib/logger';
@@ -21,10 +22,7 @@ export const App = () => {
   const [selectedElement, setSelectedElement] = useState<ElementInfo | null>(null);
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [captureUrl, setCaptureDataUrl] = useState<string | null>(null);
-  const [pendingTagInjection, setPendingTagInjection] = useState<{
-    resolve: (tagId: string) => void;
-    reject: (error: Error) => void;
-  } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type?: 'success' | 'error' } | null>(null);
 
   const { sendMessage, subscribe } = useConnectionManager('sidepanel');
 
@@ -104,12 +102,20 @@ export const App = () => {
     };
   }, [currentTabId, isSelectionMode, sendMessage]);
 
+  const handleShowToast = useCallback((message: { payload: { message: string; type?: string } }) => {
+    logger.log('Show toast:', message.payload);
+    setToast({
+      message: message.payload.message,
+      type: message.payload.type as 'success' | 'error' | undefined,
+    });
+  }, []);
+
   useEffect(() => {
     let mounted = true;
     const subscriptions = new Map();
 
     if (mounted) {
-      subscriptions.set('TAB_ACTIVATED', subscribe('TAB_ACTIVATED', handleTabActivated));
+      subscriptions.set('CAPTURE_TAB_RESULT', subscribe('CAPTURE_TAB_RESULT', handleCaptureResult));
       subscriptions.set(
         'CONTENT_STATE_UPDATE',
         subscribe('CONTENT_STATE_UPDATE', handleContentStateUpdate)
@@ -119,20 +125,23 @@ export const App = () => {
         'ELEMENT_UNSELECTED',
         subscribe('ELEMENT_UNSELECTED', handleElementUnselected)
       );
-      subscriptions.set('CAPTURE_TAB_RESULT', subscribe('CAPTURE_TAB_RESULT', handleCaptureResult));
+      subscriptions.set('SHOW_TOAST', subscribe('SHOW_TOAST', handleShowToast));
+      subscriptions.set('TAB_ACTIVATED', subscribe('TAB_ACTIVATED', handleTabActivated));
     }
 
     return () => {
+      logger.log('SidePanel unmounted, cleaning up');
       mounted = false;
       subscriptions.forEach((unsubscribe) => unsubscribe());
       subscriptions.clear();
     };
   }, [
-    handleTabActivated,
+    handleCaptureResult,
     handleContentStateUpdate,
     handleElementSelected,
     handleElementUnselected,
-    handleCaptureResult,
+    handleShowToast,
+    handleTabActivated,
   ]);
 
   const handleCapture = () => {
@@ -222,6 +231,7 @@ export const App = () => {
                 captureUrl={captureUrl}
               />
             )}
+            {toast && <ToastNotification {...toast} />}
             <StyleEditor selectedElement={selectedElement} onStyleChange={handleStyleChange} />
             <TagInjector
               selectedElement={selectedElement}
