@@ -1,4 +1,3 @@
-import { nanoid } from 'nanoid';
 import { ConnectionManager } from './lib/connectionManager';
 import { Logger } from './lib/logger';
 import { ElementInfo } from './types/domSelection';
@@ -109,9 +108,8 @@ class ContentScript {
       }
     });
     this.manager.subscribe('INJECT_TAG', (message) => {
-      this.handleTagInjection(message.payload.tag);
+      this.handleTagInjection(message.payload.tag, message.payload.tagId);
     });
-
     this.manager.subscribe('REMOVE_TAG', (message) => {
       this.handleTagRemoval(message.payload.tagId);
     });
@@ -228,47 +226,26 @@ class ContentScript {
     }
   }
 
-  private handleTagInjection(tag: string) {
+  private handleTagInjection(tag: string, tagId: string) {
     if (!this.state.selectedElementInfo) {
-      this.manager.sendMessage(
-        'INJECT_TAG_RESULT',
-        { success: false, error: 'No element selected' },
-        'sidepanel'
-      );
       return;
     }
-
     try {
-      const tagId = nanoid();
-
       logger.log('Tag injection simulated:', {
         tagId,
         tag,
         targetElement: this.state.selectedElementInfo,
       });
-      this.manager.sendMessage('INJECT_TAG_RESULT', { success: true, tagId }, 'sidepanel');
     } catch (error) {
       logger.error('Tag injection failed:', error);
-      this.manager.sendMessage(
-        'INJECT_TAG_RESULT',
-        { success: false, error: (error as Error).message },
-        'sidepanel'
-      );
     }
   }
 
   private handleTagRemoval(tagId: string) {
     try {
       logger.log('Tag removal simulated:', { tagId });
-
-      this.manager.sendMessage('REMOVE_TAG_RESULT', { success: true, tagId }, 'sidepanel');
     } catch (error) {
       logger.error('Tag removal failed:', error);
-      this.manager.sendMessage(
-        'REMOVE_TAG_RESULT',
-        { success: false, tagId, error: (error as Error).message },
-        'sidepanel'
-      );
     }
   }
 }

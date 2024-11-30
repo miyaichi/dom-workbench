@@ -13,18 +13,6 @@ import { getContentScriptContext } from '../utils/contextHelpers';
 
 const logger = new Logger('SidePanel');
 
-interface TagInjectionResult {
-  success: boolean;
-  tagId?: string;
-  error?: string;
-}
-
-interface TagRemovalResult {
-  success: boolean;
-  tagId: string;
-  error?: string;
-}
-
 export const App = () => {
   const [currentTabId, setCurrentTabId] = useState<number | null>(null);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -90,29 +78,6 @@ export const App = () => {
     }
   }, []);
 
-  const handleTagInjectionResult = useCallback(
-    (message: { payload: TagInjectionResult }) => {
-      const { success, tagId, error } = message.payload;
-
-      if (pendingTagInjection) {
-        if (success && tagId) {
-          pendingTagInjection.resolve(tagId);
-        } else {
-          pendingTagInjection.reject(new Error(error || 'Failed to inject tag'));
-        }
-        setPendingTagInjection(null);
-      }
-    },
-    [pendingTagInjection]
-  );
-
-  const handleTagRemovalResult = useCallback((message: { payload: TagRemovalResult }) => {
-    const { success, error } = message.payload;
-    if (!success) {
-      logger.error('Tag removal failed:', error);
-    }
-  }, []);
-
   useEffect(() => {
     const handleVisibilityChange = async () => {
       if (document.hidden) {
@@ -155,14 +120,6 @@ export const App = () => {
         subscribe('ELEMENT_UNSELECTED', handleElementUnselected)
       );
       subscriptions.set('CAPTURE_TAB_RESULT', subscribe('CAPTURE_TAB_RESULT', handleCaptureResult));
-      subscriptions.set(
-        'INJECT_TAG_RESULT',
-        subscribe('INJECT_TAG_RESULT', handleTagInjectionResult)
-      );
-      subscriptions.set(
-        'REMOVE_TAG_RESULT',
-        subscribe('REMOVE_TAG_RESULT', handleTagRemovalResult)
-      );
     }
 
     return () => {
@@ -176,8 +133,6 @@ export const App = () => {
     handleElementSelected,
     handleElementUnselected,
     handleCaptureResult,
-    handleTagInjectionResult,
-    handleTagRemovalResult,
   ]);
 
   const handleCapture = () => {
@@ -190,33 +145,17 @@ export const App = () => {
     setShowShareCapture(false);
   };
 
-  const handleInjectTag = useCallback(
-    (tag: string): Promise<string> => {
-      if (!currentTabId) {
-        return Promise.reject(new Error('No active tab'));
-      }
+  const handleInjectTag = (tag: string, tagId: string) => {
+    if (!currentTabId) return;
+    const contentScriptContext = getContentScriptContext(currentTabId);
+    sendMessage('INJECT_TAG', { tag, tagId }, contentScriptContext);
+  };
 
-      return new Promise((resolve, reject) => {
-        setPendingTagInjection({ resolve, reject });
-        const contentScriptContext = getContentScriptContext(currentTabId);
-        sendMessage('INJECT_TAG', { tag }, contentScriptContext);
-      });
-    },
-    [currentTabId, sendMessage]
-  );
-
-  const handleRemoveTag = useCallback(
-    (tagId: string): Promise<void> => {
-      if (!currentTabId) {
-        return Promise.reject(new Error('No active tab'));
-      }
-
-      const contentScriptContext = getContentScriptContext(currentTabId);
-      sendMessage('REMOVE_TAG', { tagId }, contentScriptContext);
-      return Promise.resolve();
-    },
-    [currentTabId, sendMessage]
-  );
+  const handleRemoveTag = (tagId: string) => {
+    if (!currentTabId) return;
+    const contentScriptContext = getContentScriptContext(currentTabId);
+    sendMessage('REMOVE_TAG', { tagId }, contentScriptContext);
+  };
 
   const handleOnSelectElement = (path: number[]) => {
     if (!currentTabId) return;

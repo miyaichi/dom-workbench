@@ -1,4 +1,5 @@
 import { AlertCircle, Send, Trash2 } from 'lucide-react';
+import { nanoid } from 'nanoid';
 import React, { useCallback, useState } from 'react';
 import { Logger } from '../lib/logger';
 import { ElementInfo } from '../types/domSelection';
@@ -11,9 +12,9 @@ interface TagInjectorProps {
   /** The currently selected element */
   selectedElement: ElementInfo | null;
   /** Callback when a tag should be injected */
-  onInjectTag?: (tag: string) => Promise<string>;
+  onInjectTag: (tag: string, tagId: string) => void;
   /** Callback when a tag should be removed */
-  onRemoveTag?: (tagId: string) => Promise<void>;
+  onRemoveTag: (tagId: string) => void;
   /** Options for validating the injected tag */
   validateOptions?: {
     checkDangerousElements?: boolean;
@@ -67,7 +68,8 @@ export const TagInjector: React.FC<TagInjectorProps> = ({
     setError(null);
 
     try {
-      const tagId = await onInjectTag(injectedTag);
+      const tagId = nanoid();
+      onInjectTag(injectedTag, tagId);
       setInjectedTags((prev) => [
         {
           id: tagId,
@@ -87,10 +89,8 @@ export const TagInjector: React.FC<TagInjectorProps> = ({
 
   const handleRemove = useCallback(
     async (tagInfo: InjectedTagInfo) => {
-      if (!onRemoveTag) return;
-
       try {
-        await onRemoveTag(tagInfo.id);
+        onRemoveTag(tagInfo.id);
         setInjectedTags((prev) => prev.filter((t) => t.id !== tagInfo.id));
       } catch (err) {
         setError((err as Error).message);
