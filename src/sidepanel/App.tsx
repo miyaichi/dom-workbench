@@ -171,6 +171,12 @@ export const App = () => {
     await sendMessage('TOGGLE_SELECTION_MODE', { enabled }, contentScriptContext);
   };
 
+  const handleStyleChange = (property: string, value: string) => {
+    if (!currentTabId || !selectedElement) return;
+    const contentScriptContext = getContentScriptContext(currentTabId);
+    sendMessage('UPDATE_ELEMENT_STYLE', { property, value }, contentScriptContext);
+  };
+
   return (
     <div className="app-container">
       <div className="app-content">
@@ -216,7 +222,7 @@ export const App = () => {
                 captureUrl={captureUrl}
               />
             )}
-            <StyleEditor selectedElement={selectedElement} />
+            <StyleEditor selectedElement={selectedElement} onStyleChange={handleStyleChange} />
             <TagInjector
               selectedElement={selectedElement}
               onInjectTag={handleInjectTag}

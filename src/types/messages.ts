@@ -1,4 +1,3 @@
-import { Properties as CSSStyleDeclaration } from 'csstype';
 import { ElementInfo } from './domSelection';
 
 export type StaticContext = 'background' | 'sidepanel' | 'undefined';
@@ -13,7 +12,7 @@ export interface Messages {
   ELEMENT_SELECTED: { elementInfo: ElementInfo };
   ELEMENT_UNSELECTED: { elementInfo: ElementInfo };
   SELECT_ELEMENT: { path: number[] };
-  UPDATE_ELEMENT_STYLE: { path: number[]; style: CSSStyleDeclaration };
+  UPDATE_ELEMENT_STYLE: { property: string; value: string };
   CAPTURE_TAB: void;
   CAPTURE_TAB_RESULT: {
     success: boolean;

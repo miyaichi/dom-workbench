@@ -8,7 +8,7 @@ import { Tooltip } from './common/Tooltip';
 
 interface StyleEditorProps {
   selectedElement: ElementInfo | null;
-  onStyleChange?: (property: keyof CSSStyleDeclaration, value: string) => void;
+  onStyleChange?: (property: string, value: string) => void;
 }
 
 interface StyleHistoryEntry {
@@ -76,7 +76,7 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({ selectedElement, onSty
       ...prev,
       [property]: value,
     }));
-    onStyleChange?.(property, value);
+    onStyleChange?.(property as string, value);
   };
 
   const handleStyleFocus = (property: keyof CSSStyleDeclaration) => {
@@ -101,7 +101,7 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({ selectedElement, onSty
       [latestEntry.property]: latestEntry.oldValue,
     }));
 
-    onStyleChange?.(latestEntry.property, latestEntry.oldValue);
+    onStyleChange?.(latestEntry.property as string, latestEntry.oldValue);
 
     setStyleHistory((prev) => prev.slice(1));
     logger.log('Style reverted:', latestEntry.property, latestEntry.oldValue);

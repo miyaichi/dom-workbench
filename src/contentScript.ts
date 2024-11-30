@@ -113,6 +113,9 @@ class ContentScript {
     this.manager.subscribe('REMOVE_TAG', (message) => {
       this.handleTagRemoval(message.payload.tagId);
     });
+    this.manager.subscribe('UPDATE_ELEMENT_STYLE', (message) => {
+      this.handleElementStyleUpdate(message.payload.property, message.payload.value);
+    });
   }
 
   private handleMouseOver(event: MouseEvent) {
@@ -223,6 +226,17 @@ class ContentScript {
         elementInfo: this.state.selectedElementInfo,
       });
       this.state.selectedElementInfo = null;
+    }
+  }
+
+  private handleElementStyleUpdate(property: string, value: string) {
+    if (!this.state.selectedElementInfo) {
+      return;
+    }
+    try {
+      logger.log('Element style updated:', { property, value });
+    } catch (error) {
+      logger.error('Element style update failed:', error);
     }
   }
 
