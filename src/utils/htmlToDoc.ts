@@ -26,11 +26,7 @@ export const htmlToDoc = async (
   htmlString: string,
   options: HtmlToDocOptions = {}
 ): Promise<Node | DocumentFragment> => {
-  const {
-    async = false,
-    preserveOrder = true,
-    onScriptsLoaded
-  } = options;
+  const { async = false, preserveOrder = true, onScriptsLoaded } = options;
 
   const parseHtml = (html: string): string => {
     const parser = new DOMParser();
@@ -65,7 +61,7 @@ export const htmlToDoc = async (
         placeholder,
         element: scriptClone,
         isExternal,
-        order: index
+        order: index,
       });
 
       script.parentNode?.replaceChild(placeholderElement, script);
