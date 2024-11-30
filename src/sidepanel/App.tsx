@@ -7,207 +7,320 @@ import { StyleEditor } from '../components/StyleEditor';
 import { TagInjector } from '../components/TagInjector';
 import { ToastNotification } from '../components/common/ToastNotification';
 import { Tooltip } from '../components/common/Tooltip';
-import { useConnectionManager } from '../lib/connectionManager';
+import { ConnectionManager, useConnectionManager } from '../lib/connectionManager';
 import { Logger } from '../lib/logger';
 import { ElementInfo } from '../types/domSelection';
 import { getContentScriptContext } from '../utils/contextHelpers';
 
 const logger = new Logger('SidePanel');
 
+export type ConnectionStatus = 'connected' | 'disconnected' | 'reconnecting';
+
+interface AppState {
+  currentTabId: number | null;
+  isSelectionMode: boolean;
+  showSettings: boolean;
+  showShareCapture: boolean;
+  selectedElement: ElementInfo | null;
+  imageDataUrl: string | null;
+  captureUrl: string | null;
+  toast: { message: string; type?: 'success' | 'error' } | null;
+  connectionStatus: ConnectionStatus;
+}
+
 export const App = () => {
-  const [currentTabId, setCurrentTabId] = useState<number | null>(null);
-  const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [showShareCapture, setShowShareCapture] = useState(false);
-  const [selectedElement, setSelectedElement] = useState<ElementInfo | null>(null);
-  const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
-  const [captureUrl, setCaptureDataUrl] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ message: string; type?: 'success' | 'error' } | null>(null);
+  const [state, setState] = useState<AppState>({
+    currentTabId: null,
+    isSelectionMode: false,
+    showSettings: false,
+    showShareCapture: false,
+    selectedElement: null,
+    imageDataUrl: null,
+    captureUrl: null,
+    toast: null,
+    connectionStatus: 'connected',
+  });
+  const manager = ConnectionManager.getInstance();
+  const { sendMessage, subscribe } = useConnectionManager();
+  const initialized = React.useRef(false);
 
-  const { sendMessage, subscribe } = useConnectionManager('sidepanel');
-
+  // Initialize tab monitoring
   useEffect(() => {
-    chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
-      if (tab?.id) {
-        setCurrentTabId(tab.id);
+    let isSubscribed = true;
+
+    const initializeTab = async () => {
+      if (initialized.current) {
+        logger.debug('App already initialized, skipping...');
+        return;
       }
-    });
+
+      try {
+        manager.setContext('sidepanel');
+
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tab?.id && isSubscribed) {
+          setState((prev) => {
+            // If the tab ID is the same, do not update
+            if (prev.currentTabId === tab.id) return prev;
+            return { ...prev, currentTabId: tab.id ?? null };
+          });
+
+          const contentScriptContext = getContentScriptContext(tab.id);
+          await sendMessage('GET_CONTENT_STATE', undefined, contentScriptContext);
+          initialized.current = true;
+        }
+      } catch (error) {
+        logger.error('Tab initialization failed:', error);
+      }
+    };
+
+    initializeTab();
+
+    // Tab change handler
+    const handleTabChange = (activeInfo?: chrome.tabs.TabActiveInfo) => {
+      if (activeInfo?.tabId) {
+        setState((prev) => ({ ...prev, currentTabId: activeInfo.tabId ?? null }));
+      }
+    };
+
+    chrome.tabs.onActivated.addListener(handleTabChange);
+
+    return () => {
+      isSubscribed = false;
+      chrome.tabs.onActivated.removeListener(handleTabChange);
+      logger.debug('Tab monitoring cleanup');
+    };
   }, []);
 
-  const handleTabActivated = useCallback(
-    async (message: { payload: { tabId: number } }) => {
-      const { tabId } = message.payload;
-      logger.debug('Tab activated with ID:', tabId);
-      setCurrentTabId(tabId);
-      const contentScriptContext = getContentScriptContext(tabId);
-      await sendMessage('GET_CONTENT_STATE', undefined, contentScriptContext);
-    },
-    [sendMessage]
-  );
+  // Message handlers
+  const messageHandlers = {
+    handleTabActivated: useCallback(
+      async (message: { payload: { tabId: number } }) => {
+        try {
+          const { tabId } = message.payload;
+          logger.debug('Tab activated with ID:', tabId);
+          setState((prev) => ({ ...prev, currentTabId: tabId }));
 
-  const handleContentStateUpdate = useCallback((message: any) => {
-    const { isSelectionMode, selectedElementInfo } = message.payload;
-    setIsSelectionMode(isSelectionMode);
-    setSelectedElement(selectedElementInfo);
-  }, []);
+          const contentScriptContext = getContentScriptContext(tabId);
+          await sendMessage('GET_CONTENT_STATE', undefined, contentScriptContext);
+        } catch (error) {
+          logger.error('Failed to handle tab activation:', error);
+        }
+      },
+      [sendMessage]
+    ),
 
-  const handleElementSelected = useCallback(
-    (message: { payload: { elementInfo: ElementInfo } }) => {
+    handleContentStateUpdate: useCallback((message: any) => {
+      const { isSelectionMode, selectedElementInfo } = message.payload;
+      setState((prev) => ({
+        ...prev,
+        isSelectionMode,
+        selectedElement: selectedElementInfo,
+      }));
+    }, []),
+
+    handleElementSelected: useCallback((message: { payload: { elementInfo: ElementInfo } }) => {
       logger.log('Element selected:', message.payload.elementInfo);
-      setSelectedElement(message.payload.elementInfo);
-    },
-    []
-  );
+      setState((prev) => ({ ...prev, selectedElement: message.payload.elementInfo }));
+    }, []),
 
-  const handleElementUnselected = useCallback(() => {
-    logger.log('Element unselected');
-    setSelectedElement(null);
-  }, []);
+    handleElementUnselected: useCallback(() => {
+      logger.log('Element unselected');
+      setState((prev) => ({ ...prev, selectedElement: null }));
+    }, []),
 
-  const handleCaptureResult = useCallback((message: any) => {
-    logger.log('Capture result:', message.payload);
-    const { success, imageDataUrl, error, url } = message.payload;
+    handleCaptureResult: useCallback((message: any) => {
+      const { success, imageDataUrl, error, url } = message.payload;
+      if (success) {
+        setState((prev) => ({
+          ...prev,
+          imageDataUrl: imageDataUrl || null,
+          captureUrl: url || '',
+        }));
+      } else {
+        logger.error('Capture failed:', error);
+      }
+    }, []),
 
-    if (success) {
-      setImageDataUrl(imageDataUrl || null);
-      setCaptureDataUrl(url || '');
-    } else {
-      logger.error('Capture failed:', error);
-    }
-  }, []);
+    handleShowToast: useCallback((message: { payload: { message: string; type?: string } }) => {
+      setState((prev) => ({
+        ...prev,
+        toast: {
+          message: message.payload.message,
+          type: message.payload.type as 'success' | 'error' | undefined,
+        },
+      }));
+    }, []),
+  };
 
+  // Message subscriptions
   useEffect(() => {
-    const handleVisibilityChange = async () => {
-      if (document.hidden) {
-        logger.log('Document hidden, cleaning up');
-        setShowSettings(false);
-        setShowShareCapture(false);
+    if (!initialized.current) {
+      logger.debug('Waiting for initialization...');
+      return;
+    }
 
-        if (currentTabId && isSelectionMode) {
-          try {
-            const contentScriptContext = getContentScriptContext(currentTabId);
-            await sendMessage('TOGGLE_SELECTION_MODE', { enabled: false }, contentScriptContext);
-            logger.debug('Selection mode disable message sent');
-          } catch (error) {
-            logger.error('Failed to send disable selection mode message:', error);
-          }
-          setIsSelectionMode(false);
+    let isSubscribed = true;
+    const subscriptions = new Map();
+
+    const subscriptionConfigs = {
+      CAPTURE_TAB_RESULT: messageHandlers.handleCaptureResult,
+      CONTENT_STATE_UPDATE: messageHandlers.handleContentStateUpdate,
+      ELEMENT_SELECTED: messageHandlers.handleElementSelected,
+      ELEMENT_UNSELECTED: messageHandlers.handleElementUnselected,
+      SHOW_TOAST: messageHandlers.handleShowToast,
+      TAB_ACTIVATED: messageHandlers.handleTabActivated,
+    };
+
+    logger.debug('Setting up message subscriptions');
+    Object.entries(subscriptionConfigs).forEach(([event, handler]) => {
+      subscriptions.set(
+        event,
+        subscribe(event as any, (msg: any) => {
+          if (isSubscribed) handler(msg);
+        })
+      );
+    });
+
+    return () => {
+      logger.debug('Cleaning up message subscriptions');
+      isSubscribed = false;
+      subscriptions.forEach((unsubscribe) => unsubscribe());
+      subscriptions.clear();
+    };
+  }, [messageHandlers, subscribe, initialized.current]);
+
+  // Monitor document visibility
+  useEffect(() => {
+    let isSubscribed = true;
+
+    const handleVisibilityChange = async () => {
+      if (!isSubscribed || !document.hidden) return;
+
+      logger.log('Document hidden, cleaning up');
+      setState((prev) => ({
+        ...prev,
+        showSettings: false,
+        showShareCapture: false,
+      }));
+
+      if (state.currentTabId && state.isSelectionMode) {
+        try {
+          const contentScriptContext = getContentScriptContext(state.currentTabId);
+          await sendMessage('TOGGLE_SELECTION_MODE', { enabled: false }, contentScriptContext);
+          setState((prev) => ({ ...prev, isSelectionMode: false }));
+        } catch (error) {
+          logger.error('Failed to disable selection mode:', error);
         }
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
+      isSubscribed = false;
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [currentTabId, isSelectionMode, sendMessage]);
+  }, [state.currentTabId, state.isSelectionMode, sendMessage]);
 
-  const handleShowToast = useCallback((message: { payload: { message: string; type?: string } }) => {
-    logger.log('Show toast:', message.payload);
-    setToast({
-      message: message.payload.message,
-      type: message.payload.type as 'success' | 'error' | undefined,
-    });
-  }, []);
+  // UI handlers
+  const uiHandlers = {
+    handleCapture: useCallback(() => {
+      if (!state.currentTabId) return;
+      setState((prev) => ({ ...prev, showShareCapture: true }));
+      sendMessage('CAPTURE_TAB', undefined, 'background');
+    }, [state.currentTabId, sendMessage]),
 
-  useEffect(() => {
-    let mounted = true;
-    const subscriptions = new Map();
+    handleShareClose: useCallback(() => {
+      setState((prev) => ({ ...prev, showShareCapture: false }));
+    }, []),
 
-    if (mounted) {
-      subscriptions.set('CAPTURE_TAB_RESULT', subscribe('CAPTURE_TAB_RESULT', handleCaptureResult));
-      subscriptions.set(
-        'CONTENT_STATE_UPDATE',
-        subscribe('CONTENT_STATE_UPDATE', handleContentStateUpdate)
-      );
-      subscriptions.set('ELEMENT_SELECTED', subscribe('ELEMENT_SELECTED', handleElementSelected));
-      subscriptions.set(
-        'ELEMENT_UNSELECTED',
-        subscribe('ELEMENT_UNSELECTED', handleElementUnselected)
-      );
-      subscriptions.set('SHOW_TOAST', subscribe('SHOW_TOAST', handleShowToast));
-      subscriptions.set('TAB_ACTIVATED', subscribe('TAB_ACTIVATED', handleTabActivated));
-    }
+    handleInjectTag: useCallback(
+      (tag: string, tagId: string) => {
+        if (!state.currentTabId) return;
+        const contentScriptContext = getContentScriptContext(state.currentTabId);
+        sendMessage('INJECT_TAG', { tag, tagId }, contentScriptContext);
+      },
+      [state.currentTabId, sendMessage]
+    ),
 
-    return () => {
-      logger.log('SidePanel unmounted, cleaning up');
-      mounted = false;
-      subscriptions.forEach((unsubscribe) => unsubscribe());
-      subscriptions.clear();
-    };
-  }, [
-    handleCaptureResult,
-    handleContentStateUpdate,
-    handleElementSelected,
-    handleElementUnselected,
-    handleShowToast,
-    handleTabActivated,
-  ]);
+    handleRemoveTag: useCallback(
+      (tagId: string) => {
+        if (!state.currentTabId) return;
+        const contentScriptContext = getContentScriptContext(state.currentTabId);
+        sendMessage('REMOVE_TAG', { tagId }, contentScriptContext);
+      },
+      [state.currentTabId, sendMessage]
+    ),
 
-  const handleCapture = () => {
-    if (!currentTabId) return;
-    setShowShareCapture(true);
-    sendMessage('CAPTURE_TAB', undefined, 'background');
+    handleSelectElement: useCallback(
+      (path: number[]) => {
+        if (!state.currentTabId) return;
+        const contentScriptContext = getContentScriptContext(state.currentTabId);
+        sendMessage('SELECT_ELEMENT', { path }, contentScriptContext);
+      },
+      [state.currentTabId, sendMessage]
+    ),
+
+    toggleSelectionMode: useCallback(async () => {
+      if (!state.currentTabId) return;
+      const enabled = !state.isSelectionMode;
+      setState((prev) => ({ ...prev, isSelectionMode: enabled }));
+      const contentScriptContext = getContentScriptContext(state.currentTabId);
+      await sendMessage('TOGGLE_SELECTION_MODE', { enabled }, contentScriptContext);
+    }, [state.currentTabId, state.isSelectionMode, sendMessage]),
+
+    handleStyleChange: useCallback(
+      (property: string, value: string) => {
+        if (!state.currentTabId || !state.selectedElement) return;
+        const contentScriptContext = getContentScriptContext(state.currentTabId);
+        sendMessage('UPDATE_ELEMENT_STYLE', { property, value }, contentScriptContext);
+      },
+      [state.currentTabId, state.selectedElement, sendMessage]
+    ),
+
+    toggleSettings: useCallback(() => {
+      setState((prev) => ({ ...prev, showSettings: !prev.showSettings }));
+    }, []),
   };
 
-  const handleShareClose = () => {
-    setShowShareCapture(false);
-  };
-
-  const handleInjectTag = (tag: string, tagId: string) => {
-    if (!currentTabId) return;
-    const contentScriptContext = getContentScriptContext(currentTabId);
-    sendMessage('INJECT_TAG', { tag, tagId }, contentScriptContext);
-  };
-
-  const handleRemoveTag = (tagId: string) => {
-    if (!currentTabId) return;
-    const contentScriptContext = getContentScriptContext(currentTabId);
-    sendMessage('REMOVE_TAG', { tagId }, contentScriptContext);
-  };
-
-  const handleOnSelectElement = (path: number[]) => {
-    if (!currentTabId) return;
-    const contentScriptContext = getContentScriptContext(currentTabId);
-    sendMessage('SELECT_ELEMENT', { path }, contentScriptContext);
-  };
-
-  const toggleSelectionMode = async () => {
-    if (!currentTabId) return;
-    const enabled = !isSelectionMode;
-    setIsSelectionMode(enabled);
-    const contentScriptContext = getContentScriptContext(currentTabId);
-    await sendMessage('TOGGLE_SELECTION_MODE', { enabled }, contentScriptContext);
-  };
-
-  const handleStyleChange = (property: string, value: string) => {
-    if (!currentTabId || !selectedElement) return;
-    const contentScriptContext = getContentScriptContext(currentTabId);
-    sendMessage('UPDATE_ELEMENT_STYLE', { property, value }, contentScriptContext);
-  };
+  if (state.connectionStatus === 'disconnected') {
+    return (
+      <div className="app-container">
+        <div className="app-content">
+          <div className="connection-error">Connection lost. Please refresh the page.</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="app-container">
       <div className="app-content">
         <div className="app-header">
           <button
-            onClick={toggleSelectionMode}
-            className={`selection-button ${isSelectionMode ? 'enabled' : 'disabled'}`}
+            onClick={uiHandlers.toggleSelectionMode}
+            className={`selection-button ${state.isSelectionMode ? 'enabled' : 'disabled'}`}
+            disabled={state.connectionStatus !== 'connected'}
           >
             <Power size={16} />
-            {isSelectionMode ? 'Selection Mode On' : 'Selection Mode Off'}
+            {state.isSelectionMode ? 'Selection Mode On' : 'Selection Mode Off'}
           </button>
 
           <div className="header-actions">
             <Tooltip content={chrome.i18n.getMessage('tooltipCapture')}>
-              <button onClick={handleCapture} className="icon-button">
+              <button
+                onClick={uiHandlers.handleCapture}
+                className="icon-button"
+                disabled={state.connectionStatus !== 'connected'}
+              >
                 <Camera size={16} />
               </button>
             </Tooltip>
             <Tooltip content={chrome.i18n.getMessage('tooltipSettings')}>
               <button
-                onClick={() => setShowSettings(!showSettings)}
-                className={`icon-button ${showSettings ? 'active' : ''}`}
+                onClick={uiHandlers.toggleSettings}
+                className={`icon-button ${state.showSettings ? 'active' : ''}`}
+                disabled={state.connectionStatus !== 'connected'}
               >
                 <Settings size={16} />
               </button>
@@ -215,30 +328,36 @@ export const App = () => {
           </div>
         </div>
 
-        {showSettings ? (
+        {state.showSettings ? (
           <SettingsPanel />
         ) : (
           <div className="components-container">
             <DOMSelector
-              selectedElement={selectedElement}
-              onSelectElement={handleOnSelectElement}
+              selectedElement={state.selectedElement}
+              onSelectElement={uiHandlers.handleSelectElement}
             />
-            {showShareCapture && (
+            {state.showShareCapture && (
               <ShareCapture
-                onClose={handleShareClose}
-                selectedElement={selectedElement}
-                imageDataUrl={imageDataUrl}
-                captureUrl={captureUrl}
+                onClose={uiHandlers.handleShareClose}
+                selectedElement={state.selectedElement}
+                imageDataUrl={state.imageDataUrl}
+                captureUrl={state.captureUrl}
               />
             )}
-            {toast && <ToastNotification {...toast} />}
-            <StyleEditor selectedElement={selectedElement} onStyleChange={handleStyleChange} />
+            {state.toast && <ToastNotification {...state.toast} />}
+            <StyleEditor
+              selectedElement={state.selectedElement}
+              onStyleChange={uiHandlers.handleStyleChange}
+            />
             <TagInjector
-              selectedElement={selectedElement}
-              onInjectTag={handleInjectTag}
-              onRemoveTag={handleRemoveTag}
+              selectedElement={state.selectedElement}
+              onInjectTag={uiHandlers.handleInjectTag}
+              onRemoveTag={uiHandlers.handleRemoveTag}
             />
           </div>
+        )}
+        {state.connectionStatus === 'reconnecting' && (
+          <div className="connection-status">Reconnecting...</div>
         )}
       </div>
     </div>
