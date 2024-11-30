@@ -567,8 +567,20 @@ button:hover {
 }
 
 .error-message {
-  color: var(--color-red);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--radius-base);
+  background-color: var(--color-red);
+  color: var(--bg-color-white);
   font-size: var(--font-sm);
+}
+
+.error-message svg {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
 }
 
 .inject-button {

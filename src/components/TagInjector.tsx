@@ -121,8 +121,8 @@ export const TagInjector: React.FC<TagInjectorProps> = ({
 
         {(validationError || error) && (
           <div className="error-message">
-            <AlertCircle size={16} className="inline-icon" />
-            {validationError || error}
+            <AlertCircle />
+            <span>{validationError || error}</span>
           </div>
         )}
 
