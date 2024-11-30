@@ -16,6 +16,12 @@ const logger = new Logger('SidePanel');
 
 export type ConnectionStatus = 'connected' | 'disconnected' | 'reconnecting';
 
+interface Toast {
+  id: string;
+  message: string;
+  type?: 'success' | 'error';
+}
+
 interface AppState {
   currentTabId: number | null;
   isSelectionMode: boolean;
@@ -24,7 +30,7 @@ interface AppState {
   selectedElement: ElementInfo | null;
   imageDataUrl: string | null;
   captureUrl: string | null;
-  toast: { message: string; type?: 'success' | 'error' } | null;
+  toast: Toast | null;
   connectionStatus: ConnectionStatus;
 }
 
@@ -146,6 +152,7 @@ export const App = () => {
       setState((prev) => ({
         ...prev,
         toast: {
+          id: Date.now().toString(),
           message: message.payload.message,
           type: message.payload.type as 'success' | 'error' | undefined,
         },
@@ -278,6 +285,10 @@ export const App = () => {
       [state.currentTabId, state.selectedElement, sendMessage]
     ),
 
+    handleToastClose: useCallback(() => {
+      setState((prev) => ({ ...prev, toast: null }));
+    }, []),
+
     toggleSettings: useCallback(() => {
       setState((prev) => ({ ...prev, showSettings: !prev.showSettings }));
     }, []),
@@ -344,7 +355,14 @@ export const App = () => {
                 captureUrl={state.captureUrl}
               />
             )}
-            {state.toast && <ToastNotification {...state.toast} />}
+            {state.toast && (
+              <ToastNotification
+                key={state.toast.id}
+                message={state.toast.message}
+                type={state.toast.type}
+                onClose={uiHandlers.handleToastClose}
+              />
+            )}
             <StyleEditor
               selectedElement={state.selectedElement}
               onStyleChange={uiHandlers.handleStyleChange}

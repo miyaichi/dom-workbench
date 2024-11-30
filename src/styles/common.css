@@ -656,3 +656,75 @@ button:hover {
 .error-message {
   padding: 1rem;
 }
+
+/* Toast Notification */
+.toast-container {
+  position: fixed;
+  bottom: var(--spacing-4);
+  right: var(--spacing-4);
+  z-index: 50;
+  animation: slideIn var(--transition-base);
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--radius-base);
+  background-color: var(--bg-color-white);
+  box-shadow: var(--shadow-md);
+  font-size: var(--font-sm);
+  max-width: 400px;
+  color: var(--text-color);
+}
+
+.toast.success {
+  background-color: var(--color-green);
+  color: var(--bg-color-white);
+}
+
+.toast.error {
+  background-color: var(--color-red);
+  color: var(--bg-color-white);
+}
+
+.toast-close-button {
+  padding: var(--spacing-1);
+  margin-left: var(--spacing-2);
+  border-radius: var(--radius-full);
+  color: currentColor;
+  opacity: 0.8;
+  transition: var(--transition-base);
+}
+
+.toast-close-button:hover {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+.toast-exit {
+  animation: slideOut var(--transition-base);
+}
