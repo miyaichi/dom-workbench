@@ -162,12 +162,12 @@ class ContentScript {
       el.classList.remove('extension-selected');
     });
 
-    this.state.selectedElementInfo = createElementInfo(element);
-    logger.debug('Element selected:', this.state.selectedElementInfo);
-
+    // Clear hover, set selected element, set selected
     element.classList.remove('extension-highlight');
+    this.state.selectedElementInfo = createElementInfo(element);
     element.classList.add('extension-selected');
 
+    logger.debug('Element selected:', this.state.selectedElementInfo);
     this.manager.sendMessage(
       'ELEMENT_SELECTED',
       { elementInfo: this.state.selectedElementInfo },
