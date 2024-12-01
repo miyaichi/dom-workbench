@@ -49,5 +49,20 @@
   },
   "coppiedToClipboard": {
     "message": "Copied!"
+  },
+  "toastTagLoaded": {
+    "message": "Tag scripts loaded successfully"
+  },
+  "toastTagInjected": {
+    "message": "Tag injected successfully"
+  },
+  "toastTagInjectFailed": {
+    "message": "Failed to inject tag. Please try again."
+  },
+  "toastTagRemoved": {
+    "message": "Tag removed successfully"
+  },
+  "toastTagRemoveFailed": {
+    "message": "Failed to remove tag. Please refresh the page if issues persist."
   }
 }

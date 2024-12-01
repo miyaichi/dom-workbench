@@ -262,7 +262,7 @@ class ContentScript {
           this.manager.sendMessage(
             'SHOW_TOAST',
             {
-              message: 'Tag scripts loaded successfully',
+              message: chrome.i18n.getMessage('toastTagLoaded'),
               type: 'success',
               duration: 2000,
             },
@@ -289,14 +289,14 @@ class ContentScript {
 
       this.manager.sendMessage(
         'SHOW_TOAST',
-        { message: 'Tag injected successfully', type: 'success' },
+        { message: chrome.i18n.getMessage('toastTagInjected'), type: 'success' },
         'sidepanel'
       );
     } catch (error) {
       logger.error('Tag injection failed:', error);
       this.manager.sendMessage(
         'SHOW_TOAST',
-        { message: 'Failed to inject tag. Please try again.', type: 'error' },
+        { message: chrome.i18n.getMessage('toastTagInjected'), type: 'error' },
         'sidepanel'
       );
     }
@@ -319,7 +319,7 @@ class ContentScript {
 
       this.manager.sendMessage(
         'SHOW_TOAST',
-        { message: 'Tag removed successfully', type: 'success' },
+        { message: chrome.i18n.getMessage('toastTagRemoved'), type: 'success' },
         'sidepanel'
       );
     } catch (error) {
@@ -327,7 +327,7 @@ class ContentScript {
       this.manager.sendMessage(
         'SHOW_TOAST',
         {
-          message: 'Failed to remove tag. Please refresh the page if issues persist.',
+          message: chrome.i18n.getMessage('toastTagRemoveFailed'),
           type: 'error',
         },
         'sidepanel'

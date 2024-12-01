@@ -49,5 +49,20 @@
   },
   "coppiedToClipboard": {
     "message": "コピーしました!"
+  },
+  "toastTagLoaded": {
+    "message": "タグスクリプトはロードされました"
+  },
+  "toastTagInjected": {
+    "message": "タグを注入しました"
+  },
+  "toastTagInjectFailed": {
+    "message": "タグの注入に失敗しました。もう一度試してください"
+  },
+  "toastTagRemoved": {
+    "message": "タグを削除しました"
+  },
+  "toastTagRemoveFailed": {
+    "message": "タグの削除に失敗しました。問題があればページをリロードしてください"
   }
 }
