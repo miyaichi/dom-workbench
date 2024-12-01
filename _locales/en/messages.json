@@ -50,6 +50,12 @@
   "coppiedToClipboard": {
     "message": "Copied!"
   },
+  "toastStyleUpdated": {
+    "message": "Style updated successfully"
+  },
+  "toastStyleUpdateFailed": {
+    "message": "Failed to update style. Please try again."
+  },
   "toastTagLoaded": {
     "message": "Tag scripts loaded successfully"
   },

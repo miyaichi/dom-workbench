@@ -76,7 +76,6 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({ selectedElement, onSty
       ...prev,
       [property]: value,
     }));
-    onStyleChange?.(property as string, value);
   };
 
   const handleStyleFocus = (property: keyof CSSStyleDeclaration) => {
@@ -88,6 +87,7 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({ selectedElement, onSty
 
     const newValue = currentStyles[property] || '';
     updateStyleWithHistory(property, newValue, focusValue);
+    onStyleChange?.(property as string, newValue);
     setFocusValue(null);
   };
 
@@ -116,8 +116,12 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({ selectedElement, onSty
     if (isValidCSSProperty(trimmedProperty)) {
       const property = trimmedProperty as keyof CSSStyleDeclaration;
       const oldValue = currentStyles[property] || '';
-      handleStyleChange(property, trimmedValue);
+      setCurrentStyles((prev) => ({
+        ...prev,
+        [property]: trimmedValue,
+      }));
       updateStyleWithHistory(property, trimmedValue, oldValue);
+      onStyleChange?.(property as string, trimmedValue);
       setNewProperty('');
       setNewValue('');
       setIsAdding(false);

@@ -232,12 +232,55 @@ class ContentScript {
 
   private handleElementStyleUpdate(property: string, value: string) {
     if (!this.state.selectedElementInfo) {
+      logger.error('No element selected for style update');
       return;
     }
+
     try {
-      logger.log('Element style updated:', { property, value });
+      const targetElement = getElementByPath(this.state.selectedElementInfo.path);
+      if (!targetElement) {
+        throw new Error('Target element not found');
+      }
+
+      const STYLE_MODIFIED_ATTRIBUTE = 'data-extension-modified-styles';
+
+      let modifiedStyles: { [key: string]: string } = {};
+      const existingStyles = targetElement.getAttribute(STYLE_MODIFIED_ATTRIBUTE);
+      if (existingStyles) {
+        modifiedStyles = JSON.parse(existingStyles);
+      }
+
+      // Update element style
+      targetElement.style[property as any] = value;
+
+      // Update modified styles
+      modifiedStyles[property] = value;
+      targetElement.setAttribute(STYLE_MODIFIED_ATTRIBUTE, JSON.stringify(modifiedStyles));
+
+      logger.log('Element style updated:', {
+        property,
+        value,
+        path: this.state.selectedElementInfo.path,
+      });
+
+      this.manager.sendMessage(
+        'SHOW_TOAST',
+        {
+          message: chrome.i18n.getMessage('toastStyleUpdated'),
+          type: 'success',
+        },
+        'sidepanel'
+      );
     } catch (error) {
       logger.error('Element style update failed:', error);
+      this.manager.sendMessage(
+        'SHOW_TOAST',
+        {
+          message: chrome.i18n.getMessage('toastStyleUpdateFailed'),
+          type: 'error',
+        },
+        'sidepanel'
+      );
     }
   }
 
