@@ -14,7 +14,7 @@ interface DOMSelectorProps {
   onSelectElement: (path: number[]) => void;
 }
 
-// Utility functions は変更なし
+// Utility functions
 const hasParentElement = (element: ElementInfo): boolean => {
   return element.path.length > 0;
 };

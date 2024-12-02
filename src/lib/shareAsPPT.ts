@@ -14,9 +14,11 @@ const logger = new Logger('sharePPT');
 
 export const shareAsPPT = async (
   imageData: string,
-  comment: string,
   url: string,
-  startTag: string
+  startTag: string,
+  comment: string,
+  styleChanges: string,
+  injectedTags: string
 ): Promise<true> => {
   logger.log('Starting PowerPoint generation process');
 
@@ -40,6 +42,8 @@ export const shareAsPPT = async (
       { title: 'URL: ', content: url },
       { title: 'Element start tag: ', content: startTag },
       { title: 'Comment: ', content: comment },
+      { title: 'Style changes: ', content: styleChanges },
+      { title: 'Injected tags: ', content: injectedTags },
     ];
     layoutManager.layoutSections(sections);
 

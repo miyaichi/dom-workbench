@@ -92,26 +92,15 @@ export const ShareCapture: React.FC<ShareCaptureProps> = ({
     logger.debug('Sharing capture...');
     setIsLoading(true);
 
-    const changesText = `
-Changes Summary:
-
-Style Changes:
-${formatStyleChanges(styleChanges)}
-
-Injected Tags:
-${formatTagChanges(injectedTags)}
-
-Comment:
-${comment}
-    `.trim();
-
     try {
       const shareFunction = getShareFunction(settings.shareFormat);
       await shareFunction(
         imageDataUrl,
-        changesText,
         captureUrl || '',
-        selectedElement?.startTag || ''
+        comment,
+        selectedElement?.startTag || '',
+        formatStyleChanges(styleChanges),
+        formatTagChanges(injectedTags)
       );
 
       logger.debug('Capture shared');
