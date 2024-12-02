@@ -424,6 +424,8 @@ export const App = () => {
                 selectedElement={state.selectedElement}
                 imageDataUrl={state.imageDataUrl}
                 captureUrl={state.captureUrl}
+                injectedTags={state.injectedTags}
+                styleChanges={state.styleChanges}
               />
             )}
             {state.toast && (

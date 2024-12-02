@@ -8,44 +8,79 @@ import { shareAsPPT } from '../lib/shareAsPPT';
 import { ElementInfo } from '../types/domSelection';
 import './ShareCapture.css';
 
-interface ShareCaptureProps {
-  /** Callback function to close the modal */
-  onClose: () => void;
-  /** The currently selected element */
-  selectedElement: ElementInfo | null;
-  /** The image data URL of the screen capture */
-  imageDataUrl: string | null;
-  /** The URL of the captured page */
-  captureUrl: string | null;
+interface InjectedTagInfo {
+  id: string;
+  tag: string;
+  timestamp: number;
 }
 
-// Utility functions
+interface StyleChange {
+  id: string;
+  timestamp: number;
+  property: keyof CSSStyleDeclaration;
+  oldValue: string;
+  newValue: string;
+}
+
+interface ShareCaptureProps {
+  onClose: () => void;
+  selectedElement: ElementInfo | null;
+  imageDataUrl: string | null;
+  captureUrl: string | null;
+  injectedTags: InjectedTagInfo[];
+  styleChanges: StyleChange[];
+}
+
+const formatTagChanges = (tags: InjectedTagInfo[]): string => {
+  if (tags.length === 0) return 'No tags injected';
+
+  return tags
+    .map((tag) => {
+      const date = new Date(tag.timestamp).toLocaleString();
+      return `[${date}] Tag: ${tag.tag}`;
+    })
+    .join('\n');
+};
+
+const formatStyleChanges = (changes: StyleChange[]): string => {
+  if (changes.length === 0) return 'No style changes';
+
+  return changes
+    .map((change) => {
+      const date = new Date(change.timestamp).toLocaleString();
+      return `[${date}] ${change.property}: ${change.oldValue} → ${change.newValue}`;
+    })
+    .join('\n');
+};
+
 const getShareFunction = (format: string) => {
   return format === 'pdf' ? shareAsPDF : shareAsPPT;
 };
 
 /**
  * Component to render a modal for sharing a screen capture
- * @param onClose - Callback function to close the modal
- * @param selectedElement - The currently selected element
- * @param imageDataUrl - The image data URL of the screen capture
- * @param captureUrl - The URL of the captured page
- * @returns A React element representing the share capture modal
+ * @param onClose - Function to close the modal
+ * @param selectedElement - Information about the selected element
+ * @param imageDataUrl - Data URL of the screen capture image
+ * @param captureUrl - URL of the captured page
+ * @param injectedTags - List of injected tags
+ * @param styleChanges - List of style changes
+ * @returns JSX.Element
  */
 export const ShareCapture: React.FC<ShareCaptureProps> = ({
   onClose,
   selectedElement,
   imageDataUrl,
   captureUrl,
+  injectedTags,
+  styleChanges,
 }) => {
-  // State declarations
   const { settings } = useSettings();
   const logger = new Logger('ShareCapture');
 
   const [comment, setComment] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Event handlers
   const handleClose = (): void => {
     setComment('');
     onClose();
@@ -57,9 +92,27 @@ export const ShareCapture: React.FC<ShareCaptureProps> = ({
     logger.debug('Sharing capture...');
     setIsLoading(true);
 
+    const changesText = `
+Changes Summary:
+
+Style Changes:
+${formatStyleChanges(styleChanges)}
+
+Injected Tags:
+${formatTagChanges(injectedTags)}
+
+Comment:
+${comment}
+    `.trim();
+
     try {
       const shareFunction = getShareFunction(settings.shareFormat);
-      await shareFunction(imageDataUrl, comment, captureUrl || '', selectedElement?.startTag || '');
+      await shareFunction(
+        imageDataUrl,
+        changesText,
+        captureUrl || '',
+        selectedElement?.startTag || ''
+      );
 
       logger.debug('Capture shared');
       handleClose();
@@ -74,7 +127,6 @@ export const ShareCapture: React.FC<ShareCaptureProps> = ({
     setComment(e.target.value);
   };
 
-  // UI rendering - preview section
   const renderPreview = () => {
     if (imageDataUrl) {
       return (
@@ -91,7 +143,6 @@ export const ShareCapture: React.FC<ShareCaptureProps> = ({
     );
   };
 
-  // UI rendering - element info section
   const renderElementInfo = () => {
     return (
       <>
@@ -112,11 +163,21 @@ export const ShareCapture: React.FC<ShareCaptureProps> = ({
             </p>
           </div>
         )}
+
+        <div className="changes-info">
+          <div className="changes-section">
+            <h3>Style Changes</h3>
+            <pre>{formatStyleChanges(styleChanges)}</pre>
+          </div>
+          <div className="changes-section">
+            <h3>Injected Tags</h3>
+            <pre>{formatTagChanges(injectedTags)}</pre>
+          </div>
+        </div>
       </>
     );
   };
 
-  // Main render
   return (
     <div className="capture-modal">
       <div className="capture-container">
