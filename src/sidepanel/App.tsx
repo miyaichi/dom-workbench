@@ -260,45 +260,6 @@ export const App = () => {
       setState((prev) => ({ ...prev, showShareCapture: false }));
     }, []),
 
-    handleTagInject: useCallback(
-      async (tag: string, tagId: string) => {
-        if (!state.currentTabId) return;
-        const contentScriptContext = getContentScriptContext(state.currentTabId);
-        await sendMessage('INJECT_TAG', { tag, tagId }, contentScriptContext);
-        setState((prev) => ({
-          ...prev,
-          injectedTags: [
-            {
-              id: tagId,
-              tag,
-              timestamp: Date.now(),
-            },
-            ...prev.injectedTags,
-          ],
-        }));
-        state.injectedTags.forEach((tag) => {
-          logger.log('injected tags:', JSON.stringify(tag));
-        });
-      },
-      [state.currentTabId, sendMessage]
-    ),
-
-    handleTagRemove: useCallback(
-      async (tagId: string) => {
-        if (!state.currentTabId) return;
-        const contentScriptContext = getContentScriptContext(state.currentTabId);
-        await sendMessage('REMOVE_TAG', { tagId }, contentScriptContext);
-        setState((prev) => ({
-          ...prev,
-          injectedTags: prev.injectedTags.filter((t) => t.id !== tagId),
-        }));
-        state.injectedTags.forEach((tag) => {
-          logger.log('injected tags:', JSON.stringify(tag));
-        });
-      },
-      [state.currentTabId, sendMessage]
-    ),
-
     handleSelectElement: useCallback(
       (path: number[]) => {
         if (!state.currentTabId) return;
@@ -355,6 +316,45 @@ export const App = () => {
         styleChanges: prev.styleChanges.slice(1),
       }));
     }, [state.currentTabId, state.styleChanges, sendMessage]),
+
+    handleTagInject: useCallback(
+      async (tag: string, tagId: string) => {
+        if (!state.currentTabId) return;
+        const contentScriptContext = getContentScriptContext(state.currentTabId);
+        await sendMessage('INJECT_TAG', { tag, tagId }, contentScriptContext);
+        setState((prev) => ({
+          ...prev,
+          injectedTags: [
+            {
+              id: tagId,
+              tag,
+              timestamp: Date.now(),
+            },
+            ...prev.injectedTags,
+          ],
+        }));
+        state.injectedTags.forEach((tag) => {
+          logger.log('injected tags:', JSON.stringify(tag));
+        });
+      },
+      [state.currentTabId, sendMessage]
+    ),
+
+    handleTagRemove: useCallback(
+      async (tagId: string) => {
+        if (!state.currentTabId) return;
+        const contentScriptContext = getContentScriptContext(state.currentTabId);
+        await sendMessage('REMOVE_TAG', { tagId }, contentScriptContext);
+        setState((prev) => ({
+          ...prev,
+          injectedTags: prev.injectedTags.filter((t) => t.id !== tagId),
+        }));
+        state.injectedTags.forEach((tag) => {
+          logger.log('injected tags:', JSON.stringify(tag));
+        });
+      },
+      [state.currentTabId, sendMessage]
+    ),
 
     handleToastClose: useCallback(() => {
       setState((prev) => ({ ...prev, toast: null }));
@@ -436,9 +436,9 @@ export const App = () => {
             )}
             <StyleEditor
               selectedElement={state.selectedElement}
+              styleChanges={state.styleChanges}
               onStyleChange={uiHandlers.handleStyleChange}
               onUndoStyleChange={uiHandlers.handleUndoStyleChange}
-              styleChanges={state.styleChanges}
             />
             <TagInjector
               selectedElement={state.selectedElement}
