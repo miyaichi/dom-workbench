@@ -4,6 +4,7 @@ import { ElementInfo } from './types/domSelection';
 import { Context } from './types/messages';
 import { getContentScriptContext } from './utils/contextHelpers';
 import { createElementInfo, getElementByPath } from './utils/domSelection';
+import { htmlToDoc } from './utils/htmlToDoc';
 
 const logger = new Logger('contentScript');
 
@@ -98,16 +99,23 @@ class ContentScript {
       logger.debug('Received GET_CONTENT_STATE request');
       await this.sendCurrentState();
     });
-
     this.manager.subscribe('TOGGLE_SELECTION_MODE', (message) => {
       this.toggleSelectionMode(message.payload.enabled);
     });
-
     this.manager.subscribe('SELECT_ELEMENT', (message) => {
       const element = getElementByPath(message.payload.path);
       if (element) {
         this.handleElementSelection(element as HTMLElement);
       }
+    });
+    this.manager.subscribe('INJECT_TAG', (message) => {
+      this.handleTagInjection(message.payload.tag, message.payload.tagId);
+    });
+    this.manager.subscribe('REMOVE_TAG', (message) => {
+      this.handleTagRemoval(message.payload.tagId);
+    });
+    this.manager.subscribe('UPDATE_ELEMENT_STYLE', (message) => {
+      this.handleElementStyleUpdate(message.payload.property, message.payload.value);
     });
   }
 
@@ -154,12 +162,12 @@ class ContentScript {
       el.classList.remove('extension-selected');
     });
 
-    this.state.selectedElementInfo = createElementInfo(element);
-    logger.debug('Element selected:', this.state.selectedElementInfo);
-
+    // Clear hover, set selected element, set selected
     element.classList.remove('extension-highlight');
+    this.state.selectedElementInfo = createElementInfo(element);
     element.classList.add('extension-selected');
 
+    logger.debug('Element selected:', this.state.selectedElementInfo);
     this.manager.sendMessage(
       'ELEMENT_SELECTED',
       { elementInfo: this.state.selectedElementInfo },
@@ -221,6 +229,154 @@ class ContentScript {
       this.state.selectedElementInfo = null;
     }
   }
+
+  private handleElementStyleUpdate(property: string, value: string) {
+    if (!this.state.selectedElementInfo) {
+      logger.error('No element selected for style update');
+      return;
+    }
+
+    try {
+      const targetElement = getElementByPath(this.state.selectedElementInfo.path);
+      if (!targetElement) {
+        throw new Error('Target element not found');
+      }
+
+      const STYLE_MODIFIED_ATTRIBUTE = 'data-extension-modified-styles';
+
+      let modifiedStyles: { [key: string]: string } = {};
+      const existingStyles = targetElement.getAttribute(STYLE_MODIFIED_ATTRIBUTE);
+      if (existingStyles) {
+        modifiedStyles = JSON.parse(existingStyles);
+      }
+
+      // Update element style
+      targetElement.style[property as any] = value;
+
+      // Update modified styles
+      modifiedStyles[property] = value;
+      targetElement.setAttribute(STYLE_MODIFIED_ATTRIBUTE, JSON.stringify(modifiedStyles));
+
+      logger.log('Element style updated:', {
+        property,
+        value,
+        path: this.state.selectedElementInfo.path,
+      });
+
+      this.manager.sendMessage(
+        'SHOW_TOAST',
+        {
+          message: chrome.i18n.getMessage('toastStyleUpdated'),
+          type: 'success',
+        },
+        'sidepanel'
+      );
+    } catch (error) {
+      logger.error('Element style update failed:', error);
+      this.manager.sendMessage(
+        'SHOW_TOAST',
+        {
+          message: chrome.i18n.getMessage('toastStyleUpdateFailed'),
+          type: 'error',
+        },
+        'sidepanel'
+      );
+    }
+  }
+
+  private async handleTagInjection(tag: string, tagId: string) {
+    if (!this.state.selectedElementInfo) {
+      return;
+    }
+
+    try {
+      const targetElement = getElementByPath(this.state.selectedElementInfo.path);
+      if (!targetElement) {
+        throw new Error('Target element not found');
+      }
+
+      const TAG_ID_ATTRIBUTE = 'data-injected-tag-id';
+
+      const domElement = await htmlToDoc(tag, {
+        async: true,
+        preserveOrder: true,
+        onScriptsLoaded: () => {
+          logger.debug(`Scripts loaded for tag ${tagId}`);
+          this.manager.sendMessage(
+            'SHOW_TOAST',
+            {
+              message: chrome.i18n.getMessage('toastTagLoaded'),
+              type: 'success',
+              duration: 2000,
+            },
+            'sidepanel'
+          );
+        },
+      });
+
+      // Set tag ID to the root element of the injected tag
+      if (domElement instanceof DocumentFragment) {
+        Array.from(domElement.children).forEach((child) => {
+          child.setAttribute(TAG_ID_ATTRIBUTE, tagId);
+        });
+      } else if (domElement instanceof Element) {
+        domElement.setAttribute(TAG_ID_ATTRIBUTE, tagId);
+      }
+
+      targetElement.appendChild(domElement);
+
+      logger.log('Tag injected successfully:', {
+        tagId,
+        targetPath: this.state.selectedElementInfo.path,
+      });
+
+      this.manager.sendMessage(
+        'SHOW_TOAST',
+        { message: chrome.i18n.getMessage('toastTagInjected'), type: 'success' },
+        'sidepanel'
+      );
+    } catch (error) {
+      logger.error('Tag injection failed:', error);
+      this.manager.sendMessage(
+        'SHOW_TOAST',
+        { message: chrome.i18n.getMessage('toastTagInjected'), type: 'error' },
+        'sidepanel'
+      );
+    }
+  }
+
+  private handleTagRemoval(tagId: string) {
+    try {
+      const TAG_ID_ATTRIBUTE = 'data-injected-tag-id';
+      const injectedElements = document.querySelectorAll(`[${TAG_ID_ATTRIBUTE}="${tagId}"]`);
+
+      if (injectedElements.length === 0) {
+        throw new Error(`No elements found with tag ID: ${tagId}`);
+      }
+
+      injectedElements.forEach((element) => {
+        element.remove();
+      });
+
+      logger.log('Tag removed successfully:', { tagId });
+
+      this.manager.sendMessage(
+        'SHOW_TOAST',
+        { message: chrome.i18n.getMessage('toastTagRemoved'), type: 'success' },
+        'sidepanel'
+      );
+    } catch (error) {
+      logger.error('Tag removal failed:', error);
+      this.manager.sendMessage(
+        'SHOW_TOAST',
+        {
+          message: chrome.i18n.getMessage('toastTagRemoveFailed'),
+          type: 'error',
+        },
+        'sidepanel'
+      );
+    }
+  }
 }
 
 // ContentScript initialization
@@ -229,6 +385,7 @@ const contentScriptInstances = new WeakMap<Window, ContentScript>();
 // Ensure content script is initialized immediately
 if (!contentScriptInstances.has(window)) {
   logger.log('Initializing content script...');
+  // Get the tab ID from the background
   chrome.runtime.sendMessage({ type: 'GET_TAB_ID' }, (response) => {
     if (chrome.runtime.lastError) {
       logger.error('Failed to get tab ID:', chrome.runtime.lastError);

@@ -237,7 +237,6 @@ const createInfoPage = (
  * @param comment - A comment to be included in the PDF.
  * @param url - The URL to be included in the PDF.
  * @param startTag - The start tag for the PDF content.
- * @param styleModifications - Style modifications to be applied to the PDF content.
  * @returns A promise that resolves to true if the PDF is successfully created.
  * @throws Will throw an error if imageData or url is not provided.
  */
@@ -245,8 +244,7 @@ export const shareAsPDF = async (
   imageData: string,
   comment: string,
   url: string,
-  startTag: string,
-  styleModifications: string
+  startTag: string
 ): Promise<true> => {
   logger.log('Starting PDF generation process');
 

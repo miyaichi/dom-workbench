@@ -170,7 +170,6 @@ const createInfoSlide = (pres: pptxgen, sections: SlideSection[]) => {
  * @param comment - A comment to be included in the PPT.
  * @param url - The URL to be included in the PPT.
  * @param startTag - The start tag for the PPT content.
- * @param styleModifications - Style modifications to be applied to the PPT content.
  * @returns A promise that resolves to true if the PPT is successfully created.
  * @throws Will throw an error if imageData or url is not provided.
  */
@@ -178,8 +177,7 @@ export const shareAsPPT = async (
   imageData: string,
   comment: string,
   url: string,
-  startTag: string,
-  styleModifications: string
+  startTag: string
 ): Promise<true> => {
   logger.log('Starting PowerPoint generation process');
 

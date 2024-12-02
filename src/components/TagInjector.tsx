@@ -1,55 +1,104 @@
-import { Send } from 'lucide-react';
-import React, { useState } from 'react';
+import { AlertCircle, Send, Trash2 } from 'lucide-react';
+import { nanoid } from 'nanoid';
+import React, { useCallback, useState } from 'react';
 import { Logger } from '../lib/logger';
 import { ElementInfo } from '../types/domSelection';
+import { formatElementTag } from '../utils/htmlTagFormatter';
 import { validateHtmlTag } from '../utils/htmlValidator';
 import { Card } from './common/Card';
-import './TagInjector.css';
+import { Tooltip } from './common/Tooltip';
 
 interface TagInjectorProps {
   /** The currently selected element */
   selectedElement: ElementInfo | null;
+  /** Callback when a tag should be injected */
+  onInjectTag: (tag: string, tagId: string) => void;
+  /** Callback when a tag should be removed */
+  onRemoveTag: (tagId: string) => void;
   /** Options for validating the injected tag */
   validateOptions?: {
     checkDangerousElements?: boolean;
   };
 }
 
-/**
- * Component to render a tag injector for injecting HTML tags
- * @param selectedElement - The currently selected element
- * @param validateOptions - Options for validating the injected tag
- * @returns A React element representing the tag injector
- */
+interface InjectedTagInfo {
+  id: string;
+  tag: string;
+  timestamp: number;
+}
+
 export const TagInjector: React.FC<TagInjectorProps> = ({
   selectedElement,
+  onInjectTag,
+  onRemoveTag,
   validateOptions = { checkDangerousElements: false },
 }: TagInjectorProps) => {
-  // State declarations
   const [injectedTag, setInjectedTag] = useState('');
-  const [injected, setInjected] = useState(false);
-  const [validationError, setValidationError] = useState<boolean | undefined>(undefined);
+  const [injectedTags, setInjectedTags] = useState<InjectedTagInfo[]>([]);
+  const [isInjecting, setIsInjecting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | undefined>(undefined);
 
-  // Utility instances
   const logger = new Logger('TagInjector');
 
-  // Event handlers
-  const handleInjectTag = (e: React.ChangeEvent<HTMLTextAreaElement>): void => {
+  const handleTagInput = (e: React.ChangeEvent<HTMLTextAreaElement>): void => {
     const newValue = e.target.value;
     setInjectedTag(newValue);
+    setError(null);
 
     if (!newValue.trim()) {
       setValidationError(undefined);
       return;
     }
 
-    const isValid = validateHtmlTag(newValue, validateOptions);
-    setValidationError(!isValid);
+    try {
+      const isValid = validateHtmlTag(newValue, validateOptions);
+      setValidationError(
+        isValid ? undefined : chrome.i18n.getMessage('tagInjectorValidationError')
+      );
+    } catch (err) {
+      setValidationError((err as Error).message);
+    }
   };
 
-  const handleOnClick = (): void => {
-    setInjected(!injected);
-  };
+  const handleInject = useCallback(async () => {
+    if (!onInjectTag || !injectedTag.trim() || validationError) return;
+
+    setIsInjecting(true);
+    setError(null);
+
+    try {
+      const tagId = nanoid();
+      onInjectTag(injectedTag, tagId);
+      setInjectedTags((prev) => [
+        {
+          id: tagId,
+          tag: injectedTag,
+          timestamp: Date.now(),
+        },
+        ...prev,
+      ]);
+      setInjectedTag('');
+    } catch (err) {
+      setError((err as Error).message);
+      logger.error('Failed to inject tag:', err);
+    } finally {
+      setIsInjecting(false);
+    }
+  }, [injectedTag, onInjectTag, validationError]);
+
+  const handleRemove = useCallback(
+    async (tagInfo: InjectedTagInfo) => {
+      try {
+        onRemoveTag(tagInfo.id);
+        setInjectedTags((prev) => prev.filter((t) => t.id !== tagInfo.id));
+      } catch (err) {
+        setError((err as Error).message);
+        logger.error('Failed to remove tag:', err);
+      }
+    },
+    [onRemoveTag]
+  );
 
   if (!selectedElement) {
     return (
@@ -60,24 +109,67 @@ export const TagInjector: React.FC<TagInjectorProps> = ({
   }
 
   return (
-    <Card title="Tag Injector" initialCollapsed={true}>
-      <textarea
-        value={injectedTag}
-        onChange={handleInjectTag}
-        placeholder="Add a tag..."
-        className={`injection-tag ${validationError ? 'error' : ''}`}
-      />
-      {validationError && (
-        <div className="error-message">{chrome.i18n.getMessage('tagInjectorValidationError')}</div>
-      )}
-      <button
-        className="inject-button"
-        onClick={handleOnClick}
-        disabled={injectedTag.length === 0 || validationError}
-      >
-        <Send size={16} />
-        {injected ? 'Remove' : 'Inject'}
-      </button>
+    <Card title="Tag Injector" initialCollapsed={false}>
+      <div className="tag-injector-content">
+        <textarea
+          value={injectedTag}
+          onChange={handleTagInput}
+          placeholder={chrome.i18n.getMessage('tagInjectorPlaceholder')}
+          className={`injection-tag ${validationError ? 'error' : ''}`}
+          spellCheck={false}
+        />
+
+        {(validationError || error) && (
+          <div className="error-message">
+            <AlertCircle />
+            <span>{validationError || error}</span>
+          </div>
+        )}
+
+        <div className="tag-injector-actions">
+          <Tooltip
+            content={
+              validationError
+                ? chrome.i18n.getMessage('tagInjectorValidationError')
+                : chrome.i18n.getMessage('tagInjectorInjectTooltip')
+            }
+          >
+            <button
+              className="inject-button"
+              onClick={handleInject}
+              disabled={!injectedTag || !!validationError || isInjecting}
+            >
+              <Send size={16} />
+              {isInjecting ? 'Injecting...' : 'Inject'}
+            </button>
+          </Tooltip>
+        </div>
+
+        {injectedTags.length > 0 && (
+          <div className="injected-tags-list">
+            <h4 className="injected-tags-title">Active Tags ({injectedTags.length})</h4>
+            {injectedTags.map((tagInfo) => (
+              <div key={tagInfo.id} className="injected-tag-item">
+                <div className="injected-tag-meta">
+                  {new Date(tagInfo.timestamp).toLocaleTimeString()}
+                </div>
+                <div className="injected-tag-preview">
+                  {formatElementTag(tagInfo.tag, { maxLength: 50 })}
+                </div>
+                <Tooltip content={chrome.i18n.getMessage('tooltipTagInjectorRemove')}>
+                  <button
+                    className="style-editor-button style-editor-button-danger"
+                    onClick={() => handleRemove(tagInfo)}
+                    aria-label="Remove tag"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </Tooltip>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </Card>
   );
 };

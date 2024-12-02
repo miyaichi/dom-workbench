@@ -14,6 +14,9 @@
   "tooltipParentElement": {
     "message": "Go to parent element"
   },
+  "tooltipTagInjectorRemove": {
+    "message": "Remove this injected HTML tag"
+  },
   "labelDOMPath": {
     "message": "DOM Path"
   },
@@ -23,10 +26,49 @@
   "styleEditorEmptyState": {
     "message": "You can check and modify the computed style of the selected element."
   },
+  "styleHistoryUndoTooltip": {
+    "message": "Undo style change"
+  },
   "tagInjectorEmptyState": {
     "message": "You can add tags to the selected element."
   },
   "tagInjectorValidationError": {
     "message": "Please enter a valid tag name."
+  },
+  "tagInjectorPlaceholder": {
+    "message": "Enter HTML tag to inject"
+  },
+  "tagInjectorInjectTooltip": {
+    "message": "Inject this tag into the selected element"
+  },
+  "tagInjectorRemoveTooltip": {
+    "message": "Remove this injected tag"
+  },
+  "copyToClipboard": {
+    "message": "Copy to clipboard"
+  },
+  "coppiedToClipboard": {
+    "message": "Copied!"
+  },
+  "toastStyleUpdated": {
+    "message": "Style updated successfully"
+  },
+  "toastStyleUpdateFailed": {
+    "message": "Failed to update style. Please try again."
+  },
+  "toastTagLoaded": {
+    "message": "Tag scripts loaded successfully"
+  },
+  "toastTagInjected": {
+    "message": "Tag injected successfully"
+  },
+  "toastTagInjectFailed": {
+    "message": "Failed to inject tag. Please try again."
+  },
+  "toastTagRemoved": {
+    "message": "Tag removed successfully"
+  },
+  "toastTagRemoveFailed": {
+    "message": "Failed to remove tag. Please refresh the page if issues persist."
   }
 }

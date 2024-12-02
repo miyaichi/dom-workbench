@@ -14,6 +14,9 @@
   "tooltipParentElement": {
     "message": "親要素に移動"
   },
+  "tooltipTagInjectorRemove": {
+    "message": "挿入した HTML タグを削除"
+  },
   "labelDOMPath": {
     "message": "DOM パス"
   },
@@ -23,10 +26,49 @@
   "styleEditorEmptyState": {
     "message": "選択した要素のスタイル情報を確認・編集することができます。"
   },
+  "styleHistoryUndoTooltip": {
+    "message": "スタイルの修正を取り消す"
+  },
   "tagInjectorEmptyState": {
     "message": "選択した要素のにタグを追加することができます。"
   },
   "tagInjectorValidationError": {
     "message": "有効なタグを入力してください。"
+  },
+  "tagInjectorPlaceholder": {
+    "message": "挿入する HTML タグを入力してください"
+  },
+  "tagInjectorInjectTooltip": {
+    "message": "選択した要素にこのタグを挿入します"
+  },
+  "tagInjectorRemoveTooltip": {
+    "message": "挿入したタグを削除します。"
+  },
+  "copyToClipboard": {
+    "message": "クリップボードにコピー"
+  },
+  "coppiedToClipboard": {
+    "message": "コピーしました!"
+  },
+  "toastStyleUpdated": {
+    "message": "スタイルを更新しました"
+  },
+  "toastStyleUpdateFailed": {
+    "message": "スタイルの更新に失敗しました。もう一度試してください"
+  },
+  "toastTagLoaded": {
+    "message": "タグスクリプトはロードされました"
+  },
+  "toastTagInjected": {
+    "message": "タグを注入しました"
+  },
+  "toastTagInjectFailed": {
+    "message": "タグの注入に失敗しました。もう一度試してください"
+  },
+  "toastTagRemoved": {
+    "message": "タグを削除しました"
+  },
+  "toastTagRemoveFailed": {
+    "message": "タグの削除に失敗しました。問題があればページをリロードしてください"
   }
 }

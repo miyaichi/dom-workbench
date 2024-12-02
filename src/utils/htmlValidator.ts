@@ -1,5 +1,3 @@
-// utils/htmlValidator.ts
-
 /**
  * Interface defining HTML validation options
  */

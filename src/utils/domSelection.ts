@@ -63,6 +63,21 @@ export const truncateStartTag = (tag: string, maxLength = 20): string => {
 };
 
 /**
+ * Get the direct text content of an element, excluding child element content
+ * @param element - The HTML element to get text content from
+ * @returns The direct text content of the element
+ */
+export const getDirectTextContent = (element: HTMLElement): string | undefined => {
+  return (
+    Array.from(element.childNodes)
+      .filter((node) => node.nodeType === Node.TEXT_NODE)
+      .map((node) => node.textContent?.trim())
+      .filter((text) => text && text.length > 0)
+      .join(' ') || undefined
+  );
+};
+
+/**
  * Build a tree representation of an element and its children
  */
 export const buildElementTree = (
@@ -79,6 +94,7 @@ export const buildElementTree = (
       startTag: getElementStartTag(element),
       computedStyle: getComputedStyle(element),
       path: currentPath,
+      textContent: getDirectTextContent(element),
       children,
     },
   ];
@@ -93,6 +109,7 @@ export const createElementInfo = (element: HTMLElement): ElementInfo => {
     startTag: getElementStartTag(element),
     computedStyle: getComputedStyle(element),
     path,
+    textContent: getDirectTextContent(element),
     children: buildElementTree(element, path),
   };
 };

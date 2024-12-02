@@ -6,6 +6,8 @@ export interface ElementInfo {
   computedStyle: CSSStyleDeclaration;
   /** Array of indices representing the path from root to this element */
   path: number[];
+  /** Text content of the element */
+  textContent?: string;
   /** Child nodes in the element tree */
   children: ElementInfo[];
 }
@@ -20,11 +22,4 @@ export interface SelectElementPayload {
 export interface SelectionModePayload {
   /** Boolean indicating whether selection mode is enabled */
   enabled: boolean;
-}
-
-/** Interface for a style modification */
-export interface StyleModification {
-  /** CSS property to be modified */
-  property: string;
-  value: string;
 }
