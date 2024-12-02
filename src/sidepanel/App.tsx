@@ -1,4 +1,5 @@
 import { Camera, Power, Settings } from 'lucide-react';
+import { nanoid } from 'nanoid';
 import React, { useCallback, useEffect, useState } from 'react';
 import { DOMSelector } from '../components/DOMSelector';
 import { SettingsPanel } from '../components/SettingsPanel';
@@ -28,6 +29,14 @@ interface InjectedTagInfo {
   timestamp: number;
 }
 
+interface StyleChange {
+  id: string;
+  timestamp: number;
+  property: keyof CSSStyleDeclaration;
+  oldValue: string;
+  newValue: string;
+}
+
 interface AppState {
   currentTabId: number | null;
   isSelectionMode: boolean;
@@ -38,6 +47,7 @@ interface AppState {
   captureUrl: string | null;
   toast: Toast | null;
   injectedTags: InjectedTagInfo[];
+  styleChanges: StyleChange[];
   connectionStatus: ConnectionStatus;
 }
 
@@ -52,6 +62,7 @@ export const App = () => {
     captureUrl: null,
     toast: null,
     injectedTags: [],
+    styleChanges: [],
     connectionStatus: 'connected',
   });
   const manager = ConnectionManager.getInstance();
@@ -306,13 +317,44 @@ export const App = () => {
     }, [state.currentTabId, state.isSelectionMode, sendMessage]),
 
     handleStyleChange: useCallback(
-      (property: string, value: string) => {
+      (property: string, value: string, oldValue: string) => {
         if (!state.currentTabId || !state.selectedElement) return;
+
+        const changeEntry: StyleChange = {
+          id: nanoid(),
+          timestamp: Date.now(),
+          property: property as keyof CSSStyleDeclaration,
+          oldValue,
+          newValue: value,
+        };
+
+        setState((prev) => ({
+          ...prev,
+          styleChanges: [changeEntry, ...prev.styleChanges],
+        }));
+
         const contentScriptContext = getContentScriptContext(state.currentTabId);
         sendMessage('UPDATE_ELEMENT_STYLE', { property, value }, contentScriptContext);
       },
       [state.currentTabId, state.selectedElement, sendMessage]
     ),
+
+    handleUndoStyleChange: useCallback(() => {
+      if (!state.currentTabId || state.styleChanges.length === 0) return;
+
+      const latestChange = state.styleChanges[0];
+      const contentScriptContext = getContentScriptContext(state.currentTabId);
+      sendMessage(
+        'UPDATE_ELEMENT_STYLE',
+        { property: latestChange.property as string, value: latestChange.oldValue },
+        contentScriptContext
+      );
+
+      setState((prev) => ({
+        ...prev,
+        styleChanges: prev.styleChanges.slice(1),
+      }));
+    }, [state.currentTabId, state.styleChanges, sendMessage]),
 
     handleToastClose: useCallback(() => {
       setState((prev) => ({ ...prev, toast: null }));
@@ -395,6 +437,8 @@ export const App = () => {
             <StyleEditor
               selectedElement={state.selectedElement}
               onStyleChange={uiHandlers.handleStyleChange}
+              onUndoStyleChange={uiHandlers.handleUndoStyleChange}
+              styleChanges={state.styleChanges}
             />
             <TagInjector
               selectedElement={state.selectedElement}
