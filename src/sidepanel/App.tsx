@@ -22,6 +22,12 @@ interface Toast {
   type?: 'success' | 'error';
 }
 
+interface InjectedTagInfo {
+  id: string;
+  tag: string;
+  timestamp: number;
+}
+
 interface AppState {
   currentTabId: number | null;
   isSelectionMode: boolean;
@@ -31,6 +37,7 @@ interface AppState {
   imageDataUrl: string | null;
   captureUrl: string | null;
   toast: Toast | null;
+  injectedTags: InjectedTagInfo[];
   connectionStatus: ConnectionStatus;
 }
 
@@ -44,6 +51,7 @@ export const App = () => {
     imageDataUrl: null,
     captureUrl: null,
     toast: null,
+    injectedTags: [],
     connectionStatus: 'connected',
   });
   const manager = ConnectionManager.getInstance();
@@ -241,20 +249,41 @@ export const App = () => {
       setState((prev) => ({ ...prev, showShareCapture: false }));
     }, []),
 
-    handleInjectTag: useCallback(
-      (tag: string, tagId: string) => {
+    handleTagInject: useCallback(
+      async (tag: string, tagId: string) => {
         if (!state.currentTabId) return;
         const contentScriptContext = getContentScriptContext(state.currentTabId);
-        sendMessage('INJECT_TAG', { tag, tagId }, contentScriptContext);
+        await sendMessage('INJECT_TAG', { tag, tagId }, contentScriptContext);
+        setState((prev) => ({
+          ...prev,
+          injectedTags: [
+            {
+              id: tagId,
+              tag,
+              timestamp: Date.now(),
+            },
+            ...prev.injectedTags,
+          ],
+        }));
+        state.injectedTags.forEach((tag) => {
+          logger.log('injected tags:', JSON.stringify(tag));
+        });
       },
       [state.currentTabId, sendMessage]
     ),
 
-    handleRemoveTag: useCallback(
-      (tagId: string) => {
+    handleTagRemove: useCallback(
+      async (tagId: string) => {
         if (!state.currentTabId) return;
         const contentScriptContext = getContentScriptContext(state.currentTabId);
-        sendMessage('REMOVE_TAG', { tagId }, contentScriptContext);
+        await sendMessage('REMOVE_TAG', { tagId }, contentScriptContext);
+        setState((prev) => ({
+          ...prev,
+          injectedTags: prev.injectedTags.filter((t) => t.id !== tagId),
+        }));
+        state.injectedTags.forEach((tag) => {
+          logger.log('injected tags:', JSON.stringify(tag));
+        });
       },
       [state.currentTabId, sendMessage]
     ),
@@ -369,8 +398,9 @@ export const App = () => {
             />
             <TagInjector
               selectedElement={state.selectedElement}
-              onInjectTag={uiHandlers.handleInjectTag}
-              onRemoveTag={uiHandlers.handleRemoveTag}
+              injectedTags={state.injectedTags}
+              onInjectTag={uiHandlers.handleTagInject}
+              onRemoveTag={uiHandlers.handleTagRemove}
             />
           </div>
         )}

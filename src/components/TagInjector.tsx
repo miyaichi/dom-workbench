@@ -11,6 +11,8 @@ import { Tooltip } from './common/Tooltip';
 interface TagInjectorProps {
   /** The currently selected element */
   selectedElement: ElementInfo | null;
+  /** Injected tag history */
+  injectedTags: InjectedTagInfo[];
   /** Callback when a tag should be injected */
   onInjectTag: (tag: string, tagId: string) => void;
   /** Callback when a tag should be removed */
@@ -31,10 +33,10 @@ export const TagInjector: React.FC<TagInjectorProps> = ({
   selectedElement,
   onInjectTag,
   onRemoveTag,
+  injectedTags,
   validateOptions = { checkDangerousElements: false },
 }: TagInjectorProps) => {
   const [injectedTag, setInjectedTag] = useState('');
-  const [injectedTags, setInjectedTags] = useState<InjectedTagInfo[]>([]);
   const [isInjecting, setIsInjecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | undefined>(undefined);
@@ -69,15 +71,7 @@ export const TagInjector: React.FC<TagInjectorProps> = ({
 
     try {
       const tagId = nanoid();
-      onInjectTag(injectedTag, tagId);
-      setInjectedTags((prev) => [
-        {
-          id: tagId,
-          tag: injectedTag,
-          timestamp: Date.now(),
-        },
-        ...prev,
-      ]);
+      await onInjectTag(injectedTag, tagId);
       setInjectedTag('');
     } catch (err) {
       setError((err as Error).message);
@@ -90,8 +84,7 @@ export const TagInjector: React.FC<TagInjectorProps> = ({
   const handleRemove = useCallback(
     async (tagInfo: InjectedTagInfo) => {
       try {
-        onRemoveTag(tagInfo.id);
-        setInjectedTags((prev) => prev.filter((t) => t.id !== tagInfo.id));
+        await onRemoveTag(tagInfo.id);
       } catch (err) {
         setError((err as Error).message);
         logger.error('Failed to remove tag:', err);
