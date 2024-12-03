@@ -2,7 +2,7 @@ import { AlertCircle, Send, Trash2 } from 'lucide-react';
 import { nanoid } from 'nanoid';
 import React, { useCallback, useState } from 'react';
 import { Logger } from '../lib/logger';
-import { ElementInfo } from '../types/domSelection';
+import { ElementInfo } from '../types/types';
 import { formatElementTag } from '../utils/htmlTagFormatter';
 import { validateHtmlTag } from '../utils/htmlValidator';
 import { Card } from './common/Card';

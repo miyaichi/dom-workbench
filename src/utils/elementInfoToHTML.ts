@@ -1,5 +1,5 @@
 import { html as htmlBeautify } from 'js-beautify';
-import { ElementInfo } from '../types/domSelection';
+import { ElementInfo } from '../types/types';
 
 /**
  * Converts ElementInfo structure to formatted HTML string

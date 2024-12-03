@@ -1,7 +1,7 @@
 import { ConnectionManager } from './lib/connectionManager';
 import { Logger } from './lib/logger';
-import { ElementInfo } from './types/domSelection';
 import { Context } from './types/messages';
+import { ElementInfo } from './types/types';
 import { getContentScriptContext } from './utils/contextHelpers';
 import { createElementInfo, getElementByPath } from './utils/domSelection';
 import { htmlToDoc } from './utils/htmlToDoc';

@@ -5,7 +5,7 @@ import { Logger } from '../lib/logger';
 import { useSettings } from '../lib/settings';
 import { shareAsPDF } from '../lib/shareAsPDF';
 import { shareAsPPT } from '../lib/shareAsPPT';
-import { ElementInfo } from '../types/domSelection';
+import { ElementInfo } from '../types/types';
 import './ShareCapture.css';
 
 interface InjectedTagInfo {

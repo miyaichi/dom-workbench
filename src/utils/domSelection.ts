@@ -1,4 +1,4 @@
-import { ElementInfo } from '../types/domSelection';
+import { ElementInfo } from '../types/types';
 
 /**
  * Get the DOM path from root to the given element as an array of indices

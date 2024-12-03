@@ -1,7 +1,7 @@
 // DOMTreeView.tsx
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import React, { useState } from 'react';
-import { ElementInfo } from '../../types/domSelection';
+import { ElementInfo } from '../../types/types';
 import { formatElementTag } from '../../utils/htmlTagFormatter';
 import { Tooltip } from './Tooltip';
 

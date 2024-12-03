@@ -1,4 +1,4 @@
-import { ElementInfo } from './domSelection';
+import { ElementInfo } from './types';
 
 export type StaticContext = 'background' | 'sidepanel' | 'undefined';
 export type ContentContext = `content-${string}`;

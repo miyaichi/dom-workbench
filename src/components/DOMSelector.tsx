@@ -1,7 +1,7 @@
 import { ChevronUp, Clipboard, ClipboardCheck } from 'lucide-react';
 import React, { useState } from 'react';
 import { Logger } from '../lib/logger';
-import { ElementInfo } from '../types/domSelection';
+import { ElementInfo } from '../types/types';
 import { elementInfoToHTML } from '../utils/elementInfoToHTML';
 import { Card } from './common/Card';
 import { DOMTreeView } from './common/DOMTreeView';

@@ -10,7 +10,7 @@ import { ToastNotification } from '../components/common/ToastNotification';
 import { Tooltip } from '../components/common/Tooltip';
 import { ConnectionManager, useConnectionManager } from '../lib/connectionManager';
 import { Logger } from '../lib/logger';
-import { ElementInfo } from '../types/domSelection';
+import { ElementInfo } from '../types/types';
 import { getContentScriptContext } from '../utils/contextHelpers';
 
 const logger = new Logger('SidePanel');
