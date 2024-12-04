@@ -5,8 +5,8 @@ module.exports = {
   mode: 'development',
   devtool: 'source-map',
   entry: {
-    background: './src/background.ts',
-    contentScript: './src/contentScript.ts',
+    background: './src/background/background.ts',
+    contentScript: './src/contentScript/contentScript.ts',
     sidepanel: './src/sidepanel/index.tsx',
   },
   output: {

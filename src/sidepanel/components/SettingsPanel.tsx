@@ -1,5 +1,5 @@
 import React from 'react';
-import { LogLevel, ShareFormat, useSettings } from '../lib/settings';
+import { LogLevel, ShareFormat, useSettings } from '../../lib/settings';
 
 /**
  * SettingsPanel component that allows users to configure application settings

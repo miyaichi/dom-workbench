@@ -1,17 +1,17 @@
 import { Camera, Power, Settings } from 'lucide-react';
 import { nanoid } from 'nanoid';
 import React, { useCallback, useEffect, useState } from 'react';
-import { DOMSelector } from '../components/DOMSelector';
-import { SettingsPanel } from '../components/SettingsPanel';
-import { ShareCapture } from '../components/ShareCapture';
-import { StyleEditor } from '../components/StyleEditor';
-import { TagInjector } from '../components/TagInjector';
-import { ToastNotification } from '../components/common/ToastNotification';
-import { Tooltip } from '../components/common/Tooltip';
 import { ConnectionManager } from '../lib/connectionManager';
 import { Logger } from '../lib/logger';
 import { BaseMessage, MessagePayloads } from '../types/messages';
 import { Context, ElementInfo } from '../types/types';
+import { DOMSelector } from './components/DOMSelector';
+import { SettingsPanel } from './components/SettingsPanel';
+import { ShareCapture } from './components/ShareCapture';
+import { StyleEditor } from './components/StyleEditor';
+import { TagInjector } from './components/TagInjector';
+import { ToastNotification } from './components/common/ToastNotification';
+import { Tooltip } from './components/common/Tooltip';
 
 interface Toast {
   id: string;

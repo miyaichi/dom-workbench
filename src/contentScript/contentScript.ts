@@ -1,9 +1,9 @@
-import { ConnectionManager } from './lib/connectionManager';
-import { Logger } from './lib/logger';
-import { MessageHandler } from './types/messages';
-import { ElementInfo } from './types/types';
-import { createElementInfo, getElementByPath } from './utils/domSelection';
-import { htmlToDoc } from './utils/htmlToDoc';
+import { ConnectionManager } from '../lib/connectionManager';
+import { Logger } from '../lib/logger';
+import { MessageHandler } from '../types/messages';
+import { ElementInfo } from '../types/types';
+import { createElementInfo, getElementByPath } from '../utils/domSelection';
+import { htmlToDoc } from '../utils/htmlToDoc';
 
 class ContentScript {
   private connectionManager: ConnectionManager | null = null;

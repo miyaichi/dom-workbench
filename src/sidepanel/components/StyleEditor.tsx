@@ -1,7 +1,7 @@
 import { Check, Plus, RotateCcw, Search, X } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
-import { Logger } from '../lib/logger';
-import { ElementInfo } from '../types/types';
+import { Logger } from '../../lib/logger';
+import { ElementInfo } from '../../types/types';
 import { Card } from './common/Card';
 import { Tooltip } from './common/Tooltip';
 

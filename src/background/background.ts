@@ -1,7 +1,7 @@
-import { ConnectionManager } from './lib/connectionManager';
-import { Logger } from './lib/logger';
-import { BaseMessage, ExtensionMessage, TabInfo } from './types/messages';
-import { Context } from './types/types';
+import { ConnectionManager } from '../lib/connectionManager';
+import { Logger } from '../lib/logger';
+import { BaseMessage, ExtensionMessage, TabInfo } from '../types/messages';
+import { Context } from '../types/types';
 
 class BackgroundService {
   private connectionManager: ConnectionManager;
@@ -173,25 +173,25 @@ class BackgroundService {
     }
   }
 
-   /**
-    * Helper function to send messages from background to other components.
-    * Uses direct port.postMessage for reliable message delivery.
+  /**
+   * Helper function to send messages from background to other components.
+   * Uses direct port.postMessage for reliable message delivery.
    */
-    private sendMessage<T extends BaseMessage>(
-      target: Context,
-      port: chrome.runtime.Port,
-      messageData: Omit<T, 'source' | 'target' | 'timestamp'>
-    ): void {
-      const message = {
-        ...messageData,
-        source: 'background',
-        target,
-        timestamp: Date.now(),
-      } as T;
-  
-      port.postMessage(message);
-      this.logger.debug('Message sent', { target, type: message.type });
-    }
+  private sendMessage<T extends BaseMessage>(
+    target: Context,
+    port: chrome.runtime.Port,
+    messageData: Omit<T, 'source' | 'target' | 'timestamp'>
+  ): void {
+    const message = {
+      ...messageData,
+      source: 'background',
+      target,
+      timestamp: Date.now(),
+    } as T;
+
+    port.postMessage(message);
+    this.logger.debug('Message sent', { target, type: message.type });
+  }
 
   private handleMessage = (port: chrome.runtime.Port, message: ExtensionMessage) => {
     this.logger.debug('Message received', { type: message.type });

@@ -80,12 +80,11 @@ DOM Workbench is a Chrome extension designed to simplify DOM operations on web p
 ├── public/
 │   └── sidepanel.html           # Side panel HTML
 ├── src/
-│   ├── background.ts            # Background script
-│   ├── contentScript.ts         # Content script
+│   ├── background/              # Background script
+│   ├── contentScript/           # Content script
 │   ├── sidepanel                # Side panel
-│   ├── components/              # React components
-|   |   |  ├── common/           # Common components
-|   |   |  └── utils/            # Utility components
+│   |   ├── components/          # React components
+|   |   |   └── common/          # Common components
 │   │   ├── DOMSelector.tsx      # DOM selection interface
 │   │   ├── SettingPanel.tsx     # Settings configuration
 │   │   ├── ShareCapture.tsx     # Capture sharing modal

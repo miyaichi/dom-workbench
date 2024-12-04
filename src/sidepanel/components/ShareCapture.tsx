@@ -1,11 +1,11 @@
 import { Send, X } from 'lucide-react';
 import React, { useState } from 'react';
-import { formatElementTag } from '..//utils/htmlTagFormatter';
-import { Logger } from '../lib/logger';
-import { useSettings } from '../lib/settings';
-import { shareAsPDF } from '../lib/shareAsPDF';
-import { shareAsPPT } from '../lib/shareAsPPT';
-import { ElementInfo } from '../types/types';
+import { Logger } from '../../lib/logger';
+import { useSettings } from '../../lib/settings';
+import { shareAsPDF } from '../../lib/shareAsPDF';
+import { shareAsPPT } from '../../lib/shareAsPPT';
+import { ElementInfo } from '../../types/types';
+import { formatElementTag } from '../../utils/htmlTagFormatter';
 import './ShareCapture.css';
 
 interface InjectedTagInfo {
