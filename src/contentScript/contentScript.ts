@@ -27,6 +27,10 @@ class ContentScript {
       // Listen for PING messages
       chrome.runtime.onMessage.addListener((message) => {
         if (message.type === 'PING') return true;
+        if (message.type === 'SIDEPANEL_CLOSED') {
+          this.performCleanup();
+          return true;
+        }
       });
 
       // Get activeTabInfo from storage
@@ -61,10 +65,9 @@ class ContentScript {
     }
 
     try {
-      this.logger.debug('Setting up connection', { tabId });
       this.connectionManager = new ConnectionManager(`content-${tabId}`, this.handleMessage);
       this.connectionManager.connect();
-      this.logger.debug('Connection established', { tabId });
+      this.logger.info('Connection established. tabId:', tabId);
     } catch (error) {
       this.logger.error('Failed to setup connection:', error);
     }
@@ -89,21 +92,25 @@ class ContentScript {
         const selectElementPayload = message.payload as MessagePayloads['SELECT_ELEMENT'];
         this.handleSelectedElement(selectElementPayload.path);
         break;
-      case 'SIDEPANEL_CLOSED':
-        this.performCleanup();
-        break;
       case 'TOGGLE_SELECTION_MODE':
         const toggleSelectionModePayload =
           message.payload as MessagePayloads['TOGGLE_SELECTION_MODE'];
         this.handleToggleSelectionMode(toggleSelectionModePayload.enabled);
         break;
       case 'UPDATE_ELEMENT_STYLE':
+        const updateElementStylePayload =
+          message.payload as MessagePayloads['UPDATE_ELEMENT_STYLE'];
+        this.handleUpdateElementStyle(
+          updateElementStylePayload.property,
+          updateElementStylePayload.value
+        );
         break;
     }
   };
 
+  // Cleanup on sidepanel close
   private performCleanup() {
-    this.logger.debug('Sidepanel closed, performing cleanup');
+    this.logger.info('Sidepanel closed, performing cleanup');
     this.state.isSelectionMode = false;
     this.clearSelection();
   }
@@ -368,6 +375,53 @@ class ContentScript {
         'extension-selection-mode'
       ),
     });
+  }
+
+  // Update element style
+  private handleUpdateElementStyle(property: string, value: string) {
+    if (!this.state.selectedElementInfo) {
+      this.logger.error('No element selected for style update');
+      return;
+    }
+
+    try {
+      const targetElement = getElementByPath(this.state.selectedElementInfo.path);
+      if (!targetElement) {
+        throw new Error('Target element not found');
+      }
+
+      const STYLE_MODIFIED_ATTRIBUTE = 'data-extension-modified-styles';
+
+      let modifiedStyles: { [key: string]: string } = {};
+      const existingStyles = targetElement.getAttribute(STYLE_MODIFIED_ATTRIBUTE);
+      if (existingStyles) {
+        modifiedStyles = JSON.parse(existingStyles);
+      }
+
+      // Update element style
+      targetElement.style[property as any] = value;
+
+      // Update modified styles
+      modifiedStyles[property] = value;
+      targetElement.setAttribute(STYLE_MODIFIED_ATTRIBUTE, JSON.stringify(modifiedStyles));
+
+      this.logger.info('Element style updated:', {
+        property,
+        value,
+        path: this.state.selectedElementInfo.path,
+      });
+
+      this.connectionManager?.sendMessage('sidepanel', {
+        type: 'SHOW_TOAST',
+        payload: { message: chrome.i18n.getMessage('toastStyleUpdated'), type: 'error' },
+      });
+    } catch (error) {
+      this.logger.error('Element style update failed:', error);
+      this.connectionManager?.sendMessage('sidepanel', {
+        type: 'SHOW_TOAST',
+        payload: { message: chrome.i18n.getMessage('toastStyleUpdateFailed'), type: 'error' },
+      });
+    }
   }
 }
 

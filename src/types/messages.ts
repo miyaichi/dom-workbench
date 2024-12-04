@@ -20,8 +20,9 @@ export interface MessagePayloads {
   CONTENT_STATE_UPDATE: { isSelectionMode: boolean; selectedElementInfo: ElementInfo | null };
   ELEMENT_SELECTED: { elementInfo: ElementInfo };
   ELEMENT_UNSELECTED: { elementInfo: ElementInfo };
-  GET_CONTENT_STATE: void;
+  GET_CONTENT_STATE: undefined;
   INJECT_TAG: { tag: string; tagId: string };
+  PING: undefined;
   REMOVE_TAG: { tagId: string };
   SELECT_ELEMENT: { path: number[] };
   SHOW_TOAST: { message: string; type?: 'success' | 'error'; duration?: number };
