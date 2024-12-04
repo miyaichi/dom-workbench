@@ -23,3 +23,15 @@ export interface SelectionModePayload {
   /** Boolean indicating whether selection mode is enabled */
   enabled: boolean;
 }
+
+// Context type
+export type Context = 'background' | 'sidepanel' | `content-${number}` | 'undefined';
+
+// Connection status type
+export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected';
+
+declare global {
+  interface Window {
+    contentScriptInitialized?: boolean;
+  }
+}

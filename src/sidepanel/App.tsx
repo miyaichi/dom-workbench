@@ -8,14 +8,10 @@ import { StyleEditor } from '../components/StyleEditor';
 import { TagInjector } from '../components/TagInjector';
 import { ToastNotification } from '../components/common/ToastNotification';
 import { Tooltip } from '../components/common/Tooltip';
-import { ConnectionManager, useConnectionManager } from '../lib/connectionManager';
+import { ConnectionManager } from '../lib/connectionManager';
 import { Logger } from '../lib/logger';
-import { ElementInfo } from '../types/types';
-import { getContentScriptContext } from '../utils/contextHelpers';
-
-const logger = new Logger('SidePanel');
-
-export type ConnectionStatus = 'connected' | 'disconnected' | 'reconnecting';
+import { BaseMessage, MessagePayloads } from '../types/messages';
+import { Context, ElementInfo } from '../types/types';
 
 interface Toast {
   id: string;
@@ -38,7 +34,6 @@ interface StyleChange {
 }
 
 interface AppState {
-  currentTabId: number | null;
   isSelectionMode: boolean;
   showSettings: boolean;
   showShareCapture: boolean;
@@ -48,12 +43,16 @@ interface AppState {
   toast: Toast | null;
   injectedTags: InjectedTagInfo[];
   styleChanges: StyleChange[];
-  connectionStatus: ConnectionStatus;
 }
 
-export const App = () => {
+const logger = new Logger('sidepanel');
+
+export default function App() {
+  const [tabId, setTabId] = useState<number | null>(null);
+  const [connectionManager, setConnectionManager] = useState<ConnectionManager | null>(null);
+  const [contentScriptContext, setContentScriptContext] = useState<Context>('undefined');
+  const initialized = React.useRef(false);
   const [state, setState] = useState<AppState>({
-    currentTabId: null,
     isSelectionMode: false,
     showSettings: false,
     showShareCapture: false,
@@ -63,37 +62,30 @@ export const App = () => {
     toast: null,
     injectedTags: [],
     styleChanges: [],
-    connectionStatus: 'connected',
   });
-  const manager = ConnectionManager.getInstance();
-  const { sendMessage, subscribe } = useConnectionManager();
-  const initialized = React.useRef(false);
 
-  // Initialize tab monitoring
   useEffect(() => {
-    let isSubscribed = true;
+    if (initialized.current) {
+      logger.debug('App already initialized, skipping...');
+      return;
+    }
 
     const initializeTab = async () => {
-      if (initialized.current) {
-        logger.debug('App already initialized, skipping...');
-        return;
-      }
+      if (initialized.current) return;
 
       try {
-        manager.setContext('sidepanel');
+        const manager = new ConnectionManager('sidepanel', handleMessage);
+        manager.connect();
+        setConnectionManager(manager);
 
+        // Initialize active tab
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (tab?.id && isSubscribed) {
-          setState((prev) => {
-            // If the tab ID is the same, do not update
-            if (prev.currentTabId === tab.id) return prev;
-            return { ...prev, currentTabId: tab.id ?? null };
-          });
-
-          const contentScriptContext = getContentScriptContext(tab.id);
-          await sendMessage('GET_CONTENT_STATE', undefined, contentScriptContext);
+        if (tab?.id) {
+          setTabId(tab.id);
           initialized.current = true;
         }
+
+        logger.debug('Initialized', { tab });
       } catch (error) {
         logger.error('Tab initialization failed:', error);
       }
@@ -101,160 +93,120 @@ export const App = () => {
 
     initializeTab();
 
-    // Tab change handler
-    const handleTabChange = (activeInfo?: chrome.tabs.TabActiveInfo) => {
-      if (activeInfo?.tabId) {
-        setState((prev) => ({ ...prev, currentTabId: activeInfo.tabId ?? null }));
-      }
-    };
+    // Monitor active tab change
+    const handleTabChange = async (activeInfo: chrome.tabs.TabActiveInfo) => {
+      const tab = await chrome.tabs.get(activeInfo.tabId);
+      if (!tab.url) return;
 
+      setTabId(activeInfo.tabId);
+      setState((prev) => ({ ...prev, currentTabId: activeInfo.tabId ?? null }));
+    };
     chrome.tabs.onActivated.addListener(handleTabChange);
 
+    // Monitor tab URL change
+    const handleTabUpdated = async (
+      tabId: number,
+      changeInfo: chrome.tabs.TabChangeInfo,
+      tab: chrome.tabs.Tab
+    ) => {
+      if (changeInfo.status === 'complete') {
+        const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (activeTab.id === tabId) {
+          setTabId(tabId);
+          setState((prev) => ({ ...prev, currentTabId: tabId ?? null }));
+        }
+      }
+    };
+    chrome.tabs.onUpdated.addListener(handleTabUpdated);
+
+    // Monitor window focus change
+    const handleWindowFocus = async (windowId: number) => {
+      if (windowId === chrome.windows.WINDOW_ID_NONE) return;
+
+      const [tab] = await chrome.tabs.query({ active: true, windowId });
+      if (!tab?.url) return;
+
+      setTabId(tab.id!);
+      setState((prev) => ({ ...prev, currentTabId: tabId ?? null }));
+    };
+    chrome.windows.onFocusChanged.addListener(handleWindowFocus);
+
     return () => {
-      isSubscribed = false;
       chrome.tabs.onActivated.removeListener(handleTabChange);
-      logger.debug('Tab monitoring cleanup');
+      chrome.tabs.onUpdated.removeListener(handleTabUpdated);
+      chrome.windows.onFocusChanged.removeListener(handleWindowFocus);
+      connectionManager?.disconnect();
     };
   }, []);
 
-  // Message handlers
-  const messageHandlers = {
-    handleTabActivated: useCallback(
-      async (message: { payload: { tabId: number } }) => {
-        try {
-          const { tabId } = message.payload;
-          logger.debug('Tab activated with ID:', tabId);
-          setState((prev) => ({ ...prev, currentTabId: tabId }));
+  useEffect(() => {
+    // Update content script context
+    setContentScriptContext(tabId ? `content-${tabId}` : 'undefined');
+  }, [tabId]);
 
-          const contentScriptContext = getContentScriptContext(tabId);
-          await sendMessage('GET_CONTENT_STATE', undefined, contentScriptContext);
-        } catch (error) {
-          logger.error('Failed to handle tab activation:', error);
+  // Event handlers
+  const handleMessage = (message: BaseMessage) => {
+    logger.debug('Message received', { type: message.type });
+    switch (message.type) {
+      case 'CAPTURE_TAB_RESULT':
+        const captureTabResultPayload = message.payload as MessagePayloads['CAPTURE_TAB_RESULT'];
+        if (captureTabResultPayload.success) {
+          setState((prev) => ({
+            ...prev,
+            imageDataUrl: captureTabResultPayload.imageDataUrl || null,
+            captureUrl: captureTabResultPayload.url || '',
+          }));
+        } else {
+          logger.error('Capture failed:', captureTabResultPayload.error);
         }
-      },
-      [sendMessage]
-    ),
-
-    handleContentStateUpdate: useCallback((message: any) => {
-      const { isSelectionMode, selectedElementInfo } = message.payload;
-      setState((prev) => ({
-        ...prev,
-        isSelectionMode,
-        selectedElement: selectedElementInfo,
-      }));
-    }, []),
-
-    handleElementSelected: useCallback((message: { payload: { elementInfo: ElementInfo } }) => {
-      logger.log('Element selected:', message.payload.elementInfo);
-      setState((prev) => ({ ...prev, selectedElement: message.payload.elementInfo }));
-    }, []),
-
-    handleElementUnselected: useCallback(() => {
-      logger.log('Element unselected');
-      setState((prev) => ({ ...prev, selectedElement: null }));
-    }, []),
-
-    handleCaptureResult: useCallback((message: any) => {
-      const { success, imageDataUrl, error, url } = message.payload;
-      if (success) {
+        break;
+      case 'CONTENT_STATE_UPDATE':
+        const contentStateUpdatePayload =
+          message.payload as MessagePayloads['CONTENT_STATE_UPDATE'];
         setState((prev) => ({
           ...prev,
-          imageDataUrl: imageDataUrl || null,
-          captureUrl: url || '',
+          isSelectionMode: contentStateUpdatePayload.isSelectionMode,
+          selectedElement: contentStateUpdatePayload.selectedElementInfo,
         }));
-      } else {
-        logger.error('Capture failed:', error);
-      }
-    }, []),
-
-    handleShowToast: useCallback((message: { payload: { message: string; type?: string } }) => {
-      setState((prev) => ({
-        ...prev,
-        toast: {
-          id: Date.now().toString(),
-          message: message.payload.message,
-          type: message.payload.type as 'success' | 'error' | undefined,
-        },
-      }));
-    }, []),
+        break;
+      case 'ELEMENT_SELECTED':
+        const elementSelectedPayload = message.payload as MessagePayloads['ELEMENT_SELECTED'];
+        setState((prev) => ({
+          ...prev,
+          selectedElement: elementSelectedPayload.elementInfo,
+        }));
+        break;
+      case 'ELEMENT_UNSELECTED':
+        setState((prev) => ({
+          ...prev,
+          selectedElement: null,
+        }));
+        break;
+      case 'SHOW_TOAST':
+        const showToastPayload = message.payload as MessagePayloads['SHOW_TOAST'];
+        setState((prev) => ({
+          ...prev,
+          toast: {
+            id: Date.now().toString(),
+            message: showToastPayload.message,
+            type: showToastPayload.type,
+          },
+        }));
+        break;
+    }
   };
 
-  // Message subscriptions
-  useEffect(() => {
-    if (!initialized.current) {
-      logger.debug('Waiting for initialization...');
-      return;
-    }
-
-    let isSubscribed = true;
-    const subscriptions = new Map();
-
-    const subscriptionConfigs = {
-      CAPTURE_TAB_RESULT: messageHandlers.handleCaptureResult,
-      CONTENT_STATE_UPDATE: messageHandlers.handleContentStateUpdate,
-      ELEMENT_SELECTED: messageHandlers.handleElementSelected,
-      ELEMENT_UNSELECTED: messageHandlers.handleElementUnselected,
-      SHOW_TOAST: messageHandlers.handleShowToast,
-      TAB_ACTIVATED: messageHandlers.handleTabActivated,
-    };
-
-    logger.debug('Setting up message subscriptions');
-    Object.entries(subscriptionConfigs).forEach(([event, handler]) => {
-      subscriptions.set(
-        event,
-        subscribe(event as any, (msg: any) => {
-          if (isSubscribed) handler(msg);
-        })
-      );
-    });
-
-    return () => {
-      logger.debug('Cleaning up message subscriptions');
-      isSubscribed = false;
-      subscriptions.forEach((unsubscribe) => unsubscribe());
-      subscriptions.clear();
-    };
-  }, [messageHandlers, subscribe, initialized.current]);
-
-  // Monitor document visibility
-  useEffect(() => {
-    let isSubscribed = true;
-
-    const handleVisibilityChange = async () => {
-      if (!isSubscribed || !document.hidden) return;
-
-      logger.log('Document hidden, cleaning up');
-      setState((prev) => ({
-        ...prev,
-        showSettings: false,
-        showShareCapture: false,
-      }));
-
-      if (state.currentTabId && state.isSelectionMode) {
-        try {
-          const contentScriptContext = getContentScriptContext(state.currentTabId);
-          await sendMessage('TOGGLE_SELECTION_MODE', { enabled: false }, contentScriptContext);
-          setState((prev) => ({ ...prev, isSelectionMode: false }));
-        } catch (error) {
-          logger.error('Failed to disable selection mode:', error);
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      isSubscribed = false;
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [state.currentTabId, state.isSelectionMode, sendMessage]);
-
-  // UI handlers
+  // UI event handlers
   const uiHandlers = {
     handleCapture: useCallback(() => {
-      if (!state.currentTabId) return;
+      if (!tabId) return;
       setState((prev) => ({ ...prev, showShareCapture: true }));
-      sendMessage('CAPTURE_TAB', undefined, 'background');
-    }, [state.currentTabId, sendMessage]),
+
+      connectionManager?.sendMessage('background', {
+        type: 'CAPTURE_TAB',
+        payload: undefined,
+      });
+    }, [tabId, connectionManager]),
 
     handleShareClose: useCallback(() => {
       setState((prev) => ({ ...prev, showShareCapture: false }));
@@ -262,24 +214,30 @@ export const App = () => {
 
     handleSelectElement: useCallback(
       (path: number[]) => {
-        if (!state.currentTabId) return;
-        const contentScriptContext = getContentScriptContext(state.currentTabId);
-        sendMessage('SELECT_ELEMENT', { path }, contentScriptContext);
+        if (!tabId) return;
+
+        connectionManager?.sendMessage(contentScriptContext, {
+          type: 'SELECT_ELEMENT',
+          payload: { path },
+        });
       },
-      [state.currentTabId, sendMessage]
+      [tabId, connectionManager, contentScriptContext]
     ),
 
     toggleSelectionMode: useCallback(async () => {
-      if (!state.currentTabId) return;
+      if (!tabId) return;
+
       const enabled = !state.isSelectionMode;
       setState((prev) => ({ ...prev, isSelectionMode: enabled }));
-      const contentScriptContext = getContentScriptContext(state.currentTabId);
-      await sendMessage('TOGGLE_SELECTION_MODE', { enabled }, contentScriptContext);
-    }, [state.currentTabId, state.isSelectionMode, sendMessage]),
+      connectionManager?.sendMessage(contentScriptContext, {
+        type: 'TOGGLE_SELECTION_MODE',
+        payload: { enabled: enabled },
+      });
+    }, [state.isSelectionMode, tabId, connectionManager, contentScriptContext]),
 
     handleStyleChange: useCallback(
       (property: string, value: string, oldValue: string) => {
-        if (!state.currentTabId || !state.selectedElement) return;
+        if (!tabId || !state.selectedElement) return;
 
         const changeEntry: StyleChange = {
           id: nanoid(),
@@ -293,35 +251,38 @@ export const App = () => {
           ...prev,
           styleChanges: [changeEntry, ...prev.styleChanges],
         }));
-
-        const contentScriptContext = getContentScriptContext(state.currentTabId);
-        sendMessage('UPDATE_ELEMENT_STYLE', { property, value }, contentScriptContext);
+        connectionManager?.sendMessage(contentScriptContext, {
+          type: 'UPDATE_ELEMENT_STYLE',
+          payload: { property: property, value: value },
+        });
       },
-      [state.currentTabId, state.selectedElement, sendMessage]
+      [state.selectedElement, tabId, connectionManager, contentScriptContext]
     ),
 
     handleUndoStyleChange: useCallback(() => {
-      if (!state.currentTabId || state.styleChanges.length === 0) return;
+      if (!tabId || state.styleChanges.length === 0) return;
 
       const latestChange = state.styleChanges[0];
-      const contentScriptContext = getContentScriptContext(state.currentTabId);
-      sendMessage(
-        'UPDATE_ELEMENT_STYLE',
-        { property: latestChange.property as string, value: latestChange.oldValue },
-        contentScriptContext
-      );
+      connectionManager?.sendMessage(contentScriptContext, {
+        type: 'UPDATE_ELEMENT_STYLE',
+        payload: { property: latestChange.property, value: latestChange.oldValue },
+      });
 
       setState((prev) => ({
         ...prev,
         styleChanges: prev.styleChanges.slice(1),
       }));
-    }, [state.currentTabId, state.styleChanges, sendMessage]),
+    }, [state.styleChanges, tabId, connectionManager, contentScriptContext]),
 
     handleTagInject: useCallback(
       async (tag: string, tagId: string) => {
-        if (!state.currentTabId) return;
-        const contentScriptContext = getContentScriptContext(state.currentTabId);
-        await sendMessage('INJECT_TAG', { tag, tagId }, contentScriptContext);
+        if (!tabId) return;
+
+        connectionManager?.sendMessage(contentScriptContext, {
+          type: 'INJECT_TAG',
+          payload: { tag: tag, tagId: tagId },
+        });
+
         setState((prev) => ({
           ...prev,
           injectedTags: [
@@ -337,14 +298,18 @@ export const App = () => {
           logger.log('injected tags:', JSON.stringify(tag));
         });
       },
-      [state.currentTabId, sendMessage]
+      [tabId, connectionManager, contentScriptContext]
     ),
 
     handleTagRemove: useCallback(
       async (tagId: string) => {
-        if (!state.currentTabId) return;
-        const contentScriptContext = getContentScriptContext(state.currentTabId);
-        await sendMessage('REMOVE_TAG', { tagId }, contentScriptContext);
+        if (!tabId) return;
+
+        connectionManager?.sendMessage(contentScriptContext, {
+          type: 'REMOVE_TAG',
+          payload: { tagId: tagId },
+        });
+
         setState((prev) => ({
           ...prev,
           injectedTags: prev.injectedTags.filter((t) => t.id !== tagId),
@@ -353,7 +318,7 @@ export const App = () => {
           logger.log('injected tags:', JSON.stringify(tag));
         });
       },
-      [state.currentTabId, sendMessage]
+      [tabId, connectionManager, contentScriptContext]
     ),
 
     handleToastClose: useCallback(() => {
@@ -365,7 +330,9 @@ export const App = () => {
     }, []),
   };
 
-  if (state.connectionStatus === 'disconnected') {
+  const connectionStatus = connectionManager?.getStatus() ?? 'disconnected';
+
+  if (connectionStatus === 'disconnected') {
     return (
       <div className="app-container">
         <div className="app-content">
@@ -382,7 +349,7 @@ export const App = () => {
           <button
             onClick={uiHandlers.toggleSelectionMode}
             className={`selection-button ${state.isSelectionMode ? 'enabled' : 'disabled'}`}
-            disabled={state.connectionStatus !== 'connected'}
+            disabled={connectionStatus !== 'connected'}
           >
             <Power size={16} />
             {state.isSelectionMode ? 'Selection Mode On' : 'Selection Mode Off'}
@@ -393,7 +360,7 @@ export const App = () => {
               <button
                 onClick={uiHandlers.handleCapture}
                 className="icon-button"
-                disabled={state.connectionStatus !== 'connected'}
+                disabled={connectionStatus !== 'connected'}
               >
                 <Camera size={16} />
               </button>
@@ -402,7 +369,7 @@ export const App = () => {
               <button
                 onClick={uiHandlers.toggleSettings}
                 className={`icon-button ${state.showSettings ? 'active' : ''}`}
-                disabled={state.connectionStatus !== 'connected'}
+                disabled={connectionStatus !== 'connected'}
               >
                 <Settings size={16} />
               </button>
@@ -450,10 +417,10 @@ export const App = () => {
             />
           </div>
         )}
-        {state.connectionStatus === 'reconnecting' && (
-          <div className="connection-status">Reconnecting...</div>
+        {connectionStatus === 'connecting' && (
+          <div className="connection-status">Connecting...</div>
         )}
       </div>
     </div>
   );
-};
+}
