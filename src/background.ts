@@ -1,6 +1,6 @@
 import { ConnectionManager } from './lib/connectionManager';
 import { Logger } from './lib/logger';
-import { ExtensionMessage, MessageHandler, TabInfo } from './types/messages';
+import { BaseMessage, ExtensionMessage, TabInfo } from './types/messages';
 import { Context } from './types/types';
 
 class BackgroundService {
@@ -19,7 +19,7 @@ class BackgroundService {
 
   constructor() {
     this.logger = new Logger('background');
-    this.connectionManager = new ConnectionManager('background', this.handleMessage);
+    this.connectionManager = new ConnectionManager('background');
     this.setupConnection();
     this.setupChromeListeners();
     this.setupSidepanel();
@@ -89,11 +89,21 @@ class BackgroundService {
         port.onDisconnect.addListener(this.handleSidePanelDisconnection);
       }
 
-      // Forward messages between content script and side panel
       port.onMessage.addListener((message: ExtensionMessage) => {
-        this.logger.debug('Forwarding message:', message);
+        this.logger.debug('Message received:', message);
+
+        if (message.target === 'background') {
+          // Handle messages targeted to background
+          this.handleMessage(port, message);
+          return;
+        }
+
         const targetPort = this.ports.get(message.target);
-        targetPort?.postMessage(message);
+        if (targetPort) {
+          // Forward messages between content script and side panel
+          this.logger.debug('Forwarding message:', message);
+          targetPort?.postMessage(message);
+        }
       });
 
       port.onDisconnect.addListener(() => {
@@ -163,17 +173,41 @@ class BackgroundService {
     }
   }
 
-  private handleMessage: MessageHandler = (message) => {
+   /**
+    * Helper function to send messages from background to other components.
+    * Uses direct port.postMessage for reliable message delivery.
+   */
+    private sendMessage<T extends BaseMessage>(
+      target: Context,
+      port: chrome.runtime.Port,
+      messageData: Omit<T, 'source' | 'target' | 'timestamp'>
+    ): void {
+      const message = {
+        ...messageData,
+        source: 'background',
+        target,
+        timestamp: Date.now(),
+      } as T;
+  
+      port.postMessage(message);
+      this.logger.debug('Message sent', { target, type: message.type });
+    }
+
+  private handleMessage = (port: chrome.runtime.Port, message: ExtensionMessage) => {
     this.logger.debug('Message received', { type: message.type });
+    // Implement message handling if needed
+    //
+    // When replying to a message, use this.sendMessage instead of ConnectionManager.sendMessage
+    // to keep the flow of messages consistent and avoid port disconnection issues.
     switch (message.type) {
       case 'CAPTURE_TAB':
-        this.handleCaptureTab();
+        this.handleCaptureTab(port);
         break;
     }
   };
 
   // Capture the active tab and send the image data to the sidepanel
-  private async handleCaptureTab(): Promise<void> {
+  private async handleCaptureTab(port: chrome.runtime.Port): Promise<void> {
     this.logger.log('Received CAPTURE_TAB message');
     try {
       if (!this.activeTabInfo) {
@@ -187,13 +221,13 @@ class BackgroundService {
       });
 
       this.logger.log('Tab captured successfully');
-      this.connectionManager?.sendMessage('sidepanel', {
+      this.sendMessage('sidepanel', port, {
         type: 'CAPTURE_TAB_RESULT',
         payload: { success: true, imageDataUrl, url: this.activeTabInfo.url ?? null },
       });
     } catch (error) {
       this.logger.error('Failed to capture tab:', error);
-      this.connectionManager?.sendMessage('sidepanel', {
+      this.sendMessage('sidepanel', port, {
         type: 'CAPTURE_TAB_RESULT',
         payload: {
           success: false,
