@@ -78,7 +78,7 @@ class ContentScript {
 
     switch (message.type) {
       case 'GET_CONTENT_STATE':
-        this.sendCurrentState();
+        this.handleGetCurrentState();
         break;
       case 'INJECT_TAG':
         const injectTagPayload = message.payload as MessagePayloads['INJECT_TAG'];
@@ -211,8 +211,8 @@ class ContentScript {
     this.elementSelection(target);
   }
 
-  // Send selected element info to the sidepanel
-  private async sendCurrentState() {
+  // Send current state to sidepanel
+  private async handleGetCurrentState() {
     this.logger.info('Sending current state', this.state);
     this.connectionManager?.sendMessage('sidepanel', {
       type: 'CONTENT_STATE_UPDATE',

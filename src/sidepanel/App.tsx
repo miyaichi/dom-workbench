@@ -153,6 +153,14 @@ export default function App() {
       type: 'TOGGLE_SELECTION_MODE',
       payload: { enabled: false },
     });
+
+    /*
+    // Request contentScript state
+    connectionManager?.sendMessage(newContentScriptContext, {
+      type: 'GET_CONTENT_STATE',
+      payload: { enabled: false },
+    });
+    */
   }, [tabId, connectionManager]);
 
   // Event handlers

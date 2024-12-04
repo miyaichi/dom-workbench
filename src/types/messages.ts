@@ -22,11 +22,9 @@ export interface MessagePayloads {
   ELEMENT_UNSELECTED: { elementInfo: ElementInfo };
   GET_CONTENT_STATE: undefined;
   INJECT_TAG: { tag: string; tagId: string };
-  PING: undefined;
   REMOVE_TAG: { tagId: string };
   SELECT_ELEMENT: { path: number[] };
   SHOW_TOAST: { message: string; type?: 'success' | 'error'; duration?: number };
-  SIDEPANEL_CLOSED: undefined;
   TOGGLE_SELECTION_MODE: { enabled: boolean };
   UPDATE_ELEMENT_STYLE: { property: string; value: string };
 }
