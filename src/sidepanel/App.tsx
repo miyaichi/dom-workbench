@@ -45,6 +45,20 @@ interface AppState {
   styleChanges: StyleChange[];
 }
 
+const initialState: AppState = {
+  isSelectionMode: false,
+  showSettings: false,
+  showShareCapture: false,
+  selectedElement: null,
+  imageDataUrl: null,
+  captureUrl: null,
+  toast: null,
+  injectedTags: [],
+  styleChanges: [],
+};
+
+const resetState = (): AppState => ({ ...initialState });
+
 const logger = new Logger('sidepanel');
 
 export default function App() {
@@ -52,17 +66,7 @@ export default function App() {
   const [connectionManager, setConnectionManager] = useState<ConnectionManager | null>(null);
   const [contentScriptContext, setContentScriptContext] = useState<Context>('undefined');
   const initialized = React.useRef(false);
-  const [state, setState] = useState<AppState>({
-    isSelectionMode: false,
-    showSettings: false,
-    showShareCapture: false,
-    selectedElement: null,
-    imageDataUrl: null,
-    captureUrl: null,
-    toast: null,
-    injectedTags: [],
-    styleChanges: [],
-  });
+  const [state, setState] = useState<AppState>(resetState());
 
   useEffect(() => {
     if (initialized.current) {
@@ -99,7 +103,6 @@ export default function App() {
       if (!tab.url) return;
 
       setTabId(activeInfo.tabId);
-      setState((prev) => ({ ...prev, currentTabId: activeInfo.tabId ?? null }));
     };
     chrome.tabs.onActivated.addListener(handleTabChange);
 
@@ -113,7 +116,6 @@ export default function App() {
         const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
         if (activeTab.id === tabId) {
           setTabId(tabId);
-          setState((prev) => ({ ...prev, currentTabId: tabId ?? null }));
         }
       }
     };
@@ -127,7 +129,6 @@ export default function App() {
       if (!tab?.url) return;
 
       setTabId(tab.id!);
-      setState((prev) => ({ ...prev, currentTabId: tabId ?? null }));
     };
     chrome.windows.onFocusChanged.addListener(handleWindowFocus);
 
@@ -141,8 +142,18 @@ export default function App() {
 
   useEffect(() => {
     // Update content script context
-    setContentScriptContext(tabId ? `content-${tabId}` : 'undefined');
-  }, [tabId]);
+    const newContentScriptContext: Context = tabId ? `content-${tabId}` : 'undefined';
+    setContentScriptContext(newContentScriptContext);
+
+    // Reset state when tab changes
+    setState(resetState());
+
+    // Send message to content script to disable selection mode
+    connectionManager?.sendMessage(newContentScriptContext, {
+      type: 'TOGGLE_SELECTION_MODE',
+      payload: { enabled: false },
+    });
+  }, [tabId, connectionManager]);
 
   // Event handlers
   const handleMessage = (message: BaseMessage) => {
