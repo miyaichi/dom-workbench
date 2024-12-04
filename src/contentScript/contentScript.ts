@@ -1,6 +1,6 @@
 import { ConnectionManager } from '../lib/connectionManager';
 import { Logger } from '../lib/logger';
-import { MessageHandler } from '../types/messages';
+import { MessageHandler, MessagePayloads } from '../types/messages';
 import { ElementInfo } from '../types/types';
 import { createElementInfo, getElementByPath } from '../utils/domSelection';
 import { htmlToDoc } from '../utils/htmlToDoc';
@@ -78,22 +78,23 @@ class ContentScript {
         this.sendCurrentState();
         break;
       case 'INJECT_TAG':
-        const injectTagPayload = message.payload as { tag: string; tagId: string };
+        const injectTagPayload = message.payload as MessagePayloads['INJECT_TAG'];
         this.handleTagInjection(injectTagPayload.tag, injectTagPayload.tagId);
         break;
       case 'REMOVE_TAG':
-        const removeTagPayload = message.payload as { tagId: string };
+        const removeTagPayload = message.payload as MessagePayloads['REMOVE_TAG'];
         this.handleTagRemoval(removeTagPayload.tagId);
         break;
       case 'SELECT_ELEMENT':
-        const selectElementPayload = message.payload as { elementInfo: ElementInfo };
-        this.handleSelectedElement(selectElementPayload.elementInfo);
+        const selectElementPayload = message.payload as MessagePayloads['SELECT_ELEMENT'];
+        this.handleSelectedElement(selectElementPayload.path);
         break;
       case 'SIDEPANEL_CLOSED':
         this.performCleanup();
         break;
       case 'TOGGLE_SELECTION_MODE':
-        const toggleSelectionModePayload = message.payload as { enabled: boolean };
+        const toggleSelectionModePayload =
+          message.payload as MessagePayloads['TOGGLE_SELECTION_MODE'];
         this.handleToggleSelectionMode(toggleSelectionModePayload.enabled);
         break;
       case 'UPDATE_ELEMENT_STYLE':
@@ -299,8 +300,8 @@ class ContentScript {
   }
 
   // Element selection
-  private handleSelectedElement(elementInfo: ElementInfo) {
-    const element = getElementByPath(elementInfo.path);
+  private handleSelectedElement(path: number[]) {
+    const element = getElementByPath(path);
     if (element) {
       this.elementSelection(element);
     }
