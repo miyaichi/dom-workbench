@@ -28,14 +28,14 @@ export const DOMSelector: React.FC<DOMSelectorProps> = ({ selectedElement, onSel
   const [isCopied, setIsCopied] = useState(false);
 
   const handleElementInfoSelect = (elementInfo: ElementInfo): void => {
-    logger.log('Element selected:', elementInfo);
+    logger.info('Element selected:', elementInfo);
     onSelectElement(elementInfo.path);
   };
 
   const handleParentSelect = (): void => {
     if (!selectedElement?.path.length) return;
 
-    logger.log('Parent element selected');
+    logger.info('Parent element selected');
     const parentPath = getParentPath(selectedElement.path);
     onSelectElement(parentPath);
   };
@@ -53,7 +53,7 @@ export const DOMSelector: React.FC<DOMSelectorProps> = ({ selectedElement, onSel
         setIsCopied(false);
       }, 2000);
 
-      logger.log('HTML copied to clipboard');
+      logger.info('HTML copied to clipboard');
     } catch (error) {
       logger.error('Failed to copy HTML:', error);
     }

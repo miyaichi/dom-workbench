@@ -205,7 +205,7 @@ class ContentScript {
 
   // Send selected element info to the sidepanel
   private async sendCurrentState() {
-    this.logger.log('Sending current state', this.state);
+    this.logger.info('Sending current state', this.state);
     this.connectionManager?.sendMessage('sidepanel', {
       type: 'CONTENT_STATE_UPDATE',
       payload: {
@@ -252,7 +252,7 @@ class ContentScript {
 
       targetElement.appendChild(domElement);
 
-      this.logger.log('Tag injected successfully:', {
+      this.logger.info('Tag injected successfully:', {
         tagId,
         targetPath: this.state.selectedElementInfo.path,
       });
@@ -283,7 +283,7 @@ class ContentScript {
         element.remove();
       });
 
-      this.logger.log('Tag removed successfully:', { tagId });
+      this.logger.info('Tag removed successfully:', { tagId });
 
       this.connectionManager?.sendMessage('sidepanel', {
         type: 'SHOW_TOAST',

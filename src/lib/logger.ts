@@ -53,7 +53,7 @@ export class Logger {
    * @param message - The message to log
    * @param args - Additional arguments to log
    */
-  log(message: string, ...args: any[]) {
+  info(message: string, ...args: any[]) {
     if (this.shouldLog('info')) {
       console.log(`[${this.context}] ${message}`, ...args);
     }

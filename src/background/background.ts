@@ -208,7 +208,7 @@ class BackgroundService {
 
   // Capture the active tab and send the image data to the sidepanel
   private async handleCaptureTab(port: chrome.runtime.Port): Promise<void> {
-    this.logger.log('Received CAPTURE_TAB message');
+    this.logger.info('Received CAPTURE_TAB message');
     try {
       if (!this.activeTabInfo) {
         throw new Error('No active tab found');
@@ -220,7 +220,7 @@ class BackgroundService {
         quality: 100,
       });
 
-      this.logger.log('Tab captured successfully');
+      this.logger.info('Tab captured successfully');
       this.sendMessage('sidepanel', port, {
         type: 'CAPTURE_TAB_RESULT',
         payload: { success: true, imageDataUrl, url: this.activeTabInfo.url ?? null },

@@ -306,7 +306,7 @@ export default function App() {
           ],
         }));
         state.injectedTags.forEach((tag) => {
-          logger.log('injected tags:', JSON.stringify(tag));
+          logger.info('injected tags:', JSON.stringify(tag));
         });
       },
       [tabId, connectionManager, contentScriptContext]
@@ -326,7 +326,7 @@ export default function App() {
           injectedTags: prev.injectedTags.filter((t) => t.id !== tagId),
         }));
         state.injectedTags.forEach((tag) => {
-          logger.log('injected tags:', JSON.stringify(tag));
+          logger.info('injected tags:', JSON.stringify(tag));
         });
       },
       [tabId, connectionManager, contentScriptContext]

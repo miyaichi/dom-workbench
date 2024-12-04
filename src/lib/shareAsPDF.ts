@@ -20,7 +20,7 @@ export const shareAsPDF = async (
   styleChanges: string,
   injectedTags: string
 ): Promise<true> => {
-  logger.log('Starting PDF generation process');
+  logger.info('Starting PDF generation process');
 
   if (!imageData || !url) {
     throw new Error('Image data and URL are required');
