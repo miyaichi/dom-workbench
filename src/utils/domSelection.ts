@@ -105,11 +105,5 @@ export const buildElementTree = (
  */
 export const createElementInfo = (element: HTMLElement): ElementInfo => {
   const path = getElementPath(element);
-  return {
-    startTag: getElementStartTag(element),
-    computedStyle: getComputedStyle(element),
-    path,
-    textContent: getDirectTextContent(element),
-    children: buildElementTree(element, path),
-  };
+  return buildElementTree(element, path)[0];
 };
