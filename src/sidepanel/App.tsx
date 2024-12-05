@@ -59,6 +59,10 @@ const initialState: AppState = {
 
 const resetState = (): AppState => ({ ...initialState });
 
+type TabSwitchAction = 'save' | 'reset';
+
+const tabSwitchAction: TabSwitchAction = 'reset';
+
 const logger = new Logger('sidepanel');
 
 export default function App() {
@@ -148,19 +152,19 @@ export default function App() {
     // Reset state when tab changes
     setState(resetState());
 
-    // Send message to content script to disable selection mode
-    connectionManager?.sendMessage(newContentScriptContext, {
-      type: 'TOGGLE_SELECTION_MODE',
-      payload: { enabled: false } as MessagePayloads['TOGGLE_SELECTION_MODE'],
-    });
-
-    /*
-    // Request contentScript state
-    connectionManager?.sendMessage(newContentScriptContext, {
-      type: 'GET_CONTENT_STATE',
-      payload: undefined as MessagePayloads['GET_CONTENT_STATE'],
-    });
-    */
+    if (tabSwitchAction === 'reset') {
+      // Reset contentScript state
+      connectionManager?.sendMessage(newContentScriptContext, {
+        type: 'TOGGLE_SELECTION_MODE',
+        payload: { enabled: false } as MessagePayloads['TOGGLE_SELECTION_MODE'],
+      });
+    } else {
+      // Request contentScript state
+      connectionManager?.sendMessage(newContentScriptContext, {
+        type: 'GET_CONTENT_STATE',
+        payload: undefined as MessagePayloads['GET_CONTENT_STATE'],
+      });
+    }
   }, [tabId, connectionManager]);
 
   // Event handlers
