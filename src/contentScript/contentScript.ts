@@ -24,7 +24,7 @@ class ContentScript {
 
   private async initialize() {
     try {
-      // Listen for PING messages
+      // Listen for PING and SIDEPANEL_CLOSED messages
       chrome.runtime.onMessage.addListener((message) => {
         if (message.type === 'PING') return true;
         if (message.type === 'SIDEPANEL_CLOSED') {
