@@ -1,3 +1,4 @@
+import { SharePayload } from '../types/types';
 import { downloadFile } from '../utils/download';
 import { formatTimestamp, generateFilename } from '../utils/formatters';
 import { Logger } from './logger';
@@ -12,14 +13,14 @@ import {
 
 const logger = new Logger('sharePDF');
 
-export const shareAsPDF = async (
-  imageData: string,
-  url: string,
-  startTag: string,
-  comment: string,
-  styleChanges: string,
-  injectedTags: string
-): Promise<true> => {
+export const shareAsPDF = async ({
+  imageData,
+  url,
+  html,
+  comment,
+  styleChanges,
+  injectedTags,
+}: SharePayload): Promise<true> => {
   logger.info('Starting PDF generation process');
 
   if (!imageData || !url) {
@@ -45,7 +46,7 @@ export const shareAsPDF = async (
     await textManager.layoutContent([
       { title: 'Date and time: ', content: formatTimestamp(now) },
       { title: 'URL: ', content: url },
-      { title: 'Element start tag: ', content: startTag },
+      { title: 'Element: ', content: html },
       { title: 'Comment: ', content: comment },
       { title: 'Style changes: ', content: styleChanges },
       { title: 'Injected tags: ', content: injectedTags },

@@ -24,8 +24,24 @@ export interface SelectionModePayload {
   enabled: boolean;
 }
 
-// Context type
+/** Context of the message */
 export type Context = 'background' | 'sidepanel' | `content-${number}` | 'undefined';
 
-// Connection status type
+/** Connection status of the connection */
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected';
+
+/** Payload for sharing the current capture */
+export interface SharePayload {
+  /** Image data URL of the capture */
+  imageData: string;
+  /** URL of the capture */
+  url: string;
+  /** Element information of the selected element */
+  html: string;
+  /** Comment for the capture */
+  comment: string;
+  /** List of injected tags */
+  styleChanges: string;
+  /** List of style changes */
+  injectedTags: string;
+}

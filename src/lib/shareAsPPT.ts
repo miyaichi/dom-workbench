@@ -1,4 +1,5 @@
 import pptxgen from 'pptxgenjs';
+import { SharePayload } from '../types/types';
 import { downloadFile } from '../utils/download';
 import { formatTimestamp, generateFilename } from '../utils/formatters';
 import { Logger } from './logger';
@@ -12,14 +13,14 @@ import {
 
 const logger = new Logger('sharePPT');
 
-export const shareAsPPT = async (
-  imageData: string,
-  url: string,
-  startTag: string,
-  comment: string,
-  styleChanges: string,
-  injectedTags: string
-): Promise<true> => {
+export const shareAsPPT = async ({
+  imageData,
+  url,
+  html,
+  comment,
+  styleChanges,
+  injectedTags,
+}: SharePayload): Promise<true> => {
   logger.info('Starting PowerPoint generation process');
 
   if (!imageData || !url) {
@@ -40,7 +41,7 @@ export const shareAsPPT = async (
     const sections: SlideSection[] = [
       { title: 'Date and time: ', content: formatTimestamp(now) },
       { title: 'URL: ', content: url },
-      { title: 'Element start tag: ', content: startTag },
+      { title: 'Element: ', content: html },
       { title: 'Comment: ', content: comment },
       { title: 'Style changes: ', content: styleChanges },
       { title: 'Injected tags: ', content: injectedTags },

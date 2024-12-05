@@ -4,7 +4,8 @@ import { Logger } from '../../lib/logger';
 import { useSettings } from '../../lib/settings';
 import { shareAsPDF } from '../../lib/shareAsPDF';
 import { shareAsPPT } from '../../lib/shareAsPPT';
-import { ElementInfo } from '../../types/types';
+import { ElementInfo, SharePayload } from '../../types/types';
+import { elementInfoToHTML } from '../../utils/elementInfoToHTML';
 import { formatElementTag } from '../../utils/htmlTagFormatter';
 import './ShareCapture.css';
 
@@ -29,7 +30,30 @@ interface ShareCaptureProps {
   captureUrl: string | null;
   injectedTags: InjectedTagInfo[];
   styleChanges: StyleChange[];
+  settings?: {
+    shareFormat: ShareFormat;
+  };
 }
+
+export type ShareFormat = 'pdf' | 'ppt';
+
+export interface ShareFunction {
+  (payload: SharePayload): Promise<true>;
+}
+
+export const shareHandlers: Record<ShareFormat, ShareFunction> = {
+  pdf: shareAsPDF,
+  ppt: shareAsPPT,
+};
+
+// Get the share function based on the selected format
+export const getShareFunction = (format: ShareFormat): ShareFunction => {
+  const handler = shareHandlers[format];
+  if (!handler) {
+    throw new Error(`Unsupported share format: ${format}`);
+  }
+  return handler;
+};
 
 const formatTagChanges = (tags: InjectedTagInfo[]): string => {
   if (tags.length === 0) return 'No tags injected';
@@ -51,10 +75,6 @@ const formatStyleChanges = (changes: StyleChange[]): string => {
       return `[${date}] ${change.property}: ${change.oldValue} → ${change.newValue}`;
     })
     .join('\n');
-};
-
-const getShareFunction = (format: string) => {
-  return format === 'pdf' ? shareAsPDF : shareAsPPT;
 };
 
 /**
@@ -94,14 +114,16 @@ export const ShareCapture: React.FC<ShareCaptureProps> = ({
 
     try {
       const shareFunction = getShareFunction(settings.shareFormat);
-      await shareFunction(
-        imageDataUrl,
-        captureUrl || '',
+      const payload: SharePayload = {
+        imageData: imageDataUrl,
+        url: captureUrl || '',
+        html: selectedElement ? elementInfoToHTML(selectedElement) : '',
         comment,
-        selectedElement?.startTag || '',
-        formatStyleChanges(styleChanges),
-        formatTagChanges(injectedTags)
-      );
+        styleChanges: formatStyleChanges(styleChanges),
+        injectedTags: formatTagChanges(injectedTags),
+      };
+
+      await shareFunction(payload);
 
       logger.debug('Capture shared');
       handleClose();
