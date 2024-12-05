@@ -7,7 +7,6 @@ import { shareAsPPT } from '../../lib/shareAsPPT';
 import { ElementInfo, SharePayload } from '../../types/types';
 import { elementInfoToHTML } from '../../utils/elementInfoToHTML';
 import { formatElementTag } from '../../utils/htmlTagFormatter';
-import './ShareCapture.css';
 
 interface InjectedTagInfo {
   id: string;
@@ -192,9 +191,9 @@ export const ShareCapture: React.FC<ShareCaptureProps> = ({
   return (
     <div className="capture-modal">
       <div className="capture-container">
-        <div className="capture-header">
-          <h2 className="capture-title">Share Capture</h2>
-          <button onClick={handleClose} className="capture-close">
+        <div className="card-header">
+          <h2 className="card-title">Share Capture</h2>
+          <button onClick={handleClose} className="icon-button">
             <X size={20} />
           </button>
         </div>
@@ -210,7 +209,7 @@ export const ShareCapture: React.FC<ShareCaptureProps> = ({
 
         {renderElementInfo()}
 
-        <div className="capture-actions">
+        <div className="card-header">
           <button onClick={handleShare} className="share-button" disabled={!imageDataUrl}>
             <Send size={16} />
             {isLoading ? 'Sharing...' : `Share as ${settings.shareFormat.toUpperCase()}`}
