@@ -116,7 +116,7 @@ export const ShareCapture: React.FC<ShareCaptureProps> = ({
       const payload: SharePayload = {
         imageData: imageDataUrl,
         url: captureUrl || '',
-        html: selectedElement ? elementInfoToHTML(selectedElement) : '',
+        html: selectedElement ? elementInfoToHTML(selectedElement) : 'No element selected',
         comment,
         styleChanges: formatStyleChanges(styleChanges),
         injectedTags: formatTagChanges(injectedTags),
