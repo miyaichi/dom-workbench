@@ -29,18 +29,18 @@ module.exports = {
         test: /\.(otf|ttf|woff|woff2)$/,
         type: 'asset/inline',
         generator: {
-          dataUrl: content => {
+          dataUrl: (content) => {
             return content.toString('base64');
-          }
-        }
-      }
+          },
+        },
+      },
     ],
   },
   resolve: {
     extensions: ['.tsx', '.ts', '.js'],
     alias: {
-      '@assets': path.resolve(__dirname, 'assets')
-    }
+      '@assets': path.resolve(__dirname, 'assets'),
+    },
   },
   plugins: [
     new CopyPlugin({
@@ -48,6 +48,8 @@ module.exports = {
         { from: 'public', to: '.' },
         { from: 'manifest.json', to: '.' },
         { from: '_locales', to: '_locales' },
+        { from: 'assets/fonts', to: 'fonts' },
+        { from: 'assets/icons/build', to: 'icons' },
       ],
     }),
   ],
