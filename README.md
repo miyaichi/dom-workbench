@@ -5,12 +5,14 @@ DOM Workbench is a Chrome extension designed to simplify DOM operations on web p
 ## Features
 
 ### DOM Selection and Navigation
+
 - **Interactive DOM Element Selection**: Click to select any DOM element on the page
 - **DOM Path Display**: View the full DOM path of selected elements
 - **Parent Navigation**: Easily navigate to parent elements using the dedicated button
 - **DOM Tree View**: Visualize and interact with the DOM structure
 
 ### Element Manipulation
+
 - **Tag Injection**:
   - Inject custom HTML tags into selected elements
   - Real-time HTML tag validation
@@ -18,6 +20,7 @@ DOM Workbench is a Chrome extension designed to simplify DOM operations on web p
   - Add or remove injected tags dynamically
 
 ### Screen Capture and Sharing
+
 - **Element Capture**: Take screenshots of selected DOM elements
 - **Annotation Support**: Add comments to captured elements
 - **Multiple Export Formats**: Share captures as PDF or PPT
@@ -28,11 +31,13 @@ DOM Workbench is a Chrome extension designed to simplify DOM operations on web p
   - Applied style modifications
 
 ### Style Management
+
 - **Style Modifications**: Track and display style changes applied to elements
 - **Style Preview**: See style changes in real-time
 - **Style History**: Keep track of all style modifications
 
 ### Configuration
+
 - **Customizable Settings**:
   - Log Level configuration (Error, Warning, Info, Debug)
   - Share Format preference (PDF/PPT)
@@ -42,7 +47,7 @@ DOM Workbench is a Chrome extension designed to simplify DOM operations on web p
 
 - **Language**: TypeScript
 - **Framework**: React with Hooks
-- **UI Components**: 
+- **UI Components**:
   - Custom Card components
   - Tooltips
   - Modal dialogs
@@ -98,18 +103,21 @@ DOM Workbench is a Chrome extension designed to simplify DOM operations on web p
 ## Usage Guide
 
 1. **DOM Selection**
+
    - Click the DOM Workbench extension icon to open the side panel
    - Use the DOM selector to click and select page elements
    - Navigate the DOM hierarchy using the parent navigation button
    - View detailed element information in the DOM tree view
 
 2. **Tag Injection**
+
    - Select a target element
    - Enter valid HTML in the tag injector
    - Click "Inject" to add the tag
    - Use "Remove" to revert changes
 
 3. **Screen Capture and Sharing**
+
    - Select an element to capture
    - Add comments in the capture modal
    - Choose between PDF or PPT export format
@@ -127,6 +135,7 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 ## Contributing
 
 Contributions are welcome! Please follow these steps:
+
 1. Fork the repository
 2. Create a feature branch
 3. Commit your changes
