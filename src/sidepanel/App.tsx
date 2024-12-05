@@ -151,14 +151,14 @@ export default function App() {
     // Send message to content script to disable selection mode
     connectionManager?.sendMessage(newContentScriptContext, {
       type: 'TOGGLE_SELECTION_MODE',
-      payload: { enabled: false },
+      payload: { enabled: false } as MessagePayloads['TOGGLE_SELECTION_MODE'],
     });
 
     /*
     // Request contentScript state
     connectionManager?.sendMessage(newContentScriptContext, {
       type: 'GET_CONTENT_STATE',
-      payload: { enabled: false },
+      payload: undefined as MessagePayloads['GET_CONTENT_STATE'],
     });
     */
   }, [tabId, connectionManager]);
@@ -223,7 +223,7 @@ export default function App() {
 
       connectionManager?.sendMessage('background', {
         type: 'CAPTURE_TAB',
-        payload: undefined,
+        payload: undefined as MessagePayloads['CAPTURE_TAB'],
       });
     }, [tabId, connectionManager]),
 
@@ -237,7 +237,7 @@ export default function App() {
 
         connectionManager?.sendMessage(contentScriptContext, {
           type: 'SELECT_ELEMENT',
-          payload: { path },
+          payload: { path } as MessagePayloads['SELECT_ELEMENT'],
         });
       },
       [tabId, connectionManager, contentScriptContext]
@@ -272,7 +272,7 @@ export default function App() {
         }));
         connectionManager?.sendMessage(contentScriptContext, {
           type: 'UPDATE_ELEMENT_STYLE',
-          payload: { property: property, value: value },
+          payload: { property: property, value: value } as MessagePayloads['UPDATE_ELEMENT_STYLE'],
         });
       },
       [state.selectedElement, tabId, connectionManager, contentScriptContext]
@@ -284,7 +284,10 @@ export default function App() {
       const latestChange = state.styleChanges[0];
       connectionManager?.sendMessage(contentScriptContext, {
         type: 'UPDATE_ELEMENT_STYLE',
-        payload: { property: latestChange.property, value: latestChange.oldValue },
+        payload: {
+          property: latestChange.property,
+          value: latestChange.oldValue,
+        } as MessagePayloads['UPDATE_ELEMENT_STYLE'],
       });
 
       setState((prev) => ({
@@ -299,7 +302,7 @@ export default function App() {
 
         connectionManager?.sendMessage(contentScriptContext, {
           type: 'INJECT_TAG',
-          payload: { tag: tag, tagId: tagId },
+          payload: { tag: tag, tagId: tagId } as MessagePayloads['INJECT_TAG'],
         });
 
         setState((prev) => ({
@@ -326,7 +329,7 @@ export default function App() {
 
         connectionManager?.sendMessage(contentScriptContext, {
           type: 'REMOVE_TAG',
-          payload: { tagId: tagId },
+          payload: { tagId: tagId } as MessagePayloads['REMOVE_TAG'],
         });
 
         setState((prev) => ({

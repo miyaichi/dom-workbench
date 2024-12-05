@@ -219,7 +219,7 @@ class ContentScript {
       payload: {
         isSelectionMode: this.state.isSelectionMode,
         selectedElementInfo: this.state.selectedElementInfo,
-      },
+      } as MessagePayloads['CONTENT_STATE_UPDATE'],
     });
   }
 
@@ -244,7 +244,10 @@ class ContentScript {
           this.logger.debug(`Scripts loaded for tag ${tagId}`);
           this.connectionManager?.sendMessage('sidepanel', {
             type: 'SHOW_TOAST',
-            payload: { message: chrome.i18n.getMessage('toastTagLoaded'), type: 'success' },
+            payload: {
+              message: chrome.i18n.getMessage('toastTagLoaded'),
+              type: 'success',
+            } as MessagePayloads['SHOW_TOAST'],
           });
         },
       });
@@ -267,13 +270,19 @@ class ContentScript {
 
       this.connectionManager?.sendMessage('sidepanel', {
         type: 'SHOW_TOAST',
-        payload: { message: chrome.i18n.getMessage('toastTagInjected'), type: 'success' },
+        payload: {
+          message: chrome.i18n.getMessage('toastTagInjected'),
+          type: 'success',
+        } as MessagePayloads['SHOW_TOAST'],
       });
     } catch (error) {
       this.logger.error('Tag injection failed:', error);
       this.connectionManager?.sendMessage('sidepanel', {
         type: 'SHOW_TOAST',
-        payload: { message: chrome.i18n.getMessage('toastTagInjected'), type: 'error' },
+        payload: {
+          message: chrome.i18n.getMessage('toastTagInjected'),
+          type: 'error',
+        } as MessagePayloads['SHOW_TOAST'],
       });
     }
   }
@@ -295,13 +304,19 @@ class ContentScript {
 
       this.connectionManager?.sendMessage('sidepanel', {
         type: 'SHOW_TOAST',
-        payload: { message: chrome.i18n.getMessage('toastTagRemoved'), type: 'success' },
+        payload: {
+          message: chrome.i18n.getMessage('toastTagRemoved'),
+          type: 'success',
+        } as MessagePayloads['SHOW_TOAST'],
       });
     } catch (error) {
       this.logger.error('Tag removal failed:', error);
       this.connectionManager?.sendMessage('sidepanel', {
         type: 'SHOW_TOAST',
-        payload: { message: chrome.i18n.getMessage('toastTagRemoveFailed'), type: 'error' },
+        payload: {
+          message: chrome.i18n.getMessage('toastTagRemoveFailed'),
+          type: 'error',
+        } as MessagePayloads['SHOW_TOAST'],
       });
     }
   }
@@ -329,7 +344,9 @@ class ContentScript {
     this.logger.debug('Element selected:', this.state.selectedElementInfo);
     this.connectionManager?.sendMessage('sidepanel', {
       type: 'ELEMENT_SELECTED',
-      payload: { elementInfo: this.state.selectedElementInfo },
+      payload: {
+        elementInfo: this.state.selectedElementInfo,
+      } as MessagePayloads['ELEMENT_SELECTED'],
     });
   }
 
@@ -351,7 +368,9 @@ class ContentScript {
       this.logger.debug('Element unselected:', this.state.selectedElementInfo);
       this.connectionManager?.sendMessage('sidepanel', {
         type: 'ELEMENT_UNSELECTED',
-        payload: { elementInfo: this.state.selectedElementInfo },
+        payload: {
+          elementInfo: this.state.selectedElementInfo,
+        } as MessagePayloads['ELEMENT_UNSELECTED'],
       });
       this.state.selectedElementInfo = null;
     }
@@ -413,13 +432,19 @@ class ContentScript {
 
       this.connectionManager?.sendMessage('sidepanel', {
         type: 'SHOW_TOAST',
-        payload: { message: chrome.i18n.getMessage('toastStyleUpdated'), type: 'error' },
+        payload: {
+          message: chrome.i18n.getMessage('toastStyleUpdated'),
+          type: 'error',
+        } as MessagePayloads['SHOW_TOAST'],
       });
     } catch (error) {
       this.logger.error('Element style update failed:', error);
       this.connectionManager?.sendMessage('sidepanel', {
         type: 'SHOW_TOAST',
-        payload: { message: chrome.i18n.getMessage('toastStyleUpdateFailed'), type: 'error' },
+        payload: {
+          message: chrome.i18n.getMessage('toastStyleUpdateFailed'),
+          type: 'error',
+        } as MessagePayloads['SHOW_TOAST'],
       });
     }
   }
