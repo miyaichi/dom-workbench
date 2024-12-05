@@ -117,10 +117,7 @@ class BackgroundService {
     this.logger.debug('Side panel disconnected');
     try {
       if (this.activeTabInfo?.tabId && this.activeTabInfo.isScriptInjectionAllowed) {
-        await chrome.tabs.sendMessage(this.activeTabInfo.tabId, {
-          type: 'SIDEPANEL_CLOSED',
-          payload: undefined,
-        });
+        await chrome.tabs.sendMessage(this.activeTabInfo.tabId, { type: 'SIDEPANEL_CLOSED' });
       }
     } catch (error) {
       this.logger.error('Failed to notify content script:', error);
