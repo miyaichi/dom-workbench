@@ -26,3 +26,13 @@ export interface SlideStyleOptions {
   bold?: boolean;
   valign?: pptxgen.VAlign;
 }
+
+export interface SlideConfig {
+  WIDTH: number;
+  HEIGHT: number;
+  MARGIN: number;
+  IMAGE_SCALE: number;
+  TEXT_MARGIN: number;
+  LINE_HEIGHT: number;
+  MAX_CONTENT_HEIGHT: number;
+}

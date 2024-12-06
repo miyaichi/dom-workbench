@@ -1,28 +1,33 @@
 import pptxgen from 'pptxgenjs';
 import { Logger } from '../logger';
-import { SLIDE_CONFIG, SlideStyle } from './config';
-import { SlideSection, SlideStyleOptions, TextBoxDimensions } from './types';
+import { SlideStyle } from './config';
+import { SlideConfig, SlideSection, SlideStyleOptions, TextBoxDimensions } from './types';
 
 const logger = new Logger('pptLayoutManager');
 
 export class PPTLayoutManager {
+  private readonly slideConfig: SlideConfig;
   private currentY: number;
 
-  constructor(private readonly pres: pptxgen) {
-    this.currentY = SLIDE_CONFIG.TEXT_MARGIN;
+  constructor(
+    private readonly pres: pptxgen,
+    slideConfig: SlideConfig
+  ) {
+    this.slideConfig = slideConfig;
+    this.currentY = slideConfig.TEXT_MARGIN;
   }
 
   private calculateTextHeight(text: string, style: SlideStyleOptions): number {
     const charsPerLine = Math.floor(
-      (SLIDE_CONFIG.WIDTH - SLIDE_CONFIG.TEXT_MARGIN * 2) *
+      (this.slideConfig.WIDTH - this.slideConfig.TEXT_MARGIN * 2) *
         (style.fontSize ? 100 / style.fontSize : 8)
     );
     const lines = Math.ceil(text.length / charsPerLine);
-    return lines * SLIDE_CONFIG.LINE_HEIGHT;
+    return lines * this.slideConfig.LINE_HEIGHT;
   }
 
   private needsNewSlide(textHeight: number): boolean {
-    return this.currentY + textHeight > SLIDE_CONFIG.MAX_CONTENT_HEIGHT;
+    return this.currentY + textHeight > this.slideConfig.MAX_CONTENT_HEIGHT;
   }
 
   private createTextBox(
@@ -36,7 +41,7 @@ export class PPTLayoutManager {
       y: dimensions.y,
       w:
         typeof dimensions.w === 'string'
-          ? (Number(dimensions.w.replace('%', '')) / 100) * SLIDE_CONFIG.WIDTH
+          ? (Number(dimensions.w.replace('%', '')) / 100) * this.slideConfig.WIDTH
           : dimensions.w,
       h: dimensions.h,
       valign: style.valign || 'top',
@@ -55,26 +60,26 @@ export class PPTLayoutManager {
 
       if (this.needsNewSlide(totalHeight)) {
         currentSlide = this.pres.addSlide();
-        this.currentY = SLIDE_CONFIG.TEXT_MARGIN;
+        this.currentY = this.slideConfig.TEXT_MARGIN;
       }
 
       this.createTextBox(currentSlide, section.title, SlideStyle.titleStyle, {
-        x: SLIDE_CONFIG.TEXT_MARGIN,
+        x: this.slideConfig.TEXT_MARGIN,
         y: this.currentY,
-        w: SLIDE_CONFIG.WIDTH * 0.95, // 95%をnumberに変換
+        w: this.slideConfig.WIDTH * 0.95, // 95%をnumberに変換
         h: titleHeight,
       });
 
       this.currentY += titleHeight;
 
       this.createTextBox(currentSlide, section.content, SlideStyle.contentStyle, {
-        x: SLIDE_CONFIG.TEXT_MARGIN,
+        x: this.slideConfig.TEXT_MARGIN,
         y: this.currentY,
-        w: SLIDE_CONFIG.WIDTH * 0.95, // 95%をnumberに変換
+        w: this.slideConfig.WIDTH * 0.95, // 95%をnumberに変換
         h: contentHeight,
       });
 
-      this.currentY += contentHeight + SLIDE_CONFIG.LINE_HEIGHT;
+      this.currentY += contentHeight + this.slideConfig.LINE_HEIGHT;
     });
 
     logger.debug('Section layout completed');

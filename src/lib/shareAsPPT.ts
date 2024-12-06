@@ -4,9 +4,10 @@ import { downloadFile } from '../utils/download';
 import { formatTimestamp, generateFilename } from '../utils/formatters';
 import { Logger } from './logger';
 import {
-  createScreenshotSlide,
+  createSlideConfig,
   DEFAULTS,
   generatePPTX,
+  PPTImageManager,
   PPTLayoutManager,
   SlideSection,
 } from './ppt';
@@ -20,6 +21,7 @@ export const shareAsPPT = async ({
   comment,
   styleChanges,
   injectedTags,
+  paperSettings,
 }: SharePayload): Promise<true> => {
   logger.info('Starting PowerPoint generation process');
 
@@ -28,15 +30,22 @@ export const shareAsPPT = async ({
   }
 
   try {
-    const manifest = chrome.runtime.getManifest();
+    // Create slide configuration
+    const slideConfig = createSlideConfig(paperSettings);
+
+    // Create and initialize presentation
     const pres = new pptxgen();
+    const manifest = chrome.runtime.getManifest();
     pres.author = `${manifest.name} v${manifest.version}`;
     pres.title = `Screenshot of ${url} at ${formatTimestamp(new Date())}`;
     pres.layout = DEFAULTS.LAYOUT;
 
-    await createScreenshotSlide(pres, imageData);
+    // Create and initialize layout and image managers
+    const layoutManager = new PPTLayoutManager(pres, slideConfig);
+    const imageManager = new PPTImageManager(pres, slideConfig);
 
-    const layoutManager = new PPTLayoutManager(pres);
+    await imageManager.createScreenshotSlide(imageData);
+
     const now = new Date();
     const sections: SlideSection[] = [
       { title: 'Date and time: ', content: formatTimestamp(now) },

@@ -1,5 +1,6 @@
 export * from './config';
-export * from './imageHandler';
+export * from './imageManager';
 export * from './layoutManager';
 export * from './pptxGenerator';
 export * from './types';
+

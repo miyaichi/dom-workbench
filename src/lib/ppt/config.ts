@@ -1,14 +1,5 @@
-import { SlideStyleOptions } from './types';
-
-export const SLIDE_CONFIG = {
-  WIDTH: 10,
-  HEIGHT: 5.625,
-  IMAGE_SCALE: 0.95,
-  MARGIN: 0.025,
-  TEXT_MARGIN: 0.5,
-  LINE_HEIGHT: 0.3,
-  MAX_CONTENT_HEIGHT: 4,
-} as const;
+import { PaperSettings } from '../settings';
+import { SlideConfig, SlideStyleOptions } from './types';
 
 export const DEFAULTS = {
   MIME_TYPE: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
@@ -29,4 +20,16 @@ export const SlideStyle: Record<string, SlideStyleOptions> = {
     breakLine: true,
     valign: 'top',
   },
+};
+
+export const createSlideConfig = (paperSettings: PaperSettings): SlideConfig => {
+  return {
+    WIDTH: 10,
+    HEIGHT: 5.625,
+    IMAGE_SCALE: 0.95,
+    MARGIN: 0.025,
+    TEXT_MARGIN: 0.5,
+    LINE_HEIGHT: 0.3,
+    MAX_CONTENT_HEIGHT: 4,
+  };
 };
