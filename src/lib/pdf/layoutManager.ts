@@ -14,7 +14,7 @@ interface TextBlock {
   lineHeight: number;
 }
 
-export class TextLayoutManager {
+export class LayoutManager {
   private currentY: number;
   private readonly pageHeight: number;
   private readonly pageWidth: number;
@@ -164,6 +164,6 @@ export const createInfoPage = async (
   pageConfig: { WIDTH: number; HEIGHT: number; MARGIN: number },
   textConfig: TextConfig
 ): Promise<PDFPage[]> => {
-  const layoutManager = new TextLayoutManager(pdfDoc, fonts, pageConfig, textConfig);
+  const layoutManager = new LayoutManager(pdfDoc, fonts, pageConfig, textConfig);
   return await layoutManager.layoutContent(sections);
 };

@@ -3,10 +3,10 @@ import { downloadFile } from '../utils/download';
 import { formatTimestamp, generateFilename } from '../utils/formatters';
 import { Logger } from './logger';
 import {
-  PDFDocumentManager,
-  PDFFontManager,
-  PDFImageManager,
-  TextLayoutManager,
+  DocumentManager,
+  FontManager,
+  ImageManager,
+  LayoutManager,
   createPageConfig,
   createTextConfig,
 } from './pdf';
@@ -39,22 +39,22 @@ export const shareAsPDF = async ({
     });
 
     // Create and initialize document manager
-    const docManager = new PDFDocumentManager();
+    const docManager = new DocumentManager();
     await docManager.initialize();
     const pdfDoc = docManager.getPDFDocument();
 
     //docManager.setPageSize(pageConfig.WIDTH, pageConfig.HEIGHT);
     docManager.setTitle(`Screenshot of ${url} at ${formatTimestamp(new Date())}`);
 
-    const fonts = await PDFFontManager.initialize(pdfDoc);
-    const imageManager = new PDFImageManager(pageConfig);
-    const textManager = new TextLayoutManager(pdfDoc, fonts, pageConfig, textConfig);
+    const fonts = await FontManager.initialize(pdfDoc);
+    const imageManager = new ImageManager(pageConfig);
+    const layoutManager = new LayoutManager(pdfDoc, fonts, pageConfig, textConfig);
 
     const { image, dimensions } = await imageManager.processImage(pdfDoc, imageData);
     imageManager.createPage(pdfDoc, image, dimensions);
 
     const now = new Date();
-    await textManager.layoutContent([
+    await layoutManager.layoutContent([
       { title: 'Date and time: ', content: formatTimestamp(now) },
       { title: 'URL: ', content: url },
       { title: 'Element: ', content: html },

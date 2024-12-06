@@ -9,7 +9,7 @@ const PAGE_DIMENSIONS = {
   '16x9': [960, 540] as [number, number],
 } as const;
 
-export class PDFDocumentManager {
+export class DocumentManager {
   private pdfDoc: PDFDocument | null = null;
   private manifest: chrome.runtime.Manifest;
 

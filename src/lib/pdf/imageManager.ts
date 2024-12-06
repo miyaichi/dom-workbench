@@ -4,7 +4,7 @@ import { ImageDimensions, PageConfig } from './types';
 
 const logger = new Logger('pdfImageManager');
 
-export class PDFImageManager {
+export class ImageManager {
   constructor(private readonly config: PageConfig) {}
 
   /**

@@ -6,7 +6,7 @@ import { FontConfig } from './types';
 
 const logger = new Logger('pdfFontManager');
 
-export class PDFFontManager {
+export class FontManager {
   static async initialize(pdfDoc: PDFDocument): Promise<FontConfig> {
     logger.debug('Initializing fonts...');
     pdfDoc.registerFontkit(fontkit);
