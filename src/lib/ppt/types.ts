@@ -1,4 +1,5 @@
 import type pptxgen from 'pptxgenjs';
+import { PaperOrientation, PaperSize } from '../settings';
 
 export interface ImageDimensions {
   x: number;
@@ -27,6 +28,11 @@ export interface TextStyle {
   valign?: pptxgen.VAlign;
 }
 
+export interface PaperConfig {
+  readonly size: PaperSize;
+  readonly orientation: PaperOrientation;
+}
+
 export interface LayoutConfig {
   readonly width: number;
   readonly height: number;
@@ -43,6 +49,7 @@ export interface StyleConfig {
 }
 
 export interface PPTConfig {
-  layout: LayoutConfig;
-  style: StyleConfig;
+  readonly paper: PaperConfig;
+  readonly layout: LayoutConfig;
+  readonly style: StyleConfig;
 }

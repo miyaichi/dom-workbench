@@ -26,6 +26,7 @@ export const createPPTConfig = (paperSettings: PaperSettings): PPTConfig => {
       paperSettings.orientation === 'landscape' ? [baseHeight, baseWidth] : [baseWidth, baseHeight];
 
     return {
+      paper: paperSettings,
       layout: {
         width: width,
         height: height,
@@ -46,6 +47,7 @@ export const createPPTConfig = (paperSettings: PaperSettings): PPTConfig => {
     paperSettings.orientation === 'portrait' ? [baseHeight, baseWidth] : [baseWidth, baseHeight];
 
   return {
+    paper: paperSettings,
     layout: {
       width: width,
       height: height,

@@ -2,13 +2,7 @@ import { SharePayload } from '../types/types';
 import { downloadFile } from '../utils/download';
 import { formatTimestamp, generateFilename } from '../utils/formatters';
 import { Logger } from './logger';
-import {
-  createPPTConfig,
-  PPTDocumentManager,
-  PPTImageManager,
-  PPTLayoutManager,
-  SlideSection,
-} from './ppt';
+import { createPPTConfig, DocumentManager, ImageManager, LayoutManager, SlideSection } from './ppt';
 
 const logger = new Logger('sharePPT');
 
@@ -31,13 +25,12 @@ export const shareAsPPT = async ({
   }
 
   try {
-    const docManager = new PPTDocumentManager(paperSettings, url);
+    const config = createPPTConfig(paperSettings);
+    const docManager = new DocumentManager(config, url);
     const pres = docManager.getPPTDocument();
 
-    // Create and initialize layout and image managers
-    const config = createPPTConfig(paperSettings);
-    const layoutManager = new PPTLayoutManager(pres, config);
-    const imageManager = new PPTImageManager(pres, config);
+    const layoutManager = new LayoutManager(pres, config);
+    const imageManager = new ImageManager(pres, config);
 
     await imageManager.createScreenshotSlide(imageData);
 

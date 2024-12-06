@@ -1,24 +1,20 @@
 import pptxgen from 'pptxgenjs';
 import { formatTimestamp } from '../../utils/formatters';
 import { Logger } from '../logger';
-import { PaperSettings } from '../settings';
-import { createPPTConfig } from './config';
 import { PPTConfig } from './types';
 
 const logger = new Logger('pptDocumentManager');
 const MIME_TYPE = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
 
-export class PPTDocumentManager {
-  private readonly config: PPTConfig;
+export class DocumentManager {
   private pres: pptxgen | null = null;
   private manifest: chrome.runtime.Manifest;
 
   constructor(
-    private readonly paperSettings: PaperSettings,
+    private readonly config: PPTConfig,
     private readonly url: string
   ) {
     this.manifest = chrome.runtime.getManifest();
-    this.config = createPPTConfig(paperSettings);
     this.initialize();
   }
 
@@ -30,12 +26,12 @@ export class PPTDocumentManager {
     this.pres.author = `${this.manifest.name} v${this.manifest.version}`;
     this.pres.title = `Screenshot of ${this.url} at ${formatTimestamp(new Date())}`;
 
-    if (this.paperSettings.size === 'a4') {
+    if (this.config.paper.size === 'a4') {
       let layoutName = 'A4';
       let height = this.config.layout.height;
       let width = this.config.layout.width;
 
-      if (this.paperSettings.orientation === 'landscape') {
+      if (this.config.paper.orientation === 'landscape') {
         layoutName += '_L';
         [height, width] = [width, height];
       }
@@ -44,8 +40,8 @@ export class PPTDocumentManager {
       this.pres.layout = layoutName;
     } else {
       const layoutName =
-        this.paperSettings.orientation === 'portrait' ? 'LAYOUT_9x16' : 'LAYOUT_16x9';
-      if (this.paperSettings.orientation === 'portrait') {
+        this.config.paper.orientation === 'portrait' ? 'LAYOUT_9x16' : 'LAYOUT_16x9';
+      if (this.config.paper.orientation === 'portrait') {
         this.pres.defineLayout({
           name: layoutName,
           width: this.config.layout.width,

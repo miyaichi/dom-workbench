@@ -4,7 +4,7 @@ import { ImageDimensions, PPTConfig } from './types';
 
 const logger = new Logger('pptImageManager');
 
-export class PPTImageManager {
+export class ImageManager {
   private readonly config: PPTConfig;
 
   constructor(

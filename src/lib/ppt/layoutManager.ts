@@ -4,7 +4,12 @@ import { PPTConfig, SlideSection, TextBoxDimensions, TextStyle } from './types';
 
 const logger = new Logger('pptLayoutManager');
 
-export class PPTLayoutManager {
+export class LayoutManager {
+  private static readonly TEXT_WIDTH_RATIO = 0.95; // Ratio of text width to slide width
+  private static readonly CHARS_PER_FONT_SIZE = 100; // Number of characters per font size
+  private static readonly DEFAULT_CHARS_PER_FONT = 8; // Default number of characters per font size
+  private static readonly TEXT_MARGIN = 0; // Margin for text boxes
+
   private readonly config: PPTConfig;
   private currentY: number;
 
@@ -19,7 +24,9 @@ export class PPTLayoutManager {
   private calculateTextHeight(text: string, style: TextStyle): number {
     const charsPerLine = Math.floor(
       (this.config.layout.width - this.config.layout.contentPadding * 2) *
-        (style.fontSize ? 100 / style.fontSize : 8)
+        (style.fontSize
+          ? LayoutManager.CHARS_PER_FONT_SIZE / style.fontSize
+          : LayoutManager.DEFAULT_CHARS_PER_FONT)
     );
     const lines = Math.ceil(text.length / charsPerLine);
     return lines * this.config.layout.lineHeight;
@@ -44,7 +51,7 @@ export class PPTLayoutManager {
           : dimensions.width,
       h: dimensions.height,
       valign: style.valign || 'top',
-      margin: 0,
+      margin: LayoutManager.TEXT_MARGIN,
     });
   }
 
@@ -62,19 +69,21 @@ export class PPTLayoutManager {
         this.currentY = this.config.layout.contentPadding;
       }
 
+      // Create title text box
       this.createTextBox(currentSlide, section.title, this.config.style.title, {
         x: this.config.layout.contentPadding,
         y: this.currentY,
-        width: this.config.layout.width * 0.95, // 95%をnumberに変換
+        width: this.config.layout.width * LayoutManager.TEXT_WIDTH_RATIO,
         height: titleHeight,
       });
 
       this.currentY += titleHeight;
 
+      // Create content text box
       this.createTextBox(currentSlide, section.content, this.config.style.content, {
         x: this.config.layout.contentPadding,
         y: this.currentY,
-        width: this.config.layout.width * 0.95, // 95%をnumberに変換
+        width: this.config.layout.width * LayoutManager.TEXT_WIDTH_RATIO,
         height: contentHeight,
       });
 
