@@ -29,9 +29,6 @@ interface ShareCaptureProps {
   captureUrl: string | null;
   injectedTags: InjectedTagInfo[];
   styleChanges: StyleChange[];
-  settings?: {
-    shareFormat: ShareFormat;
-  };
 }
 
 export type ShareFormat = 'pdf' | 'ppt';
@@ -45,7 +42,6 @@ export const shareHandlers: Record<ShareFormat, ShareFunction> = {
   ppt: shareAsPPT,
 };
 
-// Get the share function based on the selected format
 export const getShareFunction = (format: ShareFormat): ShareFunction => {
   const handler = shareHandlers[format];
   if (!handler) {
@@ -108,7 +104,12 @@ export const ShareCapture: React.FC<ShareCaptureProps> = ({
   const handleShare = async (): Promise<void> => {
     if (!imageDataUrl) return;
 
-    logger.debug('Sharing capture...');
+    logger.debug(
+      'Sharing capture with format:',
+      settings.shareFormat,
+      'and paper settings:',
+      settings.paper
+    );
     setIsLoading(true);
 
     try {
@@ -120,11 +121,12 @@ export const ShareCapture: React.FC<ShareCaptureProps> = ({
         comment,
         styleChanges: formatStyleChanges(styleChanges),
         injectedTags: formatTagChanges(injectedTags),
+        paperSettings: settings.paper,
       };
 
       await shareFunction(payload);
 
-      logger.debug('Capture shared');
+      logger.debug('Capture shared successfully');
       handleClose();
     } catch (error) {
       logger.error('Failed to share:', error);
@@ -173,18 +175,43 @@ export const ShareCapture: React.FC<ShareCaptureProps> = ({
             </p>
           </div>
         )}
+      </>
+    );
+  };
 
-        <div className="changes-info">
+  const formatPaperSettings = (): string => {
+    return `${settings.paper.size} ${settings.paper.orientation}`;
+  };
+
+  const renderFormatInfo = () => {
+    return (
+      <div className="changes-info">
+        <div className="changes-section">
+          <h3>Format Settings</h3>
+          <div className="info-grid">
+            <div className="info-item">
+              <span className="info-label">Format:</span>
+              <span className="info-value">{settings.shareFormat.toUpperCase()}</span>
+            </div>
+            <div className="info-item">
+              <span className="info-label">Paper:</span>
+              <span className="info-value">{formatPaperSettings()}</span>
+            </div>
+          </div>
+        </div>
+        {styleChanges.length > 0 && (
           <div className="changes-section">
             <h3>Style Changes</h3>
             <pre>{formatStyleChanges(styleChanges)}</pre>
           </div>
+        )}
+        {injectedTags.length > 0 && (
           <div className="changes-section">
             <h3>Injected Tags</h3>
             <pre>{formatTagChanges(injectedTags)}</pre>
           </div>
-        </div>
-      </>
+        )}
+      </div>
     );
   };
 
@@ -198,22 +225,29 @@ export const ShareCapture: React.FC<ShareCaptureProps> = ({
           </button>
         </div>
 
-        {renderPreview()}
+        <div className="capture-content">
+          {renderPreview()}
 
-        <textarea
-          value={comment}
-          onChange={handleCommentChange}
-          placeholder="Add a comment..."
-          className="capture-comment"
-        />
+          <textarea
+            value={comment}
+            onChange={handleCommentChange}
+            placeholder="Add a comment..."
+            className="capture-comment"
+          />
 
-        {renderElementInfo()}
+          {renderElementInfo()}
+          {renderFormatInfo()}
 
-        <div className="card-header">
-          <button onClick={handleShare} className="share-button" disabled={!imageDataUrl}>
-            <Send size={16} />
-            {isLoading ? 'Sharing...' : `Share as ${settings.shareFormat.toUpperCase()}`}
-          </button>
+          <div className="card-header">
+            <button
+              onClick={handleShare}
+              className="share-button"
+              disabled={!imageDataUrl || isLoading}
+            >
+              <Send size={16} />
+              {isLoading ? 'Sharing...' : 'Share'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

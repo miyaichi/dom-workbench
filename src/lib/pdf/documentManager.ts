@@ -1,7 +1,13 @@
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, PageSizes } from 'pdf-lib';
 import { Logger } from '../logger';
+import { PaperSettings } from '../settings';
 
 const logger = new Logger('pdfDocumentManager');
+
+const PAGE_DIMENSIONS = {
+  a4: PageSizes.A4,
+  'presentation-16-9': [960, 540] as [number, number],
+} as const;
 
 export class PDFDocumentManager {
   private pdfDoc: PDFDocument | null = null;
@@ -24,6 +30,30 @@ export class PDFDocumentManager {
     } catch (error) {
       logger.error('Failed to initialize PDF document:', error);
       throw new Error('PDF document initialization failed');
+    }
+  }
+
+  addPage(paperSettings: PaperSettings) {
+    if (!this.pdfDoc) {
+      throw new Error('PDF document not initialized');
+    }
+
+    try {
+      const baseSize = PAGE_DIMENSIONS[paperSettings.size];
+
+      const [width, height] =
+        paperSettings.orientation === 'landscape' ? [baseSize[1], baseSize[0]] : baseSize;
+
+      logger.debug('Adding page with size:', {
+        size: paperSettings.size,
+        orientation: paperSettings.orientation,
+        dimensions: `${width}x${height}`,
+      });
+
+      return this.pdfDoc.addPage([width, height]);
+    } catch (error) {
+      logger.error('Failed to add page:', error);
+      throw new Error('Failed to add page with specified size');
     }
   }
 

@@ -12,7 +12,7 @@ const LOG_LEVEL_PRIORITIES: Record<LogLevel, number> = {
  * Supports logging at error, warn, info, and debug levels with message context prefixing.
  */
 export class Logger {
-  private static logLevel: LogLevel = 'info';
+  private static logLevel: LogLevel = 'debug';
 
   /**
    * Creates an instance of Logger with a specific context

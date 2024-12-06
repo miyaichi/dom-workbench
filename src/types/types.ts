@@ -1,3 +1,5 @@
+import { PaperSettings } from '../lib/settings';
+
 /** Information about a DOM element in the tree structure */
 export interface ElementInfo {
   /** HTML start tag of the element */
@@ -44,4 +46,6 @@ export interface SharePayload {
   styleChanges: string;
   /** List of style changes */
   injectedTags: string;
+  /** Paper settings for the output format */
+  paperSettings: PaperSettings;
 }

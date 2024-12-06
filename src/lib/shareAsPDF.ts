@@ -3,12 +3,12 @@ import { downloadFile } from '../utils/download';
 import { formatTimestamp, generateFilename } from '../utils/formatters';
 import { Logger } from './logger';
 import {
-  PAGE_CONFIG,
   PDFDocumentManager,
   PDFFontManager,
   PDFImageManager,
-  TEXT_CONFIG,
   TextLayoutManager,
+  createPageConfig,
+  createTextConfig,
 } from './pdf';
 
 const logger = new Logger('sharePDF');
@@ -20,6 +20,7 @@ export const shareAsPDF = async ({
   comment,
   styleChanges,
   injectedTags,
+  paperSettings,
 }: SharePayload): Promise<true> => {
   logger.info('Starting PDF generation process');
 
@@ -28,16 +29,26 @@ export const shareAsPDF = async ({
   }
 
   try {
+    // Create page and text configurations
+    const pageConfig = createPageConfig(paperSettings);
+    const textConfig = createTextConfig(pageConfig);
+
+    logger.debug('Using page configuration:', {
+      size: `${pageConfig.WIDTH}x${pageConfig.HEIGHT}`,
+      orientation: paperSettings.orientation,
+    });
+
     // Create and initialize document manager
     const docManager = new PDFDocumentManager();
     await docManager.initialize();
     const pdfDoc = docManager.getPDFDocument();
 
+    //docManager.setPageSize(pageConfig.WIDTH, pageConfig.HEIGHT);
     docManager.setTitle(`Screenshot of ${url} at ${formatTimestamp(new Date())}`);
 
     const fonts = await PDFFontManager.initialize(pdfDoc);
-    const imageManager = new PDFImageManager(PAGE_CONFIG);
-    const textManager = new TextLayoutManager(pdfDoc, fonts, PAGE_CONFIG, TEXT_CONFIG);
+    const imageManager = new PDFImageManager(pageConfig);
+    const textManager = new TextLayoutManager(pdfDoc, fonts, pageConfig, textConfig);
 
     const { image, dimensions } = await imageManager.processImage(pdfDoc, imageData);
     imageManager.createPage(pdfDoc, image, dimensions);
