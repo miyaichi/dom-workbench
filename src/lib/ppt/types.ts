@@ -19,7 +19,7 @@ export interface TextBoxDimensions {
   h: number;
 }
 
-export interface SlideStyleOptions {
+export interface TextStyle {
   fontSize: number;
   color: string;
   breakLine: boolean;
@@ -27,12 +27,22 @@ export interface SlideStyleOptions {
   valign?: pptxgen.VAlign;
 }
 
-export interface SlideConfig {
-  WIDTH: number;
-  HEIGHT: number;
-  MARGIN: number;
-  IMAGE_SCALE: number;
-  TEXT_MARGIN: number;
-  LINE_HEIGHT: number;
-  MAX_CONTENT_HEIGHT: number;
+export interface LayoutConfig {
+  readonly width: number;
+  readonly height: number;
+  readonly padding: number;
+  readonly contentPadding: number;
+  readonly lineHeight: number;
+  readonly maxContentHeight: number;
+  readonly imageScale: number;
+}
+
+export interface StyleConfig {
+  readonly title: TextStyle;
+  readonly content: TextStyle;
+}
+
+export interface PPTConfig {
+  layout: LayoutConfig;
+  style: StyleConfig;
 }

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 export type LogLevel = 'error' | 'warn' | 'info' | 'debug';
 export type ShareFormat = 'pdf' | 'ppt';
-export type PaperSize = 'a4' | 'presentation-16-9';
+export type PaperSize = 'a4' | '16x9';
 export type PaperOrientation = 'portrait' | 'landscape';
 
 export interface PaperSettings {
@@ -20,7 +20,7 @@ export const defaultSettings: Settings = {
   logLevel: 'info',
   shareFormat: 'ppt',
   paper: {
-    size: 'presentation-16-9',
+    size: '16x9',
     orientation: 'landscape',
   },
 };

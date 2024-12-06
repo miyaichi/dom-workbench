@@ -6,7 +6,7 @@ const logger = new Logger('pdfDocumentManager');
 
 const PAGE_DIMENSIONS = {
   a4: PageSizes.A4,
-  'presentation-16-9': [960, 540] as [number, number],
+  '16x9': [960, 540] as [number, number],
 } as const;
 
 export class PDFDocumentManager {

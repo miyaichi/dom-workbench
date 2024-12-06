@@ -70,7 +70,7 @@ export const SettingsPanel: React.FC = () => {
             onChange={(e) => handlePaperSettingChange('size', e.target.value as PaperSize)}
           >
             <option value="a4">A4</option>
-            <option value="presentation-16-9">Presentation (16:9)</option>
+            <option value="16x9">Presentation (16:9)</option>
           </select>
         </div>
 

@@ -1,17 +1,17 @@
 import pptxgen from 'pptxgenjs';
 import { Logger } from '../logger';
-import { ImageDimensions, SlideConfig } from './types';
+import { ImageDimensions, PPTConfig } from './types';
 
 const logger = new Logger('pptImageManager');
 
 export class PPTImageManager {
-  private readonly slideConfig: SlideConfig;
+  private readonly config: PPTConfig;
 
   constructor(
     private readonly pres: pptxgen,
-    slideConfig: SlideConfig
+    config: PPTConfig
   ) {
-    this.slideConfig = slideConfig;
+    this.config = config;
   }
 
   private calculateImageDimensions(img: HTMLImageElement): ImageDimensions {
@@ -20,9 +20,9 @@ export class PPTImageManager {
     });
 
     const imgRatio = img.width / img.height;
-    const slideRatio = this.slideConfig.WIDTH / this.slideConfig.HEIGHT;
-    const availableWidth = this.slideConfig.WIDTH * this.slideConfig.IMAGE_SCALE;
-    const availableHeight = this.slideConfig.HEIGHT * this.slideConfig.IMAGE_SCALE;
+    const slideRatio = this.config.layout.width / this.config.layout.height;
+    const availableWidth = this.config.layout.width * this.config.layout.imageScale;
+    const availableHeight = this.config.layout.height * this.config.layout.imageScale;
 
     let width: number;
     let height: number;
@@ -35,8 +35,8 @@ export class PPTImageManager {
       width = height * imgRatio;
     }
 
-    const x = (this.slideConfig.WIDTH - width) / 2;
-    const y = (this.slideConfig.HEIGHT - height) / 2;
+    const x = (this.config.layout.width - width) / 2;
+    const y = (this.config.layout.height - height) / 2;
 
     const dimensions = { width, height, x, y };
 
@@ -82,7 +82,7 @@ export class PPTImageManager {
   private validateImageData(imageData: string): boolean {
     try {
       if (!imageData) {
-        throw new Error('Image data is empty');
+        throw new Error('Image data is empty or undefined');
       }
 
       if (imageData.startsWith('data:image/')) {
@@ -92,7 +92,7 @@ export class PPTImageManager {
       atob(imageData);
       return true;
     } catch (error) {
-      logger.error('Invalid image data:', error);
+      throw new Error('Invalid base64 image data provided');
       return false;
     }
   }
@@ -102,11 +102,12 @@ export class PPTImageManager {
 
     try {
       if (!this.validateImageData(imageData)) {
-        throw new Error('Invalid image data format');
+        throw new Error('Image validation failed: Invalid format');
       }
 
       const slide = this.pres.addSlide();
       const imageDims = await this.getImageDimensions(imageData);
+      logger.debug('Image dimensions calculated', { dimensions: imageDims });
 
       const processedImageData = imageData.startsWith('data:image/')
         ? imageData
@@ -125,12 +126,10 @@ export class PPTImageManager {
         },
       });
 
-      logger.debug('Screenshot slide created successfully', {
-        dimensions: imageDims,
-      });
+      logger.debug('Screenshot slide created', { dimensions: imageDims });
     } catch (error) {
       logger.error('Failed to create screenshot slide:', error);
-      throw new Error('Screenshot slide creation failed');
+      throw new Error('Failed to create screenshot slide');
     }
   }
 }

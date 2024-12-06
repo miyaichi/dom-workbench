@@ -1,12 +1,10 @@
-import pptxgen from 'pptxgenjs';
 import { SharePayload } from '../types/types';
 import { downloadFile } from '../utils/download';
 import { formatTimestamp, generateFilename } from '../utils/formatters';
 import { Logger } from './logger';
 import {
-  createSlideConfig,
-  DEFAULTS,
-  generatePPTX,
+  createPPTConfig,
+  PPTDocumentManager,
   PPTImageManager,
   PPTLayoutManager,
   SlideSection,
@@ -25,24 +23,21 @@ export const shareAsPPT = async ({
 }: SharePayload): Promise<true> => {
   logger.info('Starting PowerPoint generation process');
 
-  if (!imageData || !url) {
-    throw new Error('Image data and URL are required');
+  if (!imageData) {
+    throw new Error('Screenshot data is required but was not provided');
+  }
+  if (!url) {
+    throw new Error('Target URL is required but was not provided');
   }
 
   try {
-    // Create slide configuration
-    const slideConfig = createSlideConfig(paperSettings);
-
-    // Create and initialize presentation
-    const pres = new pptxgen();
-    const manifest = chrome.runtime.getManifest();
-    pres.author = `${manifest.name} v${manifest.version}`;
-    pres.title = `Screenshot of ${url} at ${formatTimestamp(new Date())}`;
-    pres.layout = DEFAULTS.LAYOUT;
+    const docManager = new PPTDocumentManager(paperSettings, url);
+    const pres = docManager.getPPTDocument();
 
     // Create and initialize layout and image managers
-    const layoutManager = new PPTLayoutManager(pres, slideConfig);
-    const imageManager = new PPTImageManager(pres, slideConfig);
+    const config = createPPTConfig(paperSettings);
+    const layoutManager = new PPTLayoutManager(pres, config);
+    const imageManager = new PPTImageManager(pres, config);
 
     await imageManager.createScreenshotSlide(imageData);
 
@@ -57,13 +52,9 @@ export const shareAsPPT = async ({
     ];
     layoutManager.layoutSections(sections);
 
-    const pptxOutput = await pres.write({ outputType: 'base64' });
-    if (typeof pptxOutput !== 'string') {
-      throw new Error('PowerPoint generation failed: Invalid output type');
-    }
-
-    const pptxBlob = await generatePPTX(pptxOutput);
+    const pptxBlob = await docManager.save();
     const filename = generateFilename(now, 'pptx');
+    logger.debug('PowerPoint file prepared', { filename });
 
     await downloadFile(pptxBlob, filename, { saveAs: false });
     return true;

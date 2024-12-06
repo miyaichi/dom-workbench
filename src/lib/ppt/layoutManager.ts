@@ -1,39 +1,38 @@
 import pptxgen from 'pptxgenjs';
 import { Logger } from '../logger';
-import { SlideStyle } from './config';
-import { SlideConfig, SlideSection, SlideStyleOptions, TextBoxDimensions } from './types';
+import { PPTConfig, SlideSection, TextBoxDimensions, TextStyle } from './types';
 
 const logger = new Logger('pptLayoutManager');
 
 export class PPTLayoutManager {
-  private readonly slideConfig: SlideConfig;
+  private readonly config: PPTConfig;
   private currentY: number;
 
   constructor(
     private readonly pres: pptxgen,
-    slideConfig: SlideConfig
+    config: PPTConfig
   ) {
-    this.slideConfig = slideConfig;
-    this.currentY = slideConfig.TEXT_MARGIN;
+    this.config = config;
+    this.currentY = config.layout.contentPadding;
   }
 
-  private calculateTextHeight(text: string, style: SlideStyleOptions): number {
+  private calculateTextHeight(text: string, style: TextStyle): number {
     const charsPerLine = Math.floor(
-      (this.slideConfig.WIDTH - this.slideConfig.TEXT_MARGIN * 2) *
+      (this.config.layout.width - this.config.layout.contentPadding * 2) *
         (style.fontSize ? 100 / style.fontSize : 8)
     );
     const lines = Math.ceil(text.length / charsPerLine);
-    return lines * this.slideConfig.LINE_HEIGHT;
+    return lines * this.config.layout.lineHeight;
   }
 
   private needsNewSlide(textHeight: number): boolean {
-    return this.currentY + textHeight > this.slideConfig.MAX_CONTENT_HEIGHT;
+    return this.currentY + textHeight > this.config.layout.maxContentHeight;
   }
 
   private createTextBox(
     slide: pptxgen.Slide,
     text: string,
-    style: SlideStyleOptions,
+    style: TextStyle,
     dimensions: TextBoxDimensions
   ): void {
     slide.addText([{ text, options: style }], {
@@ -41,7 +40,7 @@ export class PPTLayoutManager {
       y: dimensions.y,
       w:
         typeof dimensions.w === 'string'
-          ? (Number(dimensions.w.replace('%', '')) / 100) * this.slideConfig.WIDTH
+          ? (Number(dimensions.w.replace('%', '')) / 100) * this.config.layout.width
           : dimensions.w,
       h: dimensions.h,
       valign: style.valign || 'top',
@@ -54,32 +53,32 @@ export class PPTLayoutManager {
     let currentSlide = this.pres.addSlide();
 
     sections.forEach((section) => {
-      const titleHeight = this.calculateTextHeight(section.title, SlideStyle.titleStyle);
-      const contentHeight = this.calculateTextHeight(section.content, SlideStyle.contentStyle);
+      const titleHeight = this.calculateTextHeight(section.title, this.config.style.title);
+      const contentHeight = this.calculateTextHeight(section.content, this.config.style.content);
       const totalHeight = titleHeight + contentHeight;
 
       if (this.needsNewSlide(totalHeight)) {
         currentSlide = this.pres.addSlide();
-        this.currentY = this.slideConfig.TEXT_MARGIN;
+        this.currentY = this.config.layout.contentPadding;
       }
 
-      this.createTextBox(currentSlide, section.title, SlideStyle.titleStyle, {
-        x: this.slideConfig.TEXT_MARGIN,
+      this.createTextBox(currentSlide, section.title, this.config.style.title, {
+        x: this.config.layout.contentPadding,
         y: this.currentY,
-        w: this.slideConfig.WIDTH * 0.95, // 95%をnumberに変換
+        w: this.config.layout.width * 0.95, // 95%をnumberに変換
         h: titleHeight,
       });
 
       this.currentY += titleHeight;
 
-      this.createTextBox(currentSlide, section.content, SlideStyle.contentStyle, {
-        x: this.slideConfig.TEXT_MARGIN,
+      this.createTextBox(currentSlide, section.content, this.config.style.content, {
+        x: this.config.layout.contentPadding,
         y: this.currentY,
-        w: this.slideConfig.WIDTH * 0.95, // 95%をnumberに変換
+        w: this.config.layout.width * 0.95, // 95%をnumberに変換
         h: contentHeight,
       });
 
-      this.currentY += contentHeight + this.slideConfig.LINE_HEIGHT;
+      this.currentY += contentHeight + this.config.layout.lineHeight;
     });
 
     logger.debug('Section layout completed');
