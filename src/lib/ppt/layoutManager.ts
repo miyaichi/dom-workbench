@@ -39,10 +39,10 @@ export class PPTLayoutManager {
       x: dimensions.x,
       y: dimensions.y,
       w:
-        typeof dimensions.w === 'string'
-          ? (Number(dimensions.w.replace('%', '')) / 100) * this.config.layout.width
-          : dimensions.w,
-      h: dimensions.h,
+        typeof dimensions.width === 'string'
+          ? (Number(dimensions.width.replace('%', '')) / 100) * this.config.layout.width
+          : dimensions.width,
+      h: dimensions.height,
       valign: style.valign || 'top',
       margin: 0,
     });
@@ -65,8 +65,8 @@ export class PPTLayoutManager {
       this.createTextBox(currentSlide, section.title, this.config.style.title, {
         x: this.config.layout.contentPadding,
         y: this.currentY,
-        w: this.config.layout.width * 0.95, // 95%をnumberに変換
-        h: titleHeight,
+        width: this.config.layout.width * 0.95, // 95%をnumberに変換
+        height: titleHeight,
       });
 
       this.currentY += titleHeight;
@@ -74,8 +74,8 @@ export class PPTLayoutManager {
       this.createTextBox(currentSlide, section.content, this.config.style.content, {
         x: this.config.layout.contentPadding,
         y: this.currentY,
-        w: this.config.layout.width * 0.95, // 95%をnumberに変換
-        h: contentHeight,
+        width: this.config.layout.width * 0.95, // 95%をnumberに変換
+        height: contentHeight,
       });
 
       this.currentY += contentHeight + this.config.layout.lineHeight;

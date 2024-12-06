@@ -1,10 +1,10 @@
 import type pptxgen from 'pptxgenjs';
 
 export interface ImageDimensions {
-  width: number;
-  height: number;
   x: number;
   y: number;
+  width: number;
+  height: number;
 }
 
 export interface SlideSection {
@@ -15,8 +15,8 @@ export interface SlideSection {
 export interface TextBoxDimensions {
   x: number;
   y: number;
-  w: number | string;
-  h: number;
+  width: number | string;
+  height: number;
 }
 
 export interface TextStyle {
