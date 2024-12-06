@@ -24,6 +24,7 @@ export const defaultSettings: Settings = {
     orientation: 'landscape',
   },
 };
+
 /**
  * Loads the settings from Chrome storage
  * @returns A promise that resolves to the loaded settings

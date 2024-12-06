@@ -1,4 +1,4 @@
-import { LogLevel } from './settings';
+import { LogLevel, loadSettings } from './settings';
 
 const LOG_LEVEL_PRIORITIES: Record<LogLevel, number> = {
   error: 0,
@@ -12,20 +12,27 @@ const LOG_LEVEL_PRIORITIES: Record<LogLevel, number> = {
  * Supports logging at error, warn, info, and debug levels with message context prefixing.
  */
 export class Logger {
-  private static logLevel: LogLevel = 'debug';
+  private static logLevel: LogLevel = 'info';
 
   /**
    * Creates an instance of Logger with a specific context
    * @param context - The context for the logger instance
    */
-  constructor(private context: string) {}
+  constructor(private context: string) {
+    // Initialize log level from settings
+    this.initialize();
+  }
 
   /**
-   * Sets the global log level for all Logger instances
-   * @param level - The log level to set
+   * Initializes the log level from settings
    */
-  static setLogLevel(level: LogLevel) {
-    Logger.logLevel = level;
+  private async initialize() {
+    try {
+      const settings = await loadSettings();
+      Logger.logLevel = settings.logLevel;
+    } catch (error) {
+      console.error('Failed to load log level from settings:', error);
+    }
   }
 
   /**
