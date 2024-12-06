@@ -33,11 +33,6 @@ export const shareAsPDF = async ({
     const pageConfig = createPageConfig(paperSettings);
     const textConfig = createTextConfig(pageConfig);
 
-    logger.debug('Using page configuration:', {
-      size: `${pageConfig.WIDTH}x${pageConfig.HEIGHT}`,
-      orientation: paperSettings.orientation,
-    });
-
     // Create and initialize document manager
     const docManager = new DocumentManager();
     await docManager.initialize();

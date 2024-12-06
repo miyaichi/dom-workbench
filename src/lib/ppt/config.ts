@@ -1,5 +1,5 @@
 import { PaperSettings } from '../settings';
-import { LayoutConfig, PPTConfig, StyleConfig, TextStyle } from './types';
+import { Config, LayoutConfig, StyleConfig, TextStyle } from './types';
 
 export const styleConfig: StyleConfig = {
   title: {
@@ -17,7 +17,7 @@ export const styleConfig: StyleConfig = {
   } as TextStyle,
 };
 
-export const createPPTConfig = (paperSettings: PaperSettings): PPTConfig => {
+export const createConfig = (paperSettings: PaperSettings): Config => {
   if (paperSettings.size === 'a4') {
     // A4 dimensions in inches
     const baseWidth = 8.27;

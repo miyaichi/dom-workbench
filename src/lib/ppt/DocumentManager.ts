@@ -1,7 +1,7 @@
 import pptxgen from 'pptxgenjs';
 import { formatTimestamp } from '../../utils/formatters';
 import { Logger } from '../logger';
-import { PPTConfig } from './types';
+import { Config } from './types';
 
 const logger = new Logger('pptDocumentManager');
 const MIME_TYPE = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
@@ -11,7 +11,7 @@ export class DocumentManager {
   private manifest: chrome.runtime.Manifest;
 
   constructor(
-    private readonly config: PPTConfig,
+    private readonly config: Config,
     private readonly url: string
   ) {
     this.manifest = chrome.runtime.getManifest();

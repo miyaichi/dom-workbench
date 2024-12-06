@@ -1,6 +1,6 @@
 import pptxgen from 'pptxgenjs';
 import { Logger } from '../logger';
-import { PPTConfig, SlideSection, TextBoxDimensions, TextStyle } from './types';
+import { Config, SlideSection, TextBoxDimensions, TextStyle } from './types';
 
 const logger = new Logger('pptLayoutManager');
 
@@ -10,12 +10,12 @@ export class LayoutManager {
   private static readonly DEFAULT_CHARS_PER_FONT = 8; // Default number of characters per font size
   private static readonly TEXT_MARGIN = 0; // Margin for text boxes
 
-  private readonly config: PPTConfig;
+  private readonly config: Config;
   private currentY: number;
 
   constructor(
     private readonly pres: pptxgen,
-    config: PPTConfig
+    config: Config
   ) {
     this.config = config;
     this.currentY = config.layout.contentPadding;

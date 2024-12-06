@@ -55,7 +55,7 @@ export class ImageManager {
       logger.debug('Creating image page');
 
       // Create new page
-      const page = pdfDoc.addPage([this.config.WIDTH, this.config.HEIGHT]);
+      const page = pdfDoc.addPage([this.config.width, this.config.height]);
 
       // Draw image on page
       page.drawImage(image, {
@@ -89,15 +89,15 @@ export class ImageManager {
       const imageDims = image.scale(1);
 
       // Calculate available space
-      const availableWidth = this.config.WIDTH - this.config.MARGIN * 2;
-      const availableHeight = this.config.HEIGHT - this.config.MARGIN * 2;
+      const availableWidth = this.config.width - this.config.margin * 2;
+      const availableHeight = this.config.height - this.config.margin * 2;
 
       // Calculate scale factors
       const widthScale = availableWidth / imageDims.width;
       const heightScale = availableHeight / imageDims.height;
 
       // Use the smaller scale factor to maintain aspect ratio
-      const scale = Math.min(widthScale, heightScale) * this.config.IMAGE_SCALE;
+      const scale = Math.min(widthScale, heightScale) * this.config.imageScale;
 
       // Calculate final dimensions
       const scaledWidth = imageDims.width * scale;
@@ -107,8 +107,8 @@ export class ImageManager {
       const dimensions: ImageDimensions = {
         width: scaledWidth,
         height: scaledHeight,
-        x: (this.config.WIDTH - scaledWidth) / 2,
-        y: (this.config.HEIGHT - scaledHeight) / 2,
+        x: (this.config.width - scaledWidth) / 2,
+        y: (this.config.height - scaledHeight) / 2,
       };
 
       logger.debug('Image dimensions calculated', {
@@ -143,14 +143,14 @@ export class ImageManager {
     const isValidSize =
       dimensions.width >= minSize &&
       dimensions.height >= minSize &&
-      dimensions.width <= this.config.WIDTH &&
-      dimensions.height <= this.config.HEIGHT;
+      dimensions.width <= this.config.width &&
+      dimensions.height <= this.config.height;
 
     const isValidPosition =
       dimensions.x >= 0 &&
       dimensions.y >= 0 &&
-      dimensions.x + dimensions.width <= this.config.WIDTH &&
-      dimensions.y + dimensions.height <= this.config.HEIGHT;
+      dimensions.x + dimensions.width <= this.config.width &&
+      dimensions.y + dimensions.height <= this.config.height;
 
     return isValidSize && isValidPosition;
   }

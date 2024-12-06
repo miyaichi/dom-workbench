@@ -48,7 +48,7 @@ export interface StyleConfig {
   readonly content: TextStyle;
 }
 
-export interface PPTConfig {
+export interface Config {
   readonly paper: PaperConfig;
   readonly layout: LayoutConfig;
   readonly style: StyleConfig;

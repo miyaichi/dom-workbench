@@ -19,8 +19,8 @@ export interface TextConfig {
 }
 
 export interface PageConfig {
-  WIDTH: number;
-  HEIGHT: number;
-  MARGIN: number;
-  IMAGE_SCALE: number;
+  width: number;
+  height: number;
+  margin: number;
+  imageScale: number;
 }

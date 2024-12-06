@@ -1,15 +1,15 @@
 import pptxgen from 'pptxgenjs';
 import { Logger } from '../logger';
-import { ImageDimensions, PPTConfig } from './types';
+import { Config, ImageDimensions } from './types';
 
 const logger = new Logger('pptImageManager');
 
 export class ImageManager {
-  private readonly config: PPTConfig;
+  private readonly config: Config;
 
   constructor(
     private readonly pres: pptxgen,
-    config: PPTConfig
+    config: Config
   ) {
     this.config = config;
   }

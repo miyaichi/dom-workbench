@@ -1,5 +1,5 @@
 import { PDFDocument, PDFPage, rgb } from 'pdf-lib';
-import { FontConfig, TextConfig } from './types';
+import { FontConfig, PageConfig, TextConfig } from './types';
 
 interface LineMetrics {
   text: string;
@@ -24,12 +24,12 @@ export class LayoutManager {
   constructor(
     private readonly pdfDoc: PDFDocument,
     private readonly fonts: FontConfig,
-    pageConfig: { WIDTH: number; HEIGHT: number; MARGIN: number },
+    pageConfig: PageConfig,
     textConfig: TextConfig
   ) {
-    this.pageHeight = pageConfig.HEIGHT;
-    this.pageWidth = pageConfig.WIDTH;
-    this.margin = pageConfig.MARGIN;
+    this.pageHeight = pageConfig.height;
+    this.pageWidth = pageConfig.width;
+    this.margin = pageConfig.margin;
     this.textConfig = textConfig;
     this.currentY = this.pageHeight - this.margin;
   }
@@ -161,7 +161,7 @@ export const createInfoPage = async (
   pdfDoc: PDFDocument,
   sections: { title: string; content: string }[],
   fonts: FontConfig,
-  pageConfig: { WIDTH: number; HEIGHT: number; MARGIN: number },
+  pageConfig: PageConfig,
   textConfig: TextConfig
 ): Promise<PDFPage[]> => {
   const layoutManager = new LayoutManager(pdfDoc, fonts, pageConfig, textConfig);
