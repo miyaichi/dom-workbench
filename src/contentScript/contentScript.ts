@@ -5,6 +5,13 @@ import { ElementInfo } from '../types/types';
 import { createElementInfo, getElementByPath } from '../utils/domSelection';
 import { htmlToDoc } from '../utils/htmlToDoc';
 
+// Classes and attributes used by the extension
+const EXTENSION_HIGHLIGHT_CLASS = 'extension-highlight';
+const EXTENSION_SELECTED_CLASS = 'extension-selected';
+const EXTENSION_SELECTION_MODE_CLASS = 'extension-selection-mode';
+const EXTENSION_STYLE_MODIFIED_ATTRIBUTE = 'data-extension-modified-styles';
+const EXTENSION_TAG_ID_ATTRIBUTE = 'data-extension-tag-id';
+
 class ContentScript {
   private connectionManager: ConnectionManager | null = null;
   private logger: Logger;
@@ -111,8 +118,12 @@ class ContentScript {
   // Cleanup on sidepanel close
   private performCleanup() {
     this.logger.info('Sidepanel closed, performing cleanup');
+
     this.state.isSelectionMode = false;
     this.clearSelection();
+    this.removeInjectedTags();
+    this.revertModifiedStyles();
+    this.removeExtensionClasses();
   }
 
   // Inject styles
@@ -129,13 +140,13 @@ class ContentScript {
 
   private getInjectedStyles(): string {
     return `
-      .extension-selection-mode,
-      .extension-selection-mode * {
+      .${EXTENSION_SELECTION_MODE_CLASS},
+      .${EXTENSION_SELECTION_MODE_CLASS} * {
         cursor: crosshair !important;
         user-select: none !important;
       }
       
-      .extension-highlight {
+      .${EXTENSION_HIGHLIGHT_CLASS} {
         outline: 2px solid #ffd700 !important;
         outline-offset: 2px;
         background-color: rgba(255, 215, 0, 0.1) !important;
@@ -143,19 +154,24 @@ class ContentScript {
         pointer-events: auto !important;
       }
 
-      .extension-selected {
+      .${EXTENSION_SELECTED_CLASS} {
         outline: 2px solid #4682B4 !important;
         outline-offset: 2px;
         background-color: rgba(70, 130, 180, 0.1) !important;
         transition: all 0.2s ease;
       }
 
-      html.extension-selection-mode,
-      html.extension-selection-mode body,
-      html.extension-selection-mode * {
+      html.${EXTENSION_SELECTION_MODE_CLASS},
+      html.${EXTENSION_SELECTION_MODE_CLASS} body,
+      html.${EXTENSION_SELECTION_MODE_CLASS} * {
         cursor: crosshair !important;
       }
     `;
+  }
+
+  private removeExtensionClasses() {
+    document.documentElement.classList.remove(EXTENSION_SELECTION_MODE_CLASS);
+    document.body.classList.remove(EXTENSION_SELECTION_MODE_CLASS);
   }
 
   // Event listeners
@@ -182,11 +198,11 @@ class ContentScript {
     if (!target || target === document.body || target === document.documentElement) return;
 
     if (this.state.hoveredElement && this.state.hoveredElement !== target) {
-      this.state.hoveredElement.classList.remove('extension-highlight');
+      this.state.hoveredElement.classList.remove(EXTENSION_HIGHLIGHT_CLASS);
     }
 
     this.state.hoveredElement = target;
-    target.classList.add('extension-highlight');
+    target.classList.add(EXTENSION_HIGHLIGHT_CLASS);
   }
 
   private handleMouseOut(event: MouseEvent) {
@@ -194,7 +210,7 @@ class ContentScript {
 
     const target = event.target as HTMLElement;
     if (target === this.state.hoveredElement) {
-      target.classList.remove('extension-highlight');
+      target.classList.remove(EXTENSION_HIGHLIGHT_CLASS);
       this.state.hoveredElement = null;
     }
   }
@@ -235,8 +251,6 @@ class ContentScript {
         throw new Error('Target element not found');
       }
 
-      const TAG_ID_ATTRIBUTE = 'data-injected-tag-id';
-
       const domElement = await htmlToDoc(tag, {
         async: true,
         preserveOrder: true,
@@ -255,10 +269,10 @@ class ContentScript {
       // Set tag ID to the root element of the injected tag
       if (domElement instanceof DocumentFragment) {
         Array.from(domElement.children).forEach((child) => {
-          child.setAttribute(TAG_ID_ATTRIBUTE, tagId);
+          child.setAttribute(EXTENSION_TAG_ID_ATTRIBUTE, tagId);
         });
       } else if (domElement instanceof Element) {
-        domElement.setAttribute(TAG_ID_ATTRIBUTE, tagId);
+        domElement.setAttribute(EXTENSION_TAG_ID_ATTRIBUTE, tagId);
       }
 
       targetElement.appendChild(domElement);
@@ -289,8 +303,7 @@ class ContentScript {
 
   private handleTagRemoval(tagId: string) {
     try {
-      const TAG_ID_ATTRIBUTE = 'data-injected-tag-id';
-      const injectedElements = document.querySelectorAll(`[${TAG_ID_ATTRIBUTE}="${tagId}"]`);
+      const injectedElements = document.querySelectorAll(`[${EXTENSION_TAG_ID_ATTRIBUTE}="${tagId}"]`);
 
       if (injectedElements.length === 0) {
         throw new Error(`No elements found with tag ID: ${tagId}`);
@@ -321,6 +334,14 @@ class ContentScript {
     }
   }
 
+  private removeInjectedTags() {
+    const EXTENSION_TAG_ID_ATTRIBUTE = 'data-injected-tag-id';
+    const injectedElements = document.querySelectorAll(`[${EXTENSION_TAG_ID_ATTRIBUTE}]`);
+    injectedElements.forEach((element) => {
+      element.remove();
+    });
+  }
+
   // Element selection
   private handleSelectedElement(path: number[]) {
     const element = getElementByPath(path);
@@ -331,15 +352,15 @@ class ContentScript {
 
   private elementSelection(element: HTMLElement) {
     // Clear previously selected elements
-    const selectedElements = document.querySelectorAll('.extension-selected');
+    const selectedElements = document.querySelectorAll(`.${EXTENSION_SELECTED_CLASS}`);
     selectedElements.forEach((el) => {
-      el.classList.remove('extension-selected');
+      el.classList.remove(EXTENSION_SELECTED_CLASS);
     });
 
     // Clear hover, set selected element, set selected
-    element.classList.remove('extension-highlight');
+    element.classList.remove(EXTENSION_HIGHLIGHT_CLASS);
     this.state.selectedElementInfo = createElementInfo(element);
-    element.classList.add('extension-selected');
+    element.classList.add(EXTENSION_SELECTED_CLASS);
 
     this.logger.debug('Element selected:', this.state.selectedElementInfo);
     this.connectionManager?.sendMessage('sidepanel', {
@@ -353,14 +374,14 @@ class ContentScript {
   private clearSelection() {
     // Clear hovered element
     if (this.state.hoveredElement) {
-      this.state.hoveredElement.classList.remove('extension-highlight');
+      this.state.hoveredElement.classList.remove(EXTENSION_HIGHLIGHT_CLASS);
       this.state.hoveredElement = null;
     }
 
     // Clear selected elements
-    const selectedElements = document.querySelectorAll('.extension-selected');
+    const selectedElements = document.querySelectorAll(`.${EXTENSION_SELECTED_CLASS}`);
     selectedElements.forEach((element) => {
-      element.classList.remove('extension-selected');
+      element.classList.remove(EXTENSION_SELECTED_CLASS);
     });
 
     // Clear selected element info
@@ -385,14 +406,12 @@ class ContentScript {
       this.clearSelection();
     }
 
-    document.documentElement.classList.toggle('extension-selection-mode', enabled);
-    document.body.classList.toggle('extension-selection-mode', enabled);
+    document.documentElement.classList.toggle(EXTENSION_SELECTION_MODE_CLASS, enabled);
+    document.body.classList.toggle(EXTENSION_SELECTION_MODE_CLASS, enabled);
 
     this.logger.debug('Selection mode toggled:', {
       enabled: this.state.isSelectionMode,
-      hasSelectionModeClass: document.documentElement.classList.contains(
-        'extension-selection-mode'
-      ),
+      hasSelectionModeClass: document.documentElement.classList.contains(EXTENSION_SELECTION_MODE_CLASS),
     });
   }
 
@@ -409,10 +428,8 @@ class ContentScript {
         throw new Error('Target element not found');
       }
 
-      const STYLE_MODIFIED_ATTRIBUTE = 'data-extension-modified-styles';
-
       let modifiedStyles: { [key: string]: string } = {};
-      const existingStyles = targetElement.getAttribute(STYLE_MODIFIED_ATTRIBUTE);
+      const existingStyles = targetElement.getAttribute(EXTENSION_STYLE_MODIFIED_ATTRIBUTE);
       if (existingStyles) {
         modifiedStyles = JSON.parse(existingStyles);
       }
@@ -422,7 +439,7 @@ class ContentScript {
 
       // Update modified styles
       modifiedStyles[property] = value;
-      targetElement.setAttribute(STYLE_MODIFIED_ATTRIBUTE, JSON.stringify(modifiedStyles));
+      targetElement.setAttribute(EXTENSION_STYLE_MODIFIED_ATTRIBUTE, JSON.stringify(modifiedStyles));
 
       this.logger.info('Element style updated:', {
         property,
@@ -434,7 +451,7 @@ class ContentScript {
         type: 'SHOW_TOAST',
         payload: {
           message: chrome.i18n.getMessage('toastStyleUpdated'),
-          type: 'error',
+          type: 'success',
         } as MessagePayloads['SHOW_TOAST'],
       });
     } catch (error) {
@@ -447,6 +464,22 @@ class ContentScript {
         } as MessagePayloads['SHOW_TOAST'],
       });
     }
+  }
+
+  private revertModifiedStyles() {
+    const modifiedElements = document.querySelectorAll(`[${EXTENSION_STYLE_MODIFIED_ATTRIBUTE}]`);
+    
+    modifiedElements.forEach((element) => {
+      const modifiedStyles = JSON.parse(element.getAttribute(EXTENSION_STYLE_MODIFIED_ATTRIBUTE) || '{}');
+      
+      // Reset each modified style property
+      Object.keys(modifiedStyles).forEach((property) => {
+        (element as HTMLElement).style[property as any] = '';
+      });
+      
+      // Remove the tracking attribute
+      element.removeAttribute(EXTENSION_STYLE_MODIFIED_ATTRIBUTE);
+    });
   }
 }
 
