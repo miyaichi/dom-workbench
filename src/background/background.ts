@@ -120,7 +120,7 @@ class BackgroundService {
         await chrome.tabs.sendMessage(this.activeTabInfo.tabId, { type: 'SIDEPANEL_CLOSED' });
       }
     } catch (error) {
-      this.logger.error('Failed to notify content script:', error);
+      this.logger.info('Failed to notify content script:', error);
     }
   };
 
