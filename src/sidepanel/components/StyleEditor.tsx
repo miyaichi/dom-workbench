@@ -21,6 +21,20 @@ interface StyleChange {
 }
 
 const isValidCSSProperty = (property: string): boolean => {
+  const excludedCSSProperties: (keyof CSSStyleDeclaration)[] = [
+    'length',
+    'parentRule',
+    'cssText',
+    'getPropertyPriority',
+    'getPropertyValue',
+    'item',
+    'removeProperty',
+    'setProperty',
+  ] as const;
+
+  if (excludedCSSProperties.includes(property as keyof CSSStyleDeclaration)) {
+    return false;
+  }
   return property in document.body.style;
 };
 
