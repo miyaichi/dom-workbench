@@ -303,7 +303,9 @@ class ContentScript {
 
   private handleTagRemoval(tagId: string) {
     try {
-      const injectedElements = document.querySelectorAll(`[${EXTENSION_TAG_ID_ATTRIBUTE}="${tagId}"]`);
+      const injectedElements = document.querySelectorAll(
+        `[${EXTENSION_TAG_ID_ATTRIBUTE}="${tagId}"]`
+      );
 
       if (injectedElements.length === 0) {
         throw new Error(`No elements found with tag ID: ${tagId}`);
@@ -411,7 +413,9 @@ class ContentScript {
 
     this.logger.debug('Selection mode toggled:', {
       enabled: this.state.isSelectionMode,
-      hasSelectionModeClass: document.documentElement.classList.contains(EXTENSION_SELECTION_MODE_CLASS),
+      hasSelectionModeClass: document.documentElement.classList.contains(
+        EXTENSION_SELECTION_MODE_CLASS
+      ),
     });
   }
 
@@ -439,7 +443,10 @@ class ContentScript {
 
       // Update modified styles
       modifiedStyles[property] = value;
-      targetElement.setAttribute(EXTENSION_STYLE_MODIFIED_ATTRIBUTE, JSON.stringify(modifiedStyles));
+      targetElement.setAttribute(
+        EXTENSION_STYLE_MODIFIED_ATTRIBUTE,
+        JSON.stringify(modifiedStyles)
+      );
 
       this.logger.info('Element style updated:', {
         property,
@@ -468,15 +475,17 @@ class ContentScript {
 
   private revertModifiedStyles() {
     const modifiedElements = document.querySelectorAll(`[${EXTENSION_STYLE_MODIFIED_ATTRIBUTE}]`);
-    
+
     modifiedElements.forEach((element) => {
-      const modifiedStyles = JSON.parse(element.getAttribute(EXTENSION_STYLE_MODIFIED_ATTRIBUTE) || '{}');
-      
+      const modifiedStyles = JSON.parse(
+        element.getAttribute(EXTENSION_STYLE_MODIFIED_ATTRIBUTE) || '{}'
+      );
+
       // Reset each modified style property
       Object.keys(modifiedStyles).forEach((property) => {
         (element as HTMLElement).style[property as any] = '';
       });
-      
+
       // Remove the tracking attribute
       element.removeAttribute(EXTENSION_STYLE_MODIFIED_ATTRIBUTE);
     });
