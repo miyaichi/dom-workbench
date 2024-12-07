@@ -1,4 +1,4 @@
-import { Send, X } from 'lucide-react';
+import { Clipboard, ClipboardCheck, Send, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { Logger } from '../../lib/logger';
 import { useSettings } from '../../lib/settings';
@@ -7,6 +7,7 @@ import { shareAsPPT } from '../../lib/shareAsPPT';
 import { ElementInfo, SharePayload } from '../../types/types';
 import { elementInfoToHTML } from '../../utils/elementInfoToHTML';
 import { formatElementTag } from '../../utils/htmlTagFormatter';
+import { Tooltip } from './common/Tooltip';
 
 interface InjectedTagInfo {
   id: string;
@@ -95,10 +96,38 @@ export const ShareCapture: React.FC<ShareCaptureProps> = ({
 
   const [comment, setComment] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
 
   const handleClose = (): void => {
     setComment('');
     onClose();
+  };
+
+  const handleCopyImage = async (): Promise<void> => {
+    if (!imageDataUrl) return;
+
+    try {
+      // Convert base64 to blob
+      const response = await fetch(imageDataUrl);
+      const blob = await response.blob();
+
+      // Create a ClipboardItem with the image blob
+      const item = new ClipboardItem({
+        'image/png': blob,
+      });
+
+      await navigator.clipboard.write([item]);
+
+      // Update copy status
+      setIsCopied(true);
+      setTimeout(() => {
+        setIsCopied(false);
+      }, 2000);
+
+      logger.info('Image copied to clipboard');
+    } catch (error) {
+      logger.error('Failed to copy image:', error);
+    }
   };
 
   const handleShare = async (): Promise<void> => {
@@ -137,22 +166,6 @@ export const ShareCapture: React.FC<ShareCaptureProps> = ({
 
   const handleCommentChange = (e: React.ChangeEvent<HTMLTextAreaElement>): void => {
     setComment(e.target.value);
-  };
-
-  const renderPreview = () => {
-    if (imageDataUrl) {
-      return (
-        <div className="capture-preview">
-          <img src={imageDataUrl} alt="Screen Capture" className="capture-image" />
-        </div>
-      );
-    }
-
-    return (
-      <div className="capture-preview">
-        <p>Capturing screen...</p>
-      </div>
-    );
   };
 
   const renderElementInfo = () => {
@@ -220,13 +233,38 @@ export const ShareCapture: React.FC<ShareCaptureProps> = ({
       <div className="capture-container">
         <div className="card-header">
           <h2 className="card-title">Share Capture</h2>
-          <button onClick={handleClose} className="icon-button">
-            <X size={20} />
-          </button>
+          <div className="header-actions">
+            <Tooltip
+              content={
+                isCopied
+                  ? chrome.i18n.getMessage('copiedToClipboard')
+                  : chrome.i18n.getMessage('copyToClipboard')
+              }
+            >
+              <button
+                onClick={handleCopyImage}
+                className={`icon-button ${isCopied ? 'icon-button-success' : ''}`}
+                disabled={!imageDataUrl}
+              >
+                {isCopied ? <ClipboardCheck size={16} /> : <Clipboard size={16} />}
+              </button>
+            </Tooltip>
+            <button onClick={handleClose} className="icon-button">
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
         <div className="capture-content">
-          {renderPreview()}
+          {imageDataUrl ? (
+            <div className="capture-preview">
+              <img src={imageDataUrl} alt="Screen Capture" className="capture-image" />
+            </div>
+          ) : (
+            <div className="capture-preview">
+              <p>Capturing screen...</p>
+            </div>
+          )}
 
           <textarea
             value={comment}

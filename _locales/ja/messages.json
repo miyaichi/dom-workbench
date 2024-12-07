@@ -47,8 +47,11 @@
   "copyToClipboard": {
     "message": "クリップボードにコピー"
   },
-  "coppiedToClipboard": {
+  "copiedToClipboard": {
     "message": "コピーしました!"
+  },
+  "toastCaptureFailed": {
+    "message": "このページはキャプチャできません"
   },
   "toastStyleUpdated": {
     "message": "スタイルを更新しました"

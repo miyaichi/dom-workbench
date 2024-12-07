@@ -83,7 +83,7 @@ export const DOMSelector: React.FC<DOMSelectorProps> = ({ selectedElement, onSel
             <Tooltip
               content={
                 isCopied
-                  ? chrome.i18n.getMessage('coppiedToClipboard')
+                  ? chrome.i18n.getMessage('copiedToClipboard')
                   : chrome.i18n.getMessage('copyToClipboard')
               }
             >

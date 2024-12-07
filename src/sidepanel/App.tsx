@@ -180,7 +180,15 @@ export default function App() {
             captureUrl: captureTabResultPayload.url || '',
           }));
         } else {
-          logger.error('Capture failed:', captureTabResultPayload.error);
+          setState((prev) => ({
+            ...prev,
+            showShareCapture: false,
+            toast: {
+              id: Date.now().toString(),
+              message: chrome.i18n.getMessage('toastCaptureFailed'),
+              type: 'error',
+            },
+          }));
         }
         break;
       case 'CONTENT_STATE_UPDATE':

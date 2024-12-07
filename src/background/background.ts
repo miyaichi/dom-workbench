@@ -223,7 +223,7 @@ class BackgroundService {
         payload: { success: true, imageDataUrl, url: this.activeTabInfo.url ?? null },
       });
     } catch (error) {
-      this.logger.error('Failed to capture tab:', error);
+      this.logger.info('Failed to capture tab:', error);
       this.sendMessage('sidepanel', port, {
         type: 'CAPTURE_TAB_RESULT',
         payload: {
