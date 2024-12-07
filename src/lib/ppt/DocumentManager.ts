@@ -24,7 +24,7 @@ export class DocumentManager {
     this.pres = new pptxgen();
 
     this.pres.author = `${this.manifest.name} v${this.manifest.version}`;
-    this.pres.title = `Screenshot of ${this.url} at ${formatTimestamp(new Date())}`;
+    this.pres.title = `Capture of ${this.url} at ${formatTimestamp(new Date())}`;
 
     if (this.config.paper.size === 'a4') {
       let layoutName = 'A4';

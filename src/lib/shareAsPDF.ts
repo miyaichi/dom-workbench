@@ -39,14 +39,14 @@ export const shareAsPDF = async ({
     const pdfDoc = docManager.getPDFDocument();
 
     //docManager.setPageSize(pageConfig.WIDTH, pageConfig.HEIGHT);
-    docManager.setTitle(`Screenshot of ${url} at ${formatTimestamp(new Date())}`);
+    docManager.setTitle(`Capture of ${url} at ${formatTimestamp(new Date())}`);
 
     const fonts = await FontManager.initialize(pdfDoc);
     const imageManager = new ImageManager(pageConfig);
     const layoutManager = new LayoutManager(pdfDoc, fonts, pageConfig, textConfig);
 
     const { image, dimensions } = await imageManager.processImage(pdfDoc, imageData);
-    imageManager.createPage(pdfDoc, image, dimensions);
+    imageManager.createCapturePage(pdfDoc, image, dimensions);
 
     const now = new Date();
     await layoutManager.layoutContent([

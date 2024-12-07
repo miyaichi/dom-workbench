@@ -97,7 +97,7 @@ export class ImageManager {
     }
   }
 
-  public async createScreenshotSlide(imageData: string): Promise<void> {
+  public async createCaptureSlide(imageData: string): Promise<void> {
     logger.debug('Creating screenshot slide');
 
     try {
@@ -126,7 +126,7 @@ export class ImageManager {
         },
       });
 
-      logger.debug('Screenshot slide created', { dimensions: imageDims });
+      logger.debug('Capture slide created', { dimensions: imageDims });
     } catch (error) {
       logger.error('Failed to create screenshot slide:', error);
       throw new Error('Failed to create screenshot slide');

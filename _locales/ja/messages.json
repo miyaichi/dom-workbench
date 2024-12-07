@@ -6,7 +6,7 @@
     "message": "折りたたむ"
   },
   "tooltipCapture": {
-    "message": "現在のタブのスクリーンショットを撮影"
+    "message": "現在のタブをキャプチャーする"
   },
   "tooltipSettings": {
     "message": "設定"

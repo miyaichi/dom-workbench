@@ -6,7 +6,7 @@
     "message": "Collapse"
   },
   "tooltipCapture": {
-    "message": "Capture a screenshot of the current tab"
+    "message": "Capture the current tab"
   },
   "tooltipSettings": {
     "message": "Settings"

@@ -44,15 +44,15 @@ export class ImageManager {
   }
 
   /**
-   * Create a new PDF page with the image
+   * Create a new PDF page with the embedded image
    * @param pdfDoc PDF document instance
    * @param image Embedded PDF image
    * @param dimensions Calculated image dimensions
    * @returns Created PDF page
    */
-  createPage(pdfDoc: PDFDocument, image: any, dimensions: ImageDimensions): PDFPage {
+  createCapturePage(pdfDoc: PDFDocument, image: any, dimensions: ImageDimensions): PDFPage {
     try {
-      logger.debug('Creating image page');
+      logger.debug('Creating capture page');
 
       // Create new page
       const page = pdfDoc.addPage([this.config.width, this.config.height]);
@@ -65,10 +65,10 @@ export class ImageManager {
         height: dimensions.height,
       });
 
-      logger.debug('Image page created successfully');
+      logger.debug('Capture page created successfully');
       return page;
     } catch (error) {
-      logger.error('Failed to create image page:', error);
+      logger.error('Failed to create capture page:', error);
       throw new Error('Page creation failed');
     }
   }

@@ -18,7 +18,7 @@ export const shareAsPPT = async ({
   logger.info('Starting PowerPoint generation process');
 
   if (!imageData) {
-    throw new Error('Screenshot data is required but was not provided');
+    throw new Error('Capture data is required but was not provided');
   }
   if (!url) {
     throw new Error('Target URL is required but was not provided');
@@ -32,7 +32,7 @@ export const shareAsPPT = async ({
     const layoutManager = new LayoutManager(pres, config);
     const imageManager = new ImageManager(pres, config);
 
-    await imageManager.createScreenshotSlide(imageData);
+    await imageManager.createCaptureSlide(imageData);
 
     const now = new Date();
     const sections: SlideSection[] = [
