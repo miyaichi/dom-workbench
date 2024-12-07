@@ -51,7 +51,7 @@ export const getShareFunction = (format: ShareFormat): ShareFunction => {
 };
 
 const formatTagChanges = (tags: InjectedTagInfo[]): string => {
-  if (tags.length === 0) return 'No tags injected';
+  if (tags.length === 0) return '';
 
   return tags
     .map((tag) => {
@@ -62,7 +62,7 @@ const formatTagChanges = (tags: InjectedTagInfo[]): string => {
 };
 
 const formatStyleChanges = (changes: StyleChange[]): string => {
-  if (changes.length === 0) return 'No style changes';
+  if (changes.length === 0) return '';
 
   return changes
     .map((change) => {
@@ -117,7 +117,7 @@ export const ShareCapture: React.FC<ShareCaptureProps> = ({
       const payload: SharePayload = {
         imageData: imageDataUrl,
         url: captureUrl || '',
-        html: selectedElement ? elementInfoToHTML(selectedElement) : 'No element selected',
+        html: selectedElement ? elementInfoToHTML(selectedElement) : '',
         comment,
         styleChanges: formatStyleChanges(styleChanges),
         injectedTags: formatTagChanges(injectedTags),

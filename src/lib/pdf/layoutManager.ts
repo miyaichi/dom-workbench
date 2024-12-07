@@ -111,6 +111,10 @@ export class LayoutManager {
     pages.push(currentPage);
 
     for (const section of sections) {
+      if (!section.content) {
+        continue;
+      }
+
       // Prepare text blocks
       const textBlock: TextBlock = {
         title: section.title,

@@ -60,6 +60,10 @@ export class LayoutManager {
     let currentSlide = this.pres.addSlide();
 
     sections.forEach((section) => {
+      if (section.content === '') {
+        return;
+      }
+
       const titleHeight = this.calculateTextHeight(section.title, this.config.style.title);
       const contentHeight = this.calculateTextHeight(section.content, this.config.style.content);
       const totalHeight = titleHeight + contentHeight;
