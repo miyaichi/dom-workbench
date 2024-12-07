@@ -1,5 +1,5 @@
 import { PDFDocument, PDFPage, rgb } from 'pdf-lib';
-import { FontConfig, PageConfig, TextConfig } from './types';
+import { Config, FontConfig } from './types';
 
 interface LineMetrics {
   text: string;
@@ -15,29 +15,40 @@ interface TextBlock {
 }
 
 export class LayoutManager {
+  private readonly LINE_HEIGHT_RATIO = 1.2;
   private currentY: number;
   private readonly pageHeight: number;
   private readonly pageWidth: number;
   private readonly margin: number;
-  private readonly textConfig: TextConfig;
 
   constructor(
     private readonly pdfDoc: PDFDocument,
     private readonly fonts: FontConfig,
-    pageConfig: PageConfig,
-    textConfig: TextConfig
+    private readonly config: Config
   ) {
-    this.pageHeight = pageConfig.height;
-    this.pageWidth = pageConfig.width;
-    this.margin = pageConfig.margin;
-    this.textConfig = textConfig;
+    this.pageHeight = config.page.height;
+    this.pageWidth = config.page.width;
+    this.margin = config.page.margin;
     this.currentY = this.pageHeight - this.margin;
   }
 
   private measureText(text: string, fontSize: number): LineMetrics {
-    const width = this.fonts.japanese.widthOfTextAtSize(text, fontSize);
-    const height = fontSize * 1.2; // Approximate height with leading
-    return { text, width, height };
+    try {
+      const width = this.fonts.japanese.widthOfTextAtSize(text, fontSize);
+      return {
+        text,
+        width,
+        height: fontSize * this.LINE_HEIGHT_RATIO,
+      };
+    } catch (error) {
+      // フォールバックフォントを使用
+      const width = this.fonts.fallback.widthOfTextAtSize(text, fontSize);
+      return {
+        text,
+        width,
+        height: fontSize * this.LINE_HEIGHT_RATIO,
+      };
+    }
   }
 
   private wrapTextToLines(text: string, maxWidth: number, fontSize: number): string[] {
@@ -47,9 +58,9 @@ export class LayoutManager {
 
     for (const word of words) {
       const testLine = currentLine ? `${currentLine} ${word}` : word;
-      const metrics = this.measureText(testLine, fontSize);
+      const { width } = this.measureText(testLine, fontSize);
 
-      if (metrics.width <= maxWidth) {
+      if (width <= maxWidth) {
         currentLine = testLine;
       } else {
         if (currentLine) lines.push(currentLine);
@@ -71,12 +82,7 @@ export class LayoutManager {
   }
 
   private calculateRequiredHeight(block: TextBlock): number {
-    let height = 0;
-    if (block.title) {
-      height += block.lineHeight;
-    }
-    height += block.lines.length * block.lineHeight;
-    return height;
+    return (block.title ? block.lineHeight : 0) + block.lines.length * block.lineHeight;
   }
 
   private async drawTextLine(
@@ -85,24 +91,20 @@ export class LayoutManager {
     x: number,
     fontSize: number
   ): Promise<void> {
+    const options = {
+      x,
+      y: this.currentY,
+      size: fontSize,
+      color: rgb(0, 0, 0),
+    };
+
     try {
-      page.drawText(text, {
-        x,
-        y: this.currentY,
-        size: fontSize,
-        font: this.fonts.japanese,
-        color: rgb(0, 0, 0),
-      });
+      page.drawText(text, { ...options, font: this.fonts.japanese });
     } catch (e) {
-      page.drawText(text, {
-        x,
-        y: this.currentY,
-        size: fontSize,
-        font: this.fonts.fallback,
-        color: rgb(0, 0, 0),
-      });
+      page.drawText(text, { ...options, font: this.fonts.fallback });
     }
-    this.currentY -= fontSize * 1.2;
+
+    this.currentY -= fontSize * this.LINE_HEIGHT_RATIO;
   }
 
   public async layoutContent(sections: { title: string; content: string }[]): Promise<PDFPage[]> {
@@ -111,40 +113,34 @@ export class LayoutManager {
     pages.push(currentPage);
 
     for (const section of sections) {
-      if (!section.content) {
-        continue;
-      }
+      if (!section.content) continue;
 
-      // Prepare text blocks
       const textBlock: TextBlock = {
         title: section.title,
         lines: this.wrapTextToLines(
           section.content,
-          this.textConfig.maxWidth,
-          this.textConfig.fontSize
+          this.config.text.maxWidth,
+          this.config.text.fontSize
         ),
-        fontSize: this.textConfig.fontSize,
-        lineHeight: this.textConfig.lineHeight,
+        fontSize: this.config.text.fontSize,
+        lineHeight: this.config.text.lineHeight,
       };
 
-      // Calculate if we need a new page
       const requiredHeight = this.calculateRequiredHeight(textBlock);
       if (this.currentY - requiredHeight < this.margin) {
         currentPage = await this.createNewPage();
         pages.push(currentPage);
       }
 
-      // Draw title if exists
       if (textBlock.title) {
         await this.drawTextLine(
           currentPage,
           textBlock.title,
           this.margin,
-          this.textConfig.titleFontSize
+          this.config.text.titleFontSize
         );
       }
 
-      // Draw content lines
       for (const line of textBlock.lines) {
         if (this.currentY - textBlock.lineHeight < this.margin) {
           currentPage = await this.createNewPage();
@@ -153,21 +149,9 @@ export class LayoutManager {
         await this.drawTextLine(currentPage, line, this.margin, textBlock.fontSize);
       }
 
-      // Add extra space between sections
-      this.currentY -= this.textConfig.lineHeight;
+      this.currentY -= this.config.text.lineHeight;
     }
 
     return pages;
   }
 }
-
-export const createInfoPage = async (
-  pdfDoc: PDFDocument,
-  sections: { title: string; content: string }[],
-  fonts: FontConfig,
-  pageConfig: PageConfig,
-  textConfig: TextConfig
-): Promise<PDFPage[]> => {
-  const layoutManager = new LayoutManager(pdfDoc, fonts, pageConfig, textConfig);
-  return await layoutManager.layoutContent(sections);
-};

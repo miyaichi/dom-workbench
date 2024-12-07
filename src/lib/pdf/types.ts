@@ -1,3 +1,5 @@
+import { PaperOrientation, PaperSize } from '../settings';
+
 export interface ImageDimensions {
   width: number;
   height: number;
@@ -23,4 +25,15 @@ export interface PageConfig {
   height: number;
   margin: number;
   imageScale: number;
+}
+
+export interface PaperConfig {
+  readonly size: PaperSize;
+  readonly orientation: PaperOrientation;
+}
+
+export interface Config {
+  paper: PaperConfig;
+  page: PageConfig;
+  text: TextConfig;
 }

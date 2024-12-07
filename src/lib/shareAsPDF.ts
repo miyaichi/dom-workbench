@@ -2,14 +2,7 @@ import { SharePayload } from '../types/types';
 import { downloadFile } from '../utils/download';
 import { formatTimestamp, generateFilename } from '../utils/formatters';
 import { Logger } from './logger';
-import {
-  DocumentManager,
-  FontManager,
-  ImageManager,
-  LayoutManager,
-  createPageConfig,
-  createTextConfig,
-} from './pdf';
+import { DocumentManager, FontManager, ImageManager, LayoutManager, createConfig } from './pdf';
 
 const logger = new Logger('sharePDF');
 
@@ -29,21 +22,14 @@ export const shareAsPDF = async ({
   }
 
   try {
-    // Create page and text configurations
-    const pageConfig = createPageConfig(paperSettings);
-    const textConfig = createTextConfig(pageConfig);
-
-    // Create and initialize document manager
-    const docManager = new DocumentManager();
+    const config = createConfig(paperSettings);
+    const docManager = new DocumentManager(config, url);
     await docManager.initialize();
     const pdfDoc = docManager.getPDFDocument();
 
-    //docManager.setPageSize(pageConfig.WIDTH, pageConfig.HEIGHT);
-    docManager.setTitle(`Capture of ${url} at ${formatTimestamp(new Date())}`);
-
     const fonts = await FontManager.initialize(pdfDoc);
-    const imageManager = new ImageManager(pageConfig);
-    const layoutManager = new LayoutManager(pdfDoc, fonts, pageConfig, textConfig);
+    const imageManager = new ImageManager(config);
+    const layoutManager = new LayoutManager(pdfDoc, fonts, config);
 
     const { image, dimensions } = await imageManager.processImage(pdfDoc, imageData);
     imageManager.createCapturePage(pdfDoc, image, dimensions);
