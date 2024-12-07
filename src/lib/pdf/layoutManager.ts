@@ -34,14 +34,14 @@ export class LayoutManager {
 
   private measureText(text: string, fontSize: number): LineMetrics {
     try {
-      const width = this.fonts.japanese.widthOfTextAtSize(text, fontSize);
+      const width = this.fonts.primary.widthOfTextAtSize(text, fontSize);
       return {
         text,
         width,
         height: fontSize * this.LINE_HEIGHT_RATIO,
       };
     } catch (error) {
-      // フォールバックフォントを使用
+      // Use fallback font if primary font does not support the text
       const width = this.fonts.fallback.widthOfTextAtSize(text, fontSize);
       return {
         text,
@@ -99,7 +99,7 @@ export class LayoutManager {
     };
 
     try {
-      page.drawText(text, { ...options, font: this.fonts.japanese });
+      page.drawText(text, { ...options, font: this.fonts.primary });
     } catch (e) {
       page.drawText(text, { ...options, font: this.fonts.fallback });
     }

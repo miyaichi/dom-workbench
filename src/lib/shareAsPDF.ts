@@ -2,7 +2,7 @@ import { SharePayload } from '../types/types';
 import { downloadFile } from '../utils/download';
 import { formatTimestamp, generateFilename } from '../utils/formatters';
 import { Logger } from './logger';
-import { DocumentManager, FontManager, ImageManager, LayoutManager, createConfig } from './pdf';
+import { DocumentManager, ImageManager, LayoutManager, createConfig } from './pdf';
 
 const logger = new Logger('sharePDF');
 
@@ -27,9 +27,8 @@ export const shareAsPDF = async ({
     await docManager.initialize();
     const pdfDoc = docManager.getPDFDocument();
 
-    const fonts = await FontManager.initialize(pdfDoc);
     const imageManager = new ImageManager(config);
-    const layoutManager = new LayoutManager(pdfDoc, fonts, config);
+    const layoutManager = new LayoutManager(pdfDoc, docManager.getFonts(), config);
 
     const { image, dimensions } = await imageManager.processImage(pdfDoc, imageData);
     imageManager.createCapturePage(pdfDoc, image, dimensions);

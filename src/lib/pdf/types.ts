@@ -8,7 +8,7 @@ export interface ImageDimensions {
 }
 
 export interface FontConfig {
-  japanese: any;
+  primary: any;
   fallback: any;
 }
 
