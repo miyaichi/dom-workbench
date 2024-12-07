@@ -26,27 +26,17 @@ export class DocumentManager {
     this.pres.author = `${this.manifest.name} v${this.manifest.version}`;
     this.pres.title = `Capture of ${this.url} at ${formatTimestamp(new Date())}`;
 
-    if (this.config.paper.size === 'a4') {
-      let layoutName = 'A4';
-      let height = this.config.layout.height;
-      let width = this.config.layout.width;
+    const { size, orientation } = this.config.paper;
+    const { width, height } = this.config.layout;
 
-      if (this.config.paper.orientation === 'landscape') {
-        layoutName += '_L';
-        [height, width] = [width, height];
-      }
-
+    if (size === 'a4') {
+      const layoutName = orientation === 'landscape' ? 'A4_L' : 'A4';
       this.pres.defineLayout({ name: layoutName, width, height });
       this.pres.layout = layoutName;
     } else {
-      const layoutName =
-        this.config.paper.orientation === 'portrait' ? 'LAYOUT_9x16' : 'LAYOUT_16x9';
-      if (this.config.paper.orientation === 'portrait') {
-        this.pres.defineLayout({
-          name: layoutName,
-          width: this.config.layout.width,
-          height: this.config.layout.height,
-        });
+      const layoutName = orientation === 'portrait' ? 'LAYOUT_9x16' : 'LAYOUT_16x9';
+      if (orientation === 'portrait') {
+        this.pres.defineLayout({ name: layoutName, width, height });
       }
       this.pres.layout = layoutName;
     }
