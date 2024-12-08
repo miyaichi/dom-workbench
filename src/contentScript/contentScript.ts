@@ -411,12 +411,14 @@ class ContentScript {
     document.documentElement.classList.toggle(EXTENSION_SELECTION_MODE_CLASS, enabled);
     document.body.classList.toggle(EXTENSION_SELECTION_MODE_CLASS, enabled);
 
-    this.logger.debug('Selection mode toggled:', {
-      enabled: this.state.isSelectionMode,
-      hasSelectionModeClass: document.documentElement.classList.contains(
-        EXTENSION_SELECTION_MODE_CLASS
-      ),
+    this.connectionManager?.sendMessage('sidepanel', {
+      type: 'SELECTION_MODE_TOGGLED',
+      payload: {
+        enabled: enabled,
+      } as MessagePayloads['SELECTION_MODE_TOGGLED'],
     });
+
+    this.logger.debug('Selection mode toggled:', this.state.isSelectionMode);
   }
 
   // Update element style
