@@ -30,6 +30,30 @@ class BackgroundService {
     return !this.RESTRICTED_PATTERNS.some((pattern) => url.startsWith(pattern));
   }
 
+  private async injectContentScriptIfNeeded(tabId: number, url: string): Promise<boolean> {
+    if (!this.isScriptInjectionAllowed(url)) {
+      this.logger.info('Script injection not allowed for this URL:', url);
+      return false;
+    }
+
+    try {
+      // Check if content script is already injected
+      await chrome.tabs.sendMessage(tabId, { type: 'PING' });
+      return true;
+    } catch (error: any) {
+      // Inject only if allowed and not already injected
+      if (error.toString().includes('Could not establish connection')) {
+        await chrome.scripting.executeScript({
+          target: { tabId },
+          files: ['contentScript.js'],
+        });
+        this.logger.debug('Content script injected successfully');
+        return true;
+      }
+    }
+    return false;
+  }
+
   private async setupConnection() {
     try {
       this.connectionManager.connect();
@@ -106,10 +130,7 @@ class BackgroundService {
         }
       });
 
-      port.onDisconnect.addListener(() => {
-        this.ports.delete(port.name);
-        this.logger.debug('Port disconnected:', port.name);
-      });
+      port.onDisconnect.addListener(this.handleBFCacheError);
     });
   }
 
@@ -144,22 +165,33 @@ class BackgroundService {
       return;
     }
 
-    try {
-      // Check if content script is already injected
-      await chrome.tabs.sendMessage(tab.id, { type: 'PING' });
-    } catch (error: any) {
-      // Inject only if allowed and not already injected
-      if (error.toString().includes('Could not establish connection')) {
-        await chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          files: ['contentScript.js'],
-        });
+    const injected = await this.injectContentScriptIfNeeded(tab.id, tab.url);
+    if (injected) {
+      // Set the context for the content script in the active tab
+      this.contentScriptContext = `content-${tab.id}`;
+    }
+  }
+
+  private handleBFCacheError = async (port: chrome.runtime.Port) => {
+    const error = chrome.runtime.lastError;
+    if (error?.message?.includes('back/forward cache')) {
+      this.logger.info('Port disconnected due to BFCache:', port.name);
+
+      // Cleanup the port
+      this.ports.delete(port.name);
+
+      if (port.name.startsWith('content-')) {
+        const tabId = parseInt(port.name.split('-')[1]);
+        if (tabId) {
+          const tab = await chrome.tabs.get(tabId);
+          if (tab.url) {
+            this.logger.info('Reinjecting content script for tab:', tab.url);
+            await this.injectContentScriptIfNeeded(tabId, tab.url);
+          }
+        }
       }
     }
-
-    // Set the context for the content script in the active tab
-    this.contentScriptContext = `content-${tab.id}`;
-  }
+  };
 
   private async setupSidepanel(): Promise<void> {
     try {
