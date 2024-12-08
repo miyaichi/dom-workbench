@@ -24,6 +24,7 @@ export interface MessagePayloads {
   INJECT_TAG: { tag: string; tagId: string };
   REMOVE_TAG: { tagId: string };
   SELECT_ELEMENT: { path: number[] };
+  SELECTION_MODE_TOGGLED: { enabled: boolean };
   SHOW_TOAST: { message: string; type?: 'success' | 'error'; duration?: number };
   TOGGLE_SELECTION_MODE: { enabled: boolean };
   UPDATE_ELEMENT_STYLE: { property: string; value: string };

@@ -213,6 +213,14 @@ export default function App() {
           selectedElement: null,
         }));
         break;
+      case 'SELECTION_MODE_TOGGLED':
+        const selectionModeToggledPayload =
+          message.payload as MessagePayloads['SELECTION_MODE_TOGGLED'];
+        setState((prev) => ({
+          ...prev,
+          isSelectionMode: selectionModeToggledPayload.enabled,
+        }));
+        break;
       case 'SHOW_TOAST':
         const showToastPayload = message.payload as MessagePayloads['SHOW_TOAST'];
         setState((prev) => ({
@@ -259,7 +267,6 @@ export default function App() {
       if (!tabId) return;
 
       const enabled = !state.isSelectionMode;
-      setState((prev) => ({ ...prev, isSelectionMode: enabled }));
       connectionManager?.sendMessage(contentScriptContext, {
         type: 'TOGGLE_SELECTION_MODE',
         payload: { enabled: enabled },
