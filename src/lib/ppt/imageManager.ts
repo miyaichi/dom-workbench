@@ -4,132 +4,128 @@ import { Config, ImageDimensions } from './types';
 
 const logger = new Logger('pptImageManager');
 
+// Calculate the optimal image layout based on the slide layout and the image aspect ratio
+const calculateOptimalImageLayout = (
+  originalWidth: number,
+  originalHeight: number,
+  slideLayout: Config['layout']
+): ImageDimensions => {
+  const aspectRatio = originalWidth / originalHeight;
+  const slideAspectRatio = slideLayout.width / slideLayout.height;
+  const maxWidth = slideLayout.width * slideLayout.imageScale;
+  const maxHeight = slideLayout.height * slideLayout.imageScale;
+
+  let finalWidth: number;
+  let finalHeight: number;
+
+  if (aspectRatio > slideAspectRatio) {
+    finalWidth = maxWidth;
+    finalHeight = maxWidth / aspectRatio;
+  } else {
+    finalHeight = maxHeight;
+    finalWidth = maxHeight * aspectRatio;
+  }
+
+  return {
+    width: finalWidth,
+    height: finalHeight,
+    x: (slideLayout.width - finalWidth) / 2,
+    y: (slideLayout.height - finalHeight) / 2,
+  };
+};
+
+// Validate the base64 image data format
+const isValidBase64Image = (base64Data: string): boolean => {
+  if (!base64Data) {
+    throw new Error('Image data is empty or undefined');
+  }
+
+  if (base64Data.startsWith('data:image/')) {
+    return true;
+  }
+
+  try {
+    atob(base64Data);
+    return true;
+  } catch {
+    throw new Error('Invalid base64 image data provided');
+  }
+};
+
+// Ensure that the base64 image data has the correct format
+const ensureDataImageFormat = (base64Data: string): string => {
+  return base64Data.startsWith('data:image/') ? base64Data : `data:image/png;base64,${base64Data}`;
+};
+
+// Calculate the image layout based on the image data and the slide layout
+const calculateImageLayoutFromData = (
+  base64Data: string,
+  slideLayout: Config['layout']
+): Promise<ImageDimensions> => {
+  return new Promise((resolve, reject) => {
+    const imageElement = new Image();
+
+    imageElement.onload = () => {
+      try {
+        const layout = calculateOptimalImageLayout(
+          imageElement.width,
+          imageElement.height,
+          slideLayout
+        );
+        resolve(layout);
+      } catch (error) {
+        reject(new Error('Failed to calculate image layout'));
+      }
+    };
+
+    imageElement.onerror = () => {
+      reject(new Error('Failed to load image from provided data'));
+    };
+
+    imageElement.src = ensureDataImageFormat(base64Data);
+  });
+};
+
+// Create the image configuration object for the slide
+const createSlideImageConfig = (base64Data: string, layout: ImageDimensions) => ({
+  data: ensureDataImageFormat(base64Data),
+  x: layout.x,
+  y: layout.y,
+  w: layout.width,
+  h: layout.height,
+  sizing: {
+    type: 'contain' as const,
+    w: layout.width,
+    h: layout.height,
+  },
+});
+
 export class ImageManager {
-  private readonly config: Config;
-
   constructor(
-    private readonly pres: pptxgen,
-    config: Config
-  ) {
-    this.config = config;
-  }
+    private readonly presentation: pptxgen,
+    private readonly config: Config
+  ) {}
 
-  private calculateImageDimensions(img: HTMLImageElement): ImageDimensions {
-    logger.debug('Calculating image dimensions', {
-      originalSize: { width: img.width, height: img.height },
-    });
-
-    const imgRatio = img.width / img.height;
-    const slideRatio = this.config.layout.width / this.config.layout.height;
-    const availableWidth = this.config.layout.width * this.config.layout.imageScale;
-    const availableHeight = this.config.layout.height * this.config.layout.imageScale;
-
-    let width: number;
-    let height: number;
-
-    if (imgRatio > slideRatio) {
-      width = availableWidth;
-      height = width / imgRatio;
-    } else {
-      height = availableHeight;
-      width = height * imgRatio;
-    }
-
-    const x = (this.config.layout.width - width) / 2;
-    const y = (this.config.layout.height - height) / 2;
-
-    const dimensions = { width, height, x, y };
-
-    logger.debug('Image dimensions calculated', {
-      scaledSize: { width, height },
-      position: { x, y },
-    });
-
-    return dimensions;
-  }
-
-  private async getImageDimensions(base64ImageData: string): Promise<ImageDimensions> {
-    logger.debug('Starting image dimension calculation');
-
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-
-      img.onload = () => {
-        try {
-          const dimensions = this.calculateImageDimensions(img);
-          logger.debug('Image dimensions retrieved successfully');
-          resolve(dimensions);
-        } catch (error) {
-          logger.error('Failed to calculate image dimensions:', error);
-          reject(new Error('Image dimension calculation failed'));
-        }
-      };
-
-      img.onerror = () => {
-        const error = new Error('Failed to load image');
-        logger.error('Image loading failed');
-        reject(error);
-      };
-
-      const imageSource = base64ImageData.startsWith('data:image/')
-        ? base64ImageData
-        : `data:image/png;base64,${base64ImageData}`;
-
-      img.src = imageSource;
-    });
-  }
-
-  private validateImageData(imageData: string): boolean {
-    try {
-      if (!imageData) {
-        throw new Error('Image data is empty or undefined');
-      }
-
-      if (imageData.startsWith('data:image/')) {
-        return true;
-      }
-
-      atob(imageData);
-      return true;
-    } catch (error) {
-      throw new Error('Invalid base64 image data provided');
-      return false;
-    }
-  }
-
-  public async createCaptureSlide(imageData: string): Promise<void> {
-    logger.debug('Creating screenshot slide');
+  public async createCaptureSlide(base64Data: string): Promise<void> {
+    logger.debug('Creating capture slide');
 
     try {
-      if (!this.validateImageData(imageData)) {
+      if (!isValidBase64Image(base64Data)) {
         throw new Error('Image validation failed: Invalid format');
       }
 
-      const slide = this.pres.addSlide();
-      const imageDims = await this.getImageDimensions(imageData);
-      logger.debug('Image dimensions calculated', { dimensions: imageDims });
+      const imageLayout = await calculateImageLayoutFromData(base64Data, this.config.layout);
+      logger.debug('Image layout calculated', { layout: imageLayout });
 
-      const processedImageData = imageData.startsWith('data:image/')
-        ? imageData
-        : `data:image/png;base64,${imageData}`;
+      const slide = this.presentation.addSlide();
+      const imageConfig = createSlideImageConfig(base64Data, imageLayout);
 
-      slide.addImage({
-        data: processedImageData,
-        x: imageDims.x,
-        y: imageDims.y,
-        w: imageDims.width,
-        h: imageDims.height,
-        sizing: {
-          type: 'contain',
-          w: imageDims.width,
-          h: imageDims.height,
-        },
-      });
+      slide.addImage(imageConfig);
 
-      logger.debug('Capture slide created', { dimensions: imageDims });
+      logger.debug('Capture slide created', { layout: imageLayout });
     } catch (error) {
-      logger.error('Failed to create screenshot slide:', error);
-      throw new Error('Failed to create screenshot slide');
+      logger.error('Failed to create capture slide:', error);
+      throw new Error('Failed to create capture slide');
     }
   }
 }

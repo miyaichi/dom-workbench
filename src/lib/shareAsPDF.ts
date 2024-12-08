@@ -27,11 +27,10 @@ export const shareAsPDF = async ({
     await docManager.initialize();
     const pdfDoc = docManager.getPDFDocument();
 
-    const imageManager = new ImageManager(config);
+    const imageManager = new ImageManager(pdfDoc, config);
     const layoutManager = new LayoutManager(pdfDoc, docManager.getFonts(), config);
 
-    const { image, dimensions } = await imageManager.processImage(pdfDoc, imageData);
-    imageManager.createCapturePage(pdfDoc, image, dimensions);
+    await imageManager.createCapturePage(imageData);
 
     const now = new Date();
     await layoutManager.layoutContent([

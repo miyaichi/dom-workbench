@@ -1,130 +1,116 @@
-import { PDFDocument, PDFImage, PDFPage } from 'pdf-lib';
+import { PDFDocument, PDFImage } from 'pdf-lib';
 import { Logger } from '../logger';
 import { Config, ImageDimensions } from './types';
 
 const logger = new Logger('pdfImageManager');
 
-export class ImageManager {
-  private readonly MIN_IMAGE_SIZE = 10;
+const MIN_IMAGE_DIMENSION_PIXELS = 10;
 
-  constructor(private readonly config: Config) {}
+// Convert Base64 data to a Uint8Array
+const convertBase64ToBytes = (base64Data: string): Uint8Array => {
+  return Uint8Array.from(atob(base64Data), (char) => char.charCodeAt(0));
+};
 
-  /**
-   * Process image data and create embedded image
-   */
-  async processImage(
-    pdfDoc: PDFDocument,
-    imageData: string
-  ): Promise<{
-    image: PDFImage;
-    dimensions: ImageDimensions;
-  }> {
-    try {
-      logger.debug('Processing image data for PDF');
+// Calculate the optimal image layout based on the page layout and the image aspect ratio
+const calculateOptimalImageLayout = (
+  pdfImage: PDFImage,
+  pageConfig: Config['page']
+): ImageDimensions => {
+  const originalDimensions = pdfImage.scale(1);
+  const contentWidth = pageConfig.width - pageConfig.margin * 2;
+  const contentHeight = pageConfig.height - pageConfig.margin * 2;
 
-      const base64Data = imageData.split(',')[1];
-      if (!base64Data) {
-        throw new Error('Invalid image data format');
-      }
+  const widthScaleFactor = contentWidth / originalDimensions.width;
+  const heightScaleFactor = contentHeight / originalDimensions.height;
+  const optimalScale = Math.min(widthScaleFactor, heightScaleFactor) * pageConfig.imageScale;
 
-      const imageBytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
-      const image = await pdfDoc.embedPng(imageBytes);
-      logger.debug('Image embedded in PDF successfully');
+  const finalWidth = originalDimensions.width * optimalScale;
+  const finalHeight = originalDimensions.height * optimalScale;
 
-      const dimensions = this.calculateDimensions(image);
-      if (!this.validateDimensions(dimensions)) {
-        throw new Error('Image dimensions are invalid');
-      }
+  return {
+    width: finalWidth,
+    height: finalHeight,
+    x: (pageConfig.width - finalWidth) / 2,
+    y: (pageConfig.height - finalHeight) / 2,
+  };
+};
 
-      return { image, dimensions };
-    } catch (error) {
-      logger.error('Failed to process image:', error);
-      throw error instanceof Error ? error : new Error('Image processing failed');
-    }
+// Validate the image layout to ensure it fits within the page bounds
+const isValidImageLayout = (
+  layout: ImageDimensions,
+  pageWidth: number,
+  pageHeight: number,
+  minSize: number
+): boolean => {
+  const hasSufficientSize =
+    layout.width >= minSize &&
+    layout.height >= minSize &&
+    layout.width <= pageWidth &&
+    layout.height <= pageHeight;
+
+  const isWithinPageBounds =
+    layout.x >= 0 &&
+    layout.y >= 0 &&
+    layout.x + layout.width <= pageWidth &&
+    layout.y + layout.height <= pageHeight;
+
+  return hasSufficientSize && isWithinPageBounds;
+};
+
+// Validate the base64 image data format
+const isValidBase64Image = (base64Data: string): boolean => {
+  if (!base64Data) {
+    throw new Error('Image data is empty or undefined');
   }
 
-  /**
-   * Create a new PDF page with the embedded image
-   */
-  createCapturePage(pdfDoc: PDFDocument, image: PDFImage, dimensions: ImageDimensions): PDFPage {
-    try {
-      logger.debug('Creating capture page');
+  const encodedData = base64Data.split(',')[1];
+  return !!encodedData;
+};
 
-      if (!this.validateDimensions(dimensions)) {
-        throw new Error('Invalid dimensions for page creation');
+export class ImageManager {
+  constructor(
+    private readonly pdfDocument: PDFDocument,
+    private readonly config: Config
+  ) {}
+
+  public async createCapturePage(base64Data: string): Promise<void> {
+    logger.debug('Creating capture page');
+
+    try {
+      if (!isValidBase64Image(base64Data)) {
+        throw new Error('Image validation failed: Invalid format');
       }
 
-      const page = pdfDoc.addPage([this.config.page.width, this.config.page.height]);
+      const encodedData = base64Data.split(',')[1];
+      const imageBytes = convertBase64ToBytes(encodedData);
+      const embeddedImage = await this.pdfDocument.embedPng(imageBytes);
 
-      page.drawImage(image, {
-        x: dimensions.x,
-        y: dimensions.y,
-        width: dimensions.width,
-        height: dimensions.height,
+      const imageLayout = calculateOptimalImageLayout(embeddedImage, this.config.page);
+
+      if (
+        !isValidImageLayout(
+          imageLayout,
+          this.config.page.width,
+          this.config.page.height,
+          MIN_IMAGE_DIMENSION_PIXELS
+        )
+      ) {
+        throw new Error('Invalid layout dimensions for page creation');
+      }
+
+      const newPage = this.pdfDocument.addPage([this.config.page.width, this.config.page.height]);
+
+      newPage.drawImage(embeddedImage, {
+        x: imageLayout.x,
+        y: imageLayout.y,
+        width: imageLayout.width,
+        height: imageLayout.height,
       });
 
-      logger.debug('Capture page created successfully');
-      return page;
+      logger.debug('Capture page created', { layout: imageLayout });
     } catch (error) {
       logger.error('Failed to create capture page:', error);
       throw error instanceof Error ? error : new Error('Page creation failed');
     }
-  }
-
-  /**
-   * Calculate image dimensions based on page constraints
-   */
-  private calculateDimensions(image: PDFImage): ImageDimensions {
-    try {
-      logger.debug('Calculating image dimensions');
-
-      const imageDims = image.scale(1);
-      const availableWidth = this.config.page.width - this.config.page.margin * 2;
-      const availableHeight = this.config.page.height - this.config.page.margin * 2;
-
-      const widthScale = availableWidth / imageDims.width;
-      const heightScale = availableHeight / imageDims.height;
-      const scale = Math.min(widthScale, heightScale) * this.config.page.imageScale;
-
-      const scaledWidth = imageDims.width * scale;
-      const scaledHeight = imageDims.height * scale;
-
-      const dimensions: ImageDimensions = {
-        width: scaledWidth,
-        height: scaledHeight,
-        x: (this.config.page.width - scaledWidth) / 2,
-        y: (this.config.page.height - scaledHeight) / 2,
-      };
-
-      logger.debug('Image dimensions calculated', {
-        originalSize: { width: imageDims.width, height: imageDims.height },
-        scaledSize: { width: dimensions.width, height: dimensions.height },
-        position: { x: dimensions.x, y: dimensions.y },
-      });
-
-      return dimensions;
-    } catch (error) {
-      logger.error('Failed to calculate dimensions:', error);
-      throw error instanceof Error ? error : new Error('Dimension calculation failed');
-    }
-  }
-
-  /**
-   * Validate image dimensions are within acceptable bounds
-   */
-  private validateDimensions(dimensions: ImageDimensions): boolean {
-    const isValidSize =
-      dimensions.width >= this.MIN_IMAGE_SIZE &&
-      dimensions.height >= this.MIN_IMAGE_SIZE &&
-      dimensions.width <= this.config.page.width &&
-      dimensions.height <= this.config.page.height;
-
-    const isValidPosition =
-      dimensions.x >= 0 &&
-      dimensions.y >= 0 &&
-      dimensions.x + dimensions.width <= this.config.page.width &&
-      dimensions.y + dimensions.height <= this.config.page.height;
-
-    return isValidSize && isValidPosition;
   }
 }
