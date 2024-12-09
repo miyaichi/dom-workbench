@@ -17,10 +17,8 @@ export interface MessagePayloads {
     imageDataUrl?: string;
     url: string | null;
   };
-  CONTENT_STATE_UPDATE: { isSelectionMode: boolean; selectedElementInfo: ElementInfo | null };
   ELEMENT_SELECTED: { elementInfo: ElementInfo };
   ELEMENT_UNSELECTED: { elementInfo: ElementInfo };
-  GET_CONTENT_STATE: undefined;
   INJECT_TAG: { tag: string; tagId: string };
   REMOVE_TAG: { tagId: string };
   SELECT_ELEMENT: { path: number[] };

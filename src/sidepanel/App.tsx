@@ -13,6 +13,11 @@ import { TagInjector } from './components/TagInjector';
 import { ToastNotification } from './components/common/ToastNotification';
 import { Tooltip } from './components/common/Tooltip';
 
+interface BFCacheRestore {
+  timestamp: number;
+  tabId: number;
+}
+
 interface Toast {
   id: string;
   message: string;
@@ -101,47 +106,26 @@ export default function App() {
 
     initializeTab();
 
-    // Monitor active tab change
-    const handleTabChange = async (activeInfo: chrome.tabs.TabActiveInfo) => {
-      const tab = await chrome.tabs.get(activeInfo.tabId);
-      if (!tab.url) return;
-
-      setTabId(activeInfo.tabId);
-    };
-    chrome.tabs.onActivated.addListener(handleTabChange);
-
-    // Monitor tab URL change
-    const handleTabUpdated = async (
-      tabId: number,
-      changeInfo: chrome.tabs.TabChangeInfo,
-      tab: chrome.tabs.Tab
-    ) => {
-      if (changeInfo.status === 'complete') {
-        const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (activeTab.id === tabId) {
-          setTabId(tabId);
-        }
+    // Monitor storage changes
+    chrome.storage.local.onChanged.addListener((changes) => {
+      // Handle BFCache restore
+      if (changes.bfCacheRestore?.newValue as BFCacheRestore) {
+        logger.info('Content script restored from BFCache');
+        setState(resetState());
       }
-    };
-    chrome.tabs.onUpdated.addListener(handleTabUpdated);
 
-    // Monitor window focus change
-    const handleWindowFocus = async (windowId: number) => {
-      if (windowId === chrome.windows.WINDOW_ID_NONE) return;
-
-      const [tab] = await chrome.tabs.query({ active: true, windowId });
-      if (!tab?.url) return;
-
-      setTabId(tab.id!);
-    };
-    chrome.windows.onFocusChanged.addListener(handleWindowFocus);
-
-    return () => {
-      chrome.tabs.onActivated.removeListener(handleTabChange);
-      chrome.tabs.onUpdated.removeListener(handleTabUpdated);
-      chrome.windows.onFocusChanged.removeListener(handleWindowFocus);
-      connectionManager?.disconnect();
-    };
+      // Handle tab changess
+      const { oldValue, newValue } = changes.activeTabInfo || {};
+      if (
+        newValue?.tabId !== oldValue?.tabId ||
+        newValue?.url !== oldValue?.url ||
+        newValue?.isScriptInjectionAllowed !== oldValue?.isScriptInjectionAllowed
+      ) {
+        logger.debug('Tab activation change detected from storage:', { oldValue, newValue });
+        setTabId(newValue?.tabId ?? null);
+        setState(resetState());
+      }
+    });
   }, []);
 
   useEffect(() => {
@@ -152,21 +136,11 @@ export default function App() {
     // Reset state when tab changes
     setState(resetState());
 
-    if (newContentScriptContext === 'undefined') {
-      return;
-    }
-
-    if (tabSwitchAction === 'reset') {
+    if (newContentScriptContext !== 'undefined') {
       // Reset contentScript state
       connectionManager?.sendMessage(newContentScriptContext, {
         type: 'TOGGLE_SELECTION_MODE',
         payload: { enabled: false } as MessagePayloads['TOGGLE_SELECTION_MODE'],
-      });
-    } else {
-      // Request contentScript state
-      connectionManager?.sendMessage(newContentScriptContext, {
-        type: 'GET_CONTENT_STATE',
-        payload: undefined as MessagePayloads['GET_CONTENT_STATE'],
       });
     }
   }, [tabId, connectionManager]);
@@ -194,15 +168,6 @@ export default function App() {
             },
           }));
         }
-        break;
-      case 'CONTENT_STATE_UPDATE':
-        const contentStateUpdatePayload =
-          message.payload as MessagePayloads['CONTENT_STATE_UPDATE'];
-        setState((prev) => ({
-          ...prev,
-          isSelectionMode: contentStateUpdatePayload.isSelectionMode,
-          selectedElement: contentStateUpdatePayload.selectedElementInfo,
-        }));
         break;
       case 'ELEMENT_SELECTED':
         const elementSelectedPayload = message.payload as MessagePayloads['ELEMENT_SELECTED'];

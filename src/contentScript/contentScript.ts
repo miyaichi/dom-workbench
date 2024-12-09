@@ -32,11 +32,28 @@ class ContentScript {
   private async initialize() {
     try {
       // Listen for PING and SIDEPANEL_CLOSED messages
-      chrome.runtime.onMessage.addListener((message) => {
-        if (message.type === 'PING') return true;
+      chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+        if (message.type === 'PING') {
+          sendResponse({ status: 'alive' });
+          return false;
+        }
         if (message.type === 'SIDEPANEL_CLOSED') {
+          this.logger.info('Sidepanel closed, performing cleanup');
           this.performCleanup();
-          return true;
+          sendResponse({ status: 'cleaned' });
+          return false;
+        }
+      });
+
+      // Listen for page show events
+      window.addEventListener('pageshow', async (event) => {
+        const e = event as PageTransitionEvent;
+        if (e.persisted) {
+          this.logger.info('Page restored from BFCache');
+
+          // Reset connection and cleanup
+          this.connectionManager = null;
+          this.performCleanup();
         }
       });
 
@@ -58,17 +75,6 @@ class ContentScript {
         // Setup connection if allowed and connection doesn't exist or tabId has changed
         if (newTabId && isAllowed && (!this.connectionManager || newTabId !== oldValue?.tabId)) {
           this.setupConnection(newTabId);
-        }
-      });
-
-      // Listen for page show events
-      document.addEventListener('pageshow', async (event) => {
-        console.log('pageshow');
-        const e = event as PageTransitionEvent;
-        if (e.persisted) {
-          this.logger.info('Page restored from BFCache');
-          // Perform cleanup
-          this.performCleanup();
         }
       });
     } catch (error) {
@@ -95,9 +101,6 @@ class ContentScript {
     this.logger.debug('Message received', { type: message.type });
 
     switch (message.type) {
-      case 'GET_CONTENT_STATE':
-        this.handleGetCurrentState();
-        break;
       case 'INJECT_TAG':
         const injectTagPayload = message.payload as MessagePayloads['INJECT_TAG'];
         this.handleTagInjection(injectTagPayload.tag, injectTagPayload.tagId);
@@ -126,10 +129,8 @@ class ContentScript {
     }
   };
 
-  // Cleanup on sidepanel close
+  // Cleanup existing state
   private performCleanup() {
-    this.logger.info('Sidepanel closed, performing cleanup');
-
     this.state.isSelectionMode = false;
     this.clearSelection();
     this.removeInjectedTags();
@@ -236,18 +237,6 @@ class ContentScript {
     if (!target || target === document.body || target === document.documentElement) return;
 
     this.elementSelection(target);
-  }
-
-  // Send current state to sidepanel
-  private async handleGetCurrentState() {
-    this.logger.info('Sending current state', this.state);
-    this.connectionManager?.sendMessage('sidepanel', {
-      type: 'CONTENT_STATE_UPDATE',
-      payload: {
-        isSelectionMode: this.state.isSelectionMode,
-        selectedElementInfo: this.state.selectedElementInfo,
-      } as MessagePayloads['CONTENT_STATE_UPDATE'],
-    });
   }
 
   // Inject and remove tags
@@ -416,6 +405,7 @@ class ContentScript {
 
     this.state.isSelectionMode = enabled;
     if (!enabled) {
+      this.logger.debug('Selection mode disabled');
       this.clearSelection();
     }
 
