@@ -3,13 +3,6 @@ import { Logger } from '../lib/logger';
 import { BaseMessage, ExtensionMessage, TabInfo } from '../types/messages';
 import { Context } from '../types/types';
 
-interface BFCacheRestore {
-  timestamp: number;
-  windowId: number;
-  tabId: number;
-  url: string;
-}
-
 class BackgroundService {
   private connectionManager: ConnectionManager;
   private logger: Logger;
@@ -158,16 +151,6 @@ class BackgroundService {
         await chrome.scripting.executeScript({
           target: { tabId: tab.id },
           files: ['contentScript.js'],
-        });
-
-        // After injection, notify via storage for BFCache cases
-        await chrome.storage.local.set({
-          bfCacheRestore: {
-            timestamp: Date.now(),
-            windowId: tab.windowId,
-            tabId: tab.id,
-            url: tab.url,
-          } as BFCacheRestore,
         });
       }
     }

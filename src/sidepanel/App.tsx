@@ -3,7 +3,7 @@ import { nanoid } from 'nanoid';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ConnectionManager } from '../lib/connectionManager';
 import { Logger } from '../lib/logger';
-import { BaseMessage, MessagePayloads } from '../types/messages';
+import { BaseMessage, MessagePayloads, TabInfo } from '../types/messages';
 import { Context, ElementInfo } from '../types/types';
 import { DOMSelector } from './components/DOMSelector';
 import { SettingsPanel } from './components/SettingsPanel';
@@ -12,13 +12,6 @@ import { StyleEditor } from './components/StyleEditor';
 import { TagInjector } from './components/TagInjector';
 import { ToastNotification } from './components/common/ToastNotification';
 import { Tooltip } from './components/common/Tooltip';
-
-interface BFCacheRestore {
-  timestamp: number;
-  windowId: number;
-  tabId: number;
-  url: string;
-}
 
 interface Toast {
   id: string;
@@ -106,23 +99,13 @@ export default function App() {
 
     // Monitor storage changes
     chrome.storage.local.onChanged.addListener((changes) => {
-      // Handle BFCache restore
-      if (changes.bfCacheRestore?.newValue as BFCacheRestore) {
-        logger.info('Content script restored from BFCache');
-        setState(resetState());
-      }
+      const { activeTabInfo } = changes;
+      const newTab = activeTabInfo?.newValue as TabInfo | undefined;
+      if (!newTab) return;
 
-      // Handle tab changess
-      const { oldValue, newValue } = changes.activeTabInfo || {};
-      if (
-        newValue?.tabId !== oldValue?.tabId ||
-        newValue?.url !== oldValue?.url ||
-        newValue?.isScriptInjectionAllowed !== oldValue?.isScriptInjectionAllowed
-      ) {
-        logger.debug('Tab activation change detected from storage:', { oldValue, newValue });
-        setTabId(newValue?.tabId ?? null);
-        setState(resetState());
-      }
+      logger.debug('Tab info change detected from storage:', newTab);
+      setTabId(newTab.tabId);
+      setState(resetState());
     });
   }, []);
 
