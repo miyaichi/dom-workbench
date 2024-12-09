@@ -152,6 +152,10 @@ export default function App() {
     // Reset state when tab changes
     setState(resetState());
 
+    if (newContentScriptContext === 'undefined') {
+      return;
+    }
+
     if (tabSwitchAction === 'reset') {
       // Reset contentScript state
       connectionManager?.sendMessage(newContentScriptContext, {
@@ -213,14 +217,6 @@ export default function App() {
           selectedElement: null,
         }));
         break;
-      case 'SELECTION_MODE_TOGGLED':
-        const selectionModeToggledPayload =
-          message.payload as MessagePayloads['SELECTION_MODE_TOGGLED'];
-        setState((prev) => ({
-          ...prev,
-          isSelectionMode: selectionModeToggledPayload.enabled,
-        }));
-        break;
       case 'SHOW_TOAST':
         const showToastPayload = message.payload as MessagePayloads['SHOW_TOAST'];
         setState((prev) => ({
@@ -271,6 +267,11 @@ export default function App() {
         type: 'TOGGLE_SELECTION_MODE',
         payload: { enabled: enabled },
       });
+
+      setState((prev) => ({
+        ...prev,
+        isSelectionMode: enabled,
+      }));
     }, [state.isSelectionMode, tabId, connectionManager, contentScriptContext]),
 
     handleStyleChange: useCallback(

@@ -160,16 +160,6 @@ export class ConnectionManager {
 
   private async reconnectWithBackoff(): Promise<void> {
     try {
-      // If the error is due to BFCache, attempt immediate reconnection
-      const error = chrome.runtime.lastError;
-      const isBFCacheError = error?.message?.includes('back/forward cache');
-      if (isBFCacheError) {
-        this.logger.info('BFCache disconnect detected, attempting immediate reconnection');
-        this.connect();
-        return;
-      }
-
-      // In the case of a connection error, attempt reconnection with backoff
       if (this.reconnectAttempts >= this.maxReconnectAttempts) {
         this.logger.error('Max reconnection attempts reached');
         return;

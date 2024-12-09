@@ -60,6 +60,17 @@ class ContentScript {
           this.setupConnection(newTabId);
         }
       });
+
+      // Listen for page show events
+      document.addEventListener('pageshow', async (event) => {
+        console.log('pageshow');
+        const e = event as PageTransitionEvent;
+        if (e.persisted) {
+          this.logger.info('Page restored from BFCache');
+          // Perform cleanup
+          this.performCleanup();
+        }
+      });
     } catch (error) {
       this.logger.error('Failed to initialize content script:', error);
     }
@@ -401,7 +412,7 @@ class ContentScript {
 
   // Toggles selection mode
   private handleToggleSelectionMode(enabled: boolean) {
-    if (this.state.isSelectionMode === enabled) return;
+    //if (this.state.isSelectionMode === enabled) return;
 
     this.state.isSelectionMode = enabled;
     if (!enabled) {
@@ -410,13 +421,6 @@ class ContentScript {
 
     document.documentElement.classList.toggle(EXTENSION_SELECTION_MODE_CLASS, enabled);
     document.body.classList.toggle(EXTENSION_SELECTION_MODE_CLASS, enabled);
-
-    this.connectionManager?.sendMessage('sidepanel', {
-      type: 'SELECTION_MODE_TOGGLED',
-      payload: {
-        enabled: enabled,
-      } as MessagePayloads['SELECTION_MODE_TOGGLED'],
-    });
 
     this.logger.debug('Selection mode toggled:', this.state.isSelectionMode);
   }

@@ -130,7 +130,10 @@ class BackgroundService {
         }
       });
 
-      port.onDisconnect.addListener(this.handleBFCacheError);
+      port.onDisconnect.addListener(() => {
+        this.ports.delete(port.name);
+        this.logger.debug('Port disconnected:', port.name);
+      });
     });
   }
 
@@ -171,27 +174,6 @@ class BackgroundService {
       this.contentScriptContext = `content-${tab.id}`;
     }
   }
-
-  private handleBFCacheError = async (port: chrome.runtime.Port) => {
-    const error = chrome.runtime.lastError;
-    if (error?.message?.includes('back/forward cache')) {
-      this.logger.info('Port disconnected due to BFCache:', port.name);
-
-      // Cleanup the port
-      this.ports.delete(port.name);
-
-      if (port.name.startsWith('content-')) {
-        const tabId = parseInt(port.name.split('-')[1]);
-        if (tabId) {
-          const tab = await chrome.tabs.get(tabId);
-          if (tab.url) {
-            this.logger.info('Reinjecting content script for tab:', tab.url);
-            await this.injectContentScriptIfNeeded(tabId, tab.url);
-          }
-        }
-      }
-    }
-  };
 
   private async setupSidepanel(): Promise<void> {
     try {
