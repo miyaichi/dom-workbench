@@ -40,13 +40,6 @@ class BackgroundService {
   private async setupConnection() {
     try {
       this.connectionManager.connect();
-
-      setInterval(() => {
-        if (this.connectionManager.getStatus() !== 'connected') {
-          this.logger.debug('Reconnecting background service...');
-          this.connectionManager.connect();
-        }
-      }, 5000);
     } catch (error: any) {
       this.logger.error('Failed to setup connection:', error);
     }
