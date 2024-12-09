@@ -86,10 +86,6 @@ class BackgroundService {
       this.logger.debug('Port connected:', port.name);
       this.ports.set(port.name, port);
 
-      if (port.name === 'sidepanel') {
-        port.onDisconnect.addListener(this.handleSidePanelDisconnection);
-      }
-
       port.onMessage.addListener((message: ExtensionMessage) => {
         this.logger.debug('Message received:', message);
 
@@ -107,7 +103,7 @@ class BackgroundService {
         }
       });
 
-      port.onDisconnect.addListener(this.handleDisconnection);
+      port.onDisconnect.addListener(this.handlePortDisconnection);
     });
   }
 
@@ -133,28 +129,6 @@ class BackgroundService {
 
     // Cleanup port
     this.ports.delete(port.name);
-  };
-
-  private handleSidePanelDisconnection = async () => {
-    this.logger.debug('Side panel disconnected');
-    try {
-      if (this.activeTabInfo?.tabId && this.activeTabInfo.isScriptInjectionAllowed) {
-        await chrome.tabs.sendMessage(this.activeTabInfo.tabId, { type: 'SIDEPANEL_CLOSED' });
-      }
-    } catch (error) {
-      this.logger.info('Failed to notify content script:', error);
-    }
-  };
-
-  private handleDisconnection = async (port: chrome.runtime.Port) => {
-    const error = chrome.runtime.lastError;
-    if (error?.message?.includes('back/forward cache')) {
-      // Only notify if the disconnection is due to BFCache
-      this.logger.info('Port disconnected due to BFCache:', port.name);
-    }
-
-    this.ports.delete(port.name);
-    this.logger.debug('Port disconnected:', port.name);
   };
 
   private async handleTabActivation(tab: chrome.tabs.Tab) {
