@@ -3,6 +3,13 @@ import { Logger } from '../lib/logger';
 import { BaseMessage, ExtensionMessage, TabInfo } from '../types/messages';
 import { Context } from '../types/types';
 
+interface BFCacheRestore {
+  timestamp: number;
+  windowId: number;
+  tabId: number;
+  url: string;
+}
+
 class BackgroundService {
   private connectionManager: ConnectionManager;
   private logger: Logger;
@@ -87,8 +94,6 @@ class BackgroundService {
       this.ports.set(port.name, port);
 
       port.onMessage.addListener((message: ExtensionMessage) => {
-        this.logger.debug('Message received:', message);
-
         if (message.target === 'background') {
           // Handle messages targeted to background
           this.handleMessage(port, message);
@@ -136,11 +141,11 @@ class BackgroundService {
 
     const isAllowed = this.isScriptInjectionAllowed(tab.url);
     this.activeTabInfo = {
-      tabId: tab.id,
       windowId: tab.windowId,
+      tabId: tab.id,
       url: tab.url,
       isScriptInjectionAllowed: isAllowed,
-    };
+    } as TabInfo;
 
     // Store the active tab info
     await chrome.storage.local.set({ activeTabInfo: this.activeTabInfo });
@@ -166,8 +171,10 @@ class BackgroundService {
         await chrome.storage.local.set({
           bfCacheRestore: {
             timestamp: Date.now(),
+            windowId: tab.windowId,
             tabId: tab.id,
-          },
+            url: tab.url,
+          } as BFCacheRestore,
         });
       }
     }

@@ -15,7 +15,9 @@ import { Tooltip } from './components/common/Tooltip';
 
 interface BFCacheRestore {
   timestamp: number;
+  windowId: number;
   tabId: number;
+  url: string;
 }
 
 interface Toast {
@@ -63,10 +65,6 @@ const initialState: AppState = {
 };
 
 const resetState = (): AppState => ({ ...initialState });
-
-type TabSwitchAction = 'save' | 'reset';
-
-const tabSwitchAction: TabSwitchAction = 'reset';
 
 const logger = new Logger('sidepanel');
 
