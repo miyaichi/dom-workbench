@@ -1,8 +1,8 @@
 import { ChevronUp, Clipboard, ClipboardCheck } from 'lucide-react';
 import React, { useState } from 'react';
-import { Logger } from '../lib/logger';
-import { ElementInfo } from '../types/domSelection';
-import { elementInfoToHTML } from '../utils/elementInfoToHTML';
+import { Logger } from '../../lib/logger';
+import { ElementInfo } from '../../types/types';
+import { elementInfoToHTML } from '../../utils/elementInfoToHTML';
 import { Card } from './common/Card';
 import { DOMTreeView } from './common/DOMTreeView';
 import { Tooltip } from './common/Tooltip';
@@ -14,7 +14,7 @@ interface DOMSelectorProps {
   onSelectElement: (path: number[]) => void;
 }
 
-// Utility functions は変更なし
+// Utility functions
 const hasParentElement = (element: ElementInfo): boolean => {
   return element.path.length > 0;
 };
@@ -28,14 +28,14 @@ export const DOMSelector: React.FC<DOMSelectorProps> = ({ selectedElement, onSel
   const [isCopied, setIsCopied] = useState(false);
 
   const handleElementInfoSelect = (elementInfo: ElementInfo): void => {
-    logger.log('Element selected:', elementInfo);
+    logger.info('Element selected:', elementInfo);
     onSelectElement(elementInfo.path);
   };
 
   const handleParentSelect = (): void => {
     if (!selectedElement?.path.length) return;
 
-    logger.log('Parent element selected');
+    logger.info('Parent element selected');
     const parentPath = getParentPath(selectedElement.path);
     onSelectElement(parentPath);
   };
@@ -53,7 +53,7 @@ export const DOMSelector: React.FC<DOMSelectorProps> = ({ selectedElement, onSel
         setIsCopied(false);
       }, 2000);
 
-      logger.log('HTML copied to clipboard');
+      logger.info('HTML copied to clipboard');
     } catch (error) {
       logger.error('Failed to copy HTML:', error);
     }
@@ -83,7 +83,7 @@ export const DOMSelector: React.FC<DOMSelectorProps> = ({ selectedElement, onSel
             <Tooltip
               content={
                 isCopied
-                  ? chrome.i18n.getMessage('coppiedToClipboard')
+                  ? chrome.i18n.getMessage('copiedToClipboard')
                   : chrome.i18n.getMessage('copyToClipboard')
               }
             >

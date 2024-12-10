@@ -6,7 +6,7 @@
     "message": "Collapse"
   },
   "tooltipCapture": {
-    "message": "Capture a screenshot of the current tab"
+    "message": "Capture the current tab"
   },
   "tooltipSettings": {
     "message": "Settings"
@@ -47,8 +47,11 @@
   "copyToClipboard": {
     "message": "Copy to clipboard"
   },
-  "coppiedToClipboard": {
+  "copiedToClipboard": {
     "message": "Copied!"
+  },
+  "toastCaptureFailed": {
+    "message": "This page cannot be captured"
   },
   "toastStyleUpdated": {
     "message": "Style updated successfully"

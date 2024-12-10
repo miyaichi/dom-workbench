@@ -1,10 +1,15 @@
-import { ElementInfo } from './domSelection';
+import { Context, ElementInfo } from './types';
 
-export type StaticContext = 'background' | 'sidepanel' | 'undefined';
-export type ContentContext = `content-${string}`;
-export type Context = StaticContext | ContentContext;
+// Tab information type
+export interface TabInfo {
+  tabId: number;
+  windowId: number;
+  url: string;
+  isScriptInjectionAllowed: boolean;
+}
 
-export interface Messages {
+// Message payloads type
+export interface MessagePayloads {
   CAPTURE_TAB: void;
   CAPTURE_TAB_RESULT: {
     success: boolean;
@@ -12,27 +17,35 @@ export interface Messages {
     imageDataUrl?: string;
     url: string | null;
   };
-  CONTENT_STATE_UPDATE: { isSelectionMode: boolean; selectedElementInfo: ElementInfo | null };
-  DEBUG: void;
   ELEMENT_SELECTED: { elementInfo: ElementInfo };
   ELEMENT_UNSELECTED: { elementInfo: ElementInfo };
-  GET_CONTENT_STATE: void;
   INJECT_TAG: { tag: string; tagId: string };
   REMOVE_TAG: { tagId: string };
   SELECT_ELEMENT: { path: number[] };
   SHOW_TOAST: { message: string; type?: 'success' | 'error'; duration?: number };
-  TAB_ACTIVATED: { tabId: number };
   TOGGLE_SELECTION_MODE: { enabled: boolean };
   UPDATE_ELEMENT_STYLE: { property: string; value: string };
 }
 
-export type MessageType = keyof Messages;
-
-export interface Message<T = unknown> {
-  id: string;
-  type: MessageType;
-  payload: T;
+// Base message structure
+export interface BaseMessage {
+  type: keyof MessagePayloads;
+  payload: unknown;
   source: Context;
-  target?: Context;
+  target: Context;
   timestamp: number;
 }
+
+// Message handler type
+export type MessageHandler<T extends BaseMessage = BaseMessage> = (message: T) => void;
+
+// Message type
+export type Message<T extends keyof MessagePayloads> = BaseMessage & {
+  type: T;
+  payload: MessagePayloads[T];
+};
+
+// Union of all message types
+export type ExtensionMessage = {
+  [K in keyof MessagePayloads]: Message<K>;
+}[keyof MessagePayloads];

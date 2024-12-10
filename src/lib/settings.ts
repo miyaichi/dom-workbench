@@ -1,27 +1,28 @@
 import { useEffect, useState } from 'react';
 
-/** Represents the available log levels for the application */
 export type LogLevel = 'error' | 'warn' | 'info' | 'debug';
-
-/** Represents the available formats for sharing content */
 export type ShareFormat = 'pdf' | 'ppt';
+export type PaperSize = 'a4' | '16x9';
+export type PaperOrientation = 'portrait' | 'landscape';
 
-/**
- * Interface representing the application settings
- */
-export interface Settings {
-  /** The log level for the application */
-  logLevel: LogLevel;
-  /** The format for sharing (either 'pdf' or 'ppt') */
-  shareFormat: ShareFormat;
+export interface PaperSettings {
+  size: PaperSize;
+  orientation: PaperOrientation;
 }
 
-/**
- * The default settings for the application
- */
+export interface Settings {
+  logLevel: LogLevel;
+  shareFormat: ShareFormat;
+  paper: PaperSettings;
+}
+
 export const defaultSettings: Settings = {
   logLevel: 'info',
   shareFormat: 'ppt',
+  paper: {
+    size: '16x9',
+    orientation: 'landscape',
+  },
 };
 
 /**

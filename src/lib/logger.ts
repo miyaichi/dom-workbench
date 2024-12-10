@@ -1,4 +1,4 @@
-import { LogLevel } from './settings';
+import { LogLevel, loadSettings } from './settings';
 
 const LOG_LEVEL_PRIORITIES: Record<LogLevel, number> = {
   error: 0,
@@ -18,14 +18,21 @@ export class Logger {
    * Creates an instance of Logger with a specific context
    * @param context - The context for the logger instance
    */
-  constructor(private context: string) {}
+  constructor(private context: string) {
+    // Initialize log level from settings
+    this.initialize();
+  }
 
   /**
-   * Sets the global log level for all Logger instances
-   * @param level - The log level to set
+   * Initializes the log level from settings
    */
-  static setLogLevel(level: LogLevel) {
-    Logger.logLevel = level;
+  private async initialize() {
+    try {
+      const settings = await loadSettings();
+      Logger.logLevel = settings.logLevel;
+    } catch (error) {
+      console.error('Failed to load log level from settings:', error);
+    }
   }
 
   /**
@@ -53,7 +60,7 @@ export class Logger {
    * @param message - The message to log
    * @param args - Additional arguments to log
    */
-  log(message: string, ...args: any[]) {
+  info(message: string, ...args: any[]) {
     if (this.shouldLog('info')) {
       console.log(`[${this.context}] ${message}`, ...args);
     }

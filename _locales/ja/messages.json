@@ -6,7 +6,7 @@
     "message": "折りたたむ"
   },
   "tooltipCapture": {
-    "message": "現在のタブのスクリーンショットを撮影"
+    "message": "現在のタブをキャプチャーする"
   },
   "tooltipSettings": {
     "message": "設定"
@@ -47,8 +47,11 @@
   "copyToClipboard": {
     "message": "クリップボードにコピー"
   },
-  "coppiedToClipboard": {
+  "copiedToClipboard": {
     "message": "コピーしました!"
+  },
+  "toastCaptureFailed": {
+    "message": "このページはキャプチャできません"
   },
   "toastStyleUpdated": {
     "message": "スタイルを更新しました"
