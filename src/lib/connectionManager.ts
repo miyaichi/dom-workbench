@@ -242,6 +242,30 @@ export class ConnectionManager {
       }
     }
   }
+
+  logConnectionStatus(): void {
+    const reconnectionState = {
+      attempts: this.reconnectAttempts,
+      isReconnecting: this.isReconnecting,
+      maxAttempts: this.maxReconnectAttempts,
+      timeSinceLastConnect: Date.now() - this.lastConnectTime
+    };
+
+    this.logger.info('Connection Status', {
+      status: this.status,
+      portName: this.port?.name || 'no port',
+      context: this.context,
+      reconnection: reconnectionState
+    });
+
+    // If reconnecting, log additional details
+    if (this.isReconnecting) {
+      this.logger.debug('Reconnection Details', {
+        remainingAttempts: this.maxReconnectAttempts - this.reconnectAttempts,
+        reconnectAttempts: this.reconnectAttempts,
+      });
+    }
+  }
 }
 
 export const createConnectionManager = (context: Context): ConnectionManager => {
