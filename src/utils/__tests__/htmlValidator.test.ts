@@ -6,18 +6,18 @@ import { isValidHtmlString } from '../htmlValidator';
 describe('isValidHtmlString', () => {
   describe('valid HTML strings', () => {
     const validCases = [
-      // 基本的なタグ
+      // Basic tags
       '<div>test1</div>',
       '<div>test1</div><div>test2</div>',
       '<div><p>nested content</p></div>',
 
-      // 属性を持つタグ
+      // Tag with attributes
       '<div class="test-class">content</div>',
       '<div id="test" class="class1 class2">content</div>',
       '<div data-test="value">content</div>',
       '<div onclick="alert(\'Hello\')">button</div>',
 
-      // 自己閉じタグの様々な形式
+      // Self-closing tags in various formats
       '<br>',
       '<br/>',
       '<br />',
@@ -31,7 +31,7 @@ describe('isValidHtmlString', () => {
       '<input type="text" value="test">',
       '<input type="text" value="test"/>',
 
-      // script タグ
+      // Script tags
       '<script>alert("Hello");</script>',
       '<script> a=0; alert(a);</script>',
       '<script type="text/javascript">console.log("test");</script>',
@@ -44,7 +44,7 @@ describe('isValidHtmlString', () => {
 
   describe('invalid HTML strings', () => {
     const invalidCases = [
-      // 不正な構文
+      // Invalid syntax
       '',
       '   ',
       'just some text',
@@ -52,26 +52,25 @@ describe('isValidHtmlString', () => {
       '<div>',
       '</div>',
       '< div>test</div>',
-      //'<div >test</div >',
       '<div><span></div></span>',
 
-      // 不正な属性
+      // Invalid attributes
       '<div class=>test</div>',
       '<div class="test>content</div>',
       '<div class=test>content</div>',
       '<div class=>content</div>',
 
-      // 不正なタグ名
+      // Invalid tag names
       '<divv>test</divv>',
       '<unknown>test</unknown>',
       '<INVALID>test</INVALID>',
       '<div1>test</div1>',
 
-      // 不正なスクリプトタグ
+      // Invalid script tags
       '<script>alert("Hello");</skript>',
       '<script>alert("Hello")</script',
 
-      // 不正な自己閉じタグ
+      // Invalid self-closing tags
       '<br / >',
       '<br/ >',
       '<br/ />',
@@ -112,7 +111,7 @@ describe('isValidHtmlString', () => {
       '<ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-123456789" data-ad-slot="987654321" data-ad-format="auto"></ins>',
       '<script>(adsbygoogle = window.adsbygoogle || []).push({});</script>',
 
-      // 複合ケース
+      // Multiple ad tags
       `
       <ins class="adsbygoogle"
            style="display:block"
@@ -126,7 +125,7 @@ describe('isValidHtmlString', () => {
       </script>
       `,
 
-      // AMP 広告
+      // AMP ad tag
       '<amp-ad width="100vw" height="320" type="adsense" data-ad-client="ca-pub-123456789" data-ad-slot="987654321"></amp-ad>',
     ];
 
@@ -134,11 +133,11 @@ describe('isValidHtmlString', () => {
       expect(isValidHtmlString(html)).toBe(true);
     });
 
-    // 無効なケース
+    // Invalid ad tags
     const invalidAdCases = [
       '<ins data-ad-client>invalid</ins>',
       '<ins class="adsbygoogle" data-ad-client></ins>',
-      '<script>(adsbygoogle = window.adsbygoogle || []).push({);</script>', // 構文エラー
+      '<script>(adsbygoogle = window.adsbygoogle || []).push({);</script>',
     ];
 
     test.each(invalidAdCases)('should invalidate malformed ad tag: %s', (html) => {
