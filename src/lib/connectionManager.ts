@@ -248,14 +248,14 @@ export class ConnectionManager {
       attempts: this.reconnectAttempts,
       isReconnecting: this.isReconnecting,
       maxAttempts: this.maxReconnectAttempts,
-      timeSinceLastConnect: Date.now() - this.lastConnectTime
+      timeSinceLastConnect: Date.now() - this.lastConnectTime,
     };
 
     this.logger.info('Connection Status', {
       status: this.status,
       portName: this.port?.name || 'no port',
       context: this.context,
-      reconnection: reconnectionState
+      reconnection: reconnectionState,
     });
 
     // If reconnecting, log additional details

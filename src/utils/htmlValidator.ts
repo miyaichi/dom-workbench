@@ -89,7 +89,14 @@ export const isValidHtmlString = (htmlString: string): boolean => {
     const normalizeHtml = (html: string): string => {
       // Boolean attribute normalization
       const normalizeBooleanAttrs = (str: string): string => {
-        const booleanAttrs = ['required', 'checked', 'disabled', 'readonly', 'multiple', 'selected'];
+        const booleanAttrs = [
+          'required',
+          'checked',
+          'disabled',
+          'readonly',
+          'multiple',
+          'selected',
+        ];
         booleanAttrs.forEach((attr) => {
           const regex = new RegExp(`${attr}=""`, 'g');
           str = str.replace(regex, attr);
