@@ -68,7 +68,7 @@ const formatStyleChanges = (changes: StyleChange[]): string => {
   return changes
     .map((change) => {
       const date = new Date(change.timestamp).toLocaleString();
-      return `[${date}] ${change.property}: ${change.oldValue} → ${change.newValue}`;
+      return `[${date}] ${String(change.property)}: ${change.oldValue} → ${change.newValue}`;
     })
     .join('\n');
 };

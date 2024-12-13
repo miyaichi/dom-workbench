@@ -4,7 +4,7 @@ import React, { useCallback, useState } from 'react';
 import { Logger } from '../../lib/logger';
 import { ElementInfo } from '../../types/types';
 import { formatElementTag } from '../../utils/htmlTagFormatter';
-import { validateHtmlTag } from '../../utils/htmlValidator';
+import { isValidHtmlString } from '../../utils/htmlValidator';
 import { Card } from './common/Card';
 import { Tooltip } from './common/Tooltip';
 
@@ -34,7 +34,6 @@ export const TagInjector: React.FC<TagInjectorProps> = ({
   onInjectTag,
   onRemoveTag,
   injectedTags,
-  validateOptions = { checkDangerousElements: false },
 }: TagInjectorProps) => {
   const [injectedTag, setInjectedTag] = useState('');
   const [isInjecting, setIsInjecting] = useState(false);
@@ -54,7 +53,7 @@ export const TagInjector: React.FC<TagInjectorProps> = ({
     }
 
     try {
-      const isValid = validateHtmlTag(newValue, validateOptions);
+      const isValid = isValidHtmlString(newValue);
       setValidationError(
         isValid ? undefined : chrome.i18n.getMessage('tagInjectorValidationError')
       );
