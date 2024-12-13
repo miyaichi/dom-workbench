@@ -1,155 +1,187 @@
-/**
- * Interface defining HTML validation options
- */
-interface ValidateHtmlTagOptions {
-  /** Whether to check for dangerous elements (onclick attributes, javascript: URLs, etc.) */
-  checkDangerousElements?: boolean;
-}
-
-/** Default validation options */
-const DEFAULT_OPTIONS: ValidateHtmlTagOptions = {
-  checkDangerousElements: false,
-};
-
-/**
- * Checks if a script tag has valid syntax
- *
- * @param htmlString - The HTML string to validate
- * @returns true if the script tag syntax is valid
- *
- * @example
- * ```ts
- * isValidScriptTag('<script src="example.js"></script>'); // true
- * isValidScriptTag('<script>'); // false
- * ```
- */
-const isValidScriptTag = (htmlString: string): boolean => {
-  const scriptPattern = /^<script(?:\s+[^>]*)?>\s*<\/script>$/i;
-  return scriptPattern.test(htmlString);
-};
-
-/**
- * Performs basic HTML syntax validation
- *
- * @param htmlString - The HTML string to validate
- * @returns true if the HTML syntax is valid
- *
- * @remarks
- * Checks the following:
- * - Matching opening and closing tags
- * - Invalid '<' characters
- * - Uses specialized validation for script tags
- */
-const basicValidation = (htmlString: string): boolean => {
-  if (htmlString.trim().toLowerCase().startsWith('<script')) {
-    return isValidScriptTag(htmlString);
-  }
-
-  const openTags: string[] = htmlString.match(/<[^/][^>]*>/g) || [];
-  const closeTags: string[] = htmlString.match(/<\/[^>]+>/g) || [];
-  const selfClosingTags: string[] = htmlString.match(/<[^>]+\/>/g) || [];
-  const normalOpenTags = openTags.filter((tag) => !selfClosingTags.includes(tag));
-
-  if (normalOpenTags.length !== closeTags.length) {
-    return false;
-  }
-
-  const invalidLtCount = (htmlString.match(/</g) || []).length;
-  const validTagCount = openTags.length + closeTags.length + selfClosingTags.length;
-
-  return invalidLtCount <= validTagCount;
-};
-
-/**
- * Checks if HTML string contains dangerous elements
- *
- * @param htmlString - The HTML string to check
- * @returns true if dangerous elements are found
- *
- * @remarks
- * The following are considered dangerous:
- * - onclick attributes
- * - href attributes starting with javascript:
- */
-const containsDangerousElements = (htmlString: string): boolean => {
-  const hasOnClickAttr = /onclick\s*=\s*["'].*?["']/i.test(htmlString);
-  const hasJavaScriptHref = /href\s*=\s*["']javascript:.*?["']/i.test(htmlString);
-
-  return hasOnClickAttr || hasJavaScriptHref;
-};
-
-/**
- * Validates an HTML string
- *
- * @param htmlString - The HTML string to validate
- * @param options - Validation options
- * @returns true if the HTML string is valid
- *
- * @example
- * ```ts
- * // Basic usage
- * validateHtmlTag('<div>Hello</div>'); // true
- *
- * // With dangerous elements check
- * validateHtmlTag('<div onclick="alert()">Click</div>', { checkDangerousElements: true }); // false
- *
- * // Script tag validation
- * validateHtmlTag('<script src="example.js"></script>'); // true
- * ```
- *
- * @remarks
- * Validates the following:
- * 1. Basic HTML syntax
- * 2. Presence of dangerous elements (optional)
- * 3. DOMParser parsing result
- * 4. Single root element
- * 5. Input/output match
- */
-export const validateHtmlTag = (
-  htmlString: string,
-  options: ValidateHtmlTagOptions = DEFAULT_OPTIONS
-): boolean => {
-  const mergedOptions = { ...DEFAULT_OPTIONS, ...options };
-  const trimmedHtml = htmlString.trim();
-
-  if (!trimmedHtml) return false;
-
-  // Special handling for script tags
-  if (trimmedHtml.toLowerCase().startsWith('<script')) {
-    const isValid = isValidScriptTag(trimmedHtml);
-    return isValid && !mergedOptions.checkDangerousElements;
-  }
-
-  if (!basicValidation(trimmedHtml)) {
-    return false;
-  }
-
-  if (mergedOptions.checkDangerousElements && containsDangerousElements(trimmedHtml)) {
-    return false;
-  }
-
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(trimmedHtml, 'text/html');
-
-  if (doc.querySelector('parsererror')) {
-    return false;
-  }
-
-  // Additional checks for non-script tags
-  if (!trimmedHtml.toLowerCase().startsWith('<script')) {
-    const bodyContent = doc.body.children;
-    if (bodyContent.length !== 1) {
+export const isValidHtmlString = (htmlString: string): boolean => {
+  try {
+    // Basic check of the input value
+    if (!htmlString || typeof htmlString !== 'string') {
       return false;
     }
 
-    const normalize = (str: string) => str.trim().toLowerCase().replace(/\s+/g, ' ');
-    const normalizedInput = normalize(trimmedHtml);
-    const normalizedOutput = normalize(doc.body.innerHTML);
+    const trimmed = htmlString.trim();
+    if (!trimmed) return false;
 
-    if (normalizedInput !== normalizedOutput) {
+    // Plain text check
+    if (!trimmed.startsWith('<') && !trimmed.endsWith('>')) {
       return false;
     }
-  }
 
-  return true;
+    // Comment only
+    if (trimmed.startsWith('<!--') && trimmed.endsWith('-->')) {
+      return true;
+    }
+
+    // Remove comments
+    const withoutComments = trimmed.replace(/<!--[\s\S]*?-->/g, '').trim();
+    if (!withoutComments) return true;
+
+    // Additional allowed tags (ad-related)
+    const adRelatedTags = ['ins', 'amp-ad', 'amp-embed'];
+
+    // Helper function to validate tag names
+    const isValidTagName = (tagName: string): boolean => {
+      try {
+        // Ad-related tags are allowed, but other tags must be valid HTML elements
+        if (adRelatedTags.includes(tagName.toLowerCase() as any)) {
+          return true;
+        }
+        return (
+          document.createElement(tagName.toLowerCase()).toString() !== '[object HTMLUnknownElement]'
+        );
+      } catch {
+        return false;
+      }
+    };
+
+    // Extract and validate tag names
+    const tagPattern = /<\/?([a-zA-Z][a-zA-Z0-9-]*)/g;
+    let match;
+    while ((match = tagPattern.exec(withoutComments)) !== null) {
+      if (!isValidTagName(match[1])) {
+        return false;
+      }
+    }
+
+    // Analyze with DOMParser
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(withoutComments, 'text/html');
+
+    // Check for parser errors
+    const parserErrors = doc.getElementsByTagName('parsererror');
+    if (parserErrors.length > 0) {
+      return false;
+    }
+
+    // Normalize the script content
+    const normalizeScript = (content: string): string => {
+      return content
+        .trim()
+        .replace(/\s+/g, ' ')
+        .replace(/;\s+/g, ';')
+        .replace(/\s*=\s*/g, '=')
+        .replace(/\s*\(\s*/g, '(')
+        .replace(/\s*\)\s*/g, ')')
+        .replace(/\s*{\s*/g, '{')
+        .replace(/\s*}\s*/g, '}')
+        .replace(/\s*\|\|\s*/g, '||')
+        .toLowerCase();
+    };
+
+    // Extract script content from the HTML string
+    const extractScripts = (html: string): string[] => {
+      const scripts: string[] = [];
+      const scriptRegex = /<script[^>]*>([\s\S]*?)<\/script>/gi;
+      let scriptMatch;
+      while ((scriptMatch = scriptRegex.exec(html)) !== null) {
+        scripts.push(normalizeScript(scriptMatch[1]));
+      }
+      return scripts;
+    };
+
+    // Normalize the HTML string
+    const normalizeHtml = (html: string): string => {
+      // Boolean attribute normalization
+      const normalizeBooleanAttrs = (str: string): string => {
+        const booleanAttrs = ['required', 'checked', 'disabled', 'readonly', 'multiple', 'selected'];
+        booleanAttrs.forEach((attr) => {
+          const regex = new RegExp(`${attr}=""`, 'g');
+          str = str.replace(regex, attr);
+        });
+        return str;
+      };
+
+      return normalizeBooleanAttrs(
+        html
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, ' ')
+          .replace(/\s*\/>/g, '>')
+          .replace(/\s*>/g, '>')
+          .replace(/\s*</g, '<')
+          .replace(/\s*=/g, '=')
+          .replace(/=\s*/g, '=')
+          .replace(/"\s*/g, '"')
+          .replace(/\s*"/g, '"')
+          .replace(/>\s*</g, '><')
+          .replace(/data-[a-z0-9-]+/g, (match) => match.toLowerCase())
+      );
+    };
+
+    // Script tags require special handling
+    if (withoutComments.includes('<script')) {
+      const scriptElements = doc.getElementsByTagName('script');
+      if (scriptElements.length === 0) return false;
+
+      // Extract and normalize the script content
+      const inputScripts = extractScripts(withoutComments);
+      const outputScripts = Array.from(scriptElements).map((script) =>
+        normalizeScript(script.textContent || '')
+      );
+
+      // If the number of scripts does not match, it is invalid
+      if (inputScripts.length !== outputScripts.length) {
+        return false;
+      }
+
+      // Check each script
+      for (let i = 0; i < inputScripts.length; i++) {
+        const inputScript = inputScripts[i];
+        const outputScript = outputScripts[i];
+
+        // Check if the script contains Google Ads tags
+        if (inputScript.includes('adsbygoogle') || outputScript.includes('adsbygoogle')) {
+          try {
+            // Basic syntax check
+            new Function(inputScript);
+            if (/[<>]/.test(inputScript) || /[<>]/.test(outputScript)) {
+              return false;
+            }
+            // Check for the presence of major keywords
+            if (!inputScript.includes('push') || !outputScript.includes('push')) {
+              return false;
+            }
+          } catch {
+            // If there is a syntax error, it is invalid
+            return false;
+          }
+          continue;
+        }
+
+        // Normalize the script content and compare
+        const normalizedInput = inputScript.replace(/\s+/g, '');
+        const normalizedOutput = outputScript.replace(/\s+/g, '');
+        if (normalizedInput !== normalizedOutput) {
+          return false;
+        }
+      }
+
+      // Validate the non-script part
+      const withoutScripts = withoutComments.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
+      const bodyWithoutScripts = doc.body.innerHTML.replace(
+        /<script\b[^>]*>[\s\S]*?<\/script>/gi,
+        ''
+      );
+
+      const normalizedInput = normalizeHtml(withoutScripts);
+      const normalizedOutput = normalizeHtml(bodyWithoutScripts);
+
+      return normalizedInput === normalizedOutput;
+    }
+
+    // Basic HTML validation
+    const bodyContent = doc.body.innerHTML;
+    const normalizedInput = normalizeHtml(withoutComments);
+    const normalizedOutput = normalizeHtml(bodyContent);
+
+    return normalizedInput === normalizedOutput;
+  } catch (error) {
+    return false;
+  }
 };
