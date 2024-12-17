@@ -243,12 +243,11 @@ class BackgroundService {
     port: chrome.runtime.Port,
     params: { script: string } | { url: string }
   ): Promise<void> {
-    if (('script' in params && 'url' in params) || (!('script' in params) && !('url' in params)))
-      return;
-
     const tabId = this.activeTabInfo?.tabId;
     if (!tabId) return;
 
+    if (('script' in params && 'url' in params) || (!('script' in params) && !('url' in params)))
+      return;
     try {
       const script =
         'script' in params ? params.script : await this.fetchExternalScript(params.url);
