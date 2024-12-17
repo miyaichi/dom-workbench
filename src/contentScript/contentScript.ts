@@ -30,16 +30,6 @@ class ContentScript {
 
     this.injectStyles();
     this.setupEventListeners();
-
-    // Check connection status every 5 seconds, perform cleanup if disconnected
-    const intervalId = setInterval(() => {
-      const connectionStatus = this.connectionManager?.getStatus() || 'disconnected';
-      if (connectionStatus !== 'connected') {
-        this.logger.info('Connection lost, performing cleanup');
-        this.performCleanup();
-        clearInterval(intervalId);
-      }
-    }, 5000);
   }
 
   private async initialize() {
@@ -105,6 +95,16 @@ class ContentScript {
       this.connectionManager = new ConnectionManager(`content-${tabId}`, this.handleMessage);
       this.connectionManager.connect();
       this.logger.info('Connection established. tabId:', tabId);
+
+      // Monitor connection status, perform cleanup on disconnect
+      const intervalId = setInterval(() => {
+        const connectionStatus = this.connectionManager?.getStatus() || 'disconnected';
+        if (connectionStatus !== 'connected') {
+          this.logger.info('Connection lost, performing cleanup');
+          this.performCleanup();
+          clearInterval(intervalId);
+        }
+      }, 5000);
     } catch (error) {
       this.logger.error('Failed to setup connection:', error);
     }
