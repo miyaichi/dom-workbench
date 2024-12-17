@@ -19,6 +19,8 @@ export interface MessagePayloads {
   };
   ELEMENT_SELECTED: { elementInfo: ElementInfo };
   ELEMENT_UNSELECTED: { elementInfo: ElementInfo };
+  EXECUTE_SCRIPT: { script: string };
+  EXECUTE_SCRIPT_RESULT: { success: boolean; result?: any; error?: string };
   INJECT_TAG: { tag: string; tagId: string };
   REMOVE_TAG: { tagId: string };
   SELECT_ELEMENT: { path: number[] };

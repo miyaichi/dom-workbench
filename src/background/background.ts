@@ -1,6 +1,6 @@
 import { ConnectionManager } from '../lib/connectionManager';
 import { Logger } from '../lib/logger';
-import { BaseMessage, ExtensionMessage, TabInfo } from '../types/messages';
+import { BaseMessage, ExtensionMessage, MessagePayloads, TabInfo } from '../types/messages';
 import { Context } from '../types/types';
 
 class BackgroundService {
@@ -198,6 +198,9 @@ class BackgroundService {
       case 'CAPTURE_TAB':
         this.handleCaptureTab(port);
         break;
+      case 'EXECUTE_SCRIPT':
+        const executeScriptPayload = message.payload as MessagePayloads['EXECUTE_SCRIPT'];
+        this.handleExecuteScript(port, executeScriptPayload.script);
     }
   };
 
@@ -229,6 +232,47 @@ class BackgroundService {
           error: error instanceof Error ? error.message : 'Unknown error',
           imageDataUrl: undefined,
           url: null,
+        },
+      });
+    }
+  }
+
+  // Execute the provided script in the active tab
+  private async handleExecuteScript(port: chrome.runtime.Port, script: string): Promise<void> {
+    this.logger.info('Received EXECUTE_SCRIPT message');
+    const tabId = this.activeTabInfo?.tabId;
+    if (!tabId) return;
+
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        world: 'MAIN', // Use the main world for script execution
+        args: [script],
+        func: (scriptContent: string) => {
+          try {
+            const result = new Function(scriptContent)();
+            return { success: true, result };
+          } catch (error) {
+            return {
+              success: false,
+              error: error instanceof Error ? error.message : 'Script execution failed',
+            };
+          }
+        },
+      });
+
+      this.logger.info('Script executed successfully');
+      this.sendMessage(this.contentScriptContext, port, {
+        type: 'EXECUTE_SCRIPT_RESULT',
+        payload: { success: true },
+      });
+    } catch (error) {
+      this.logger.error('Failed to execute script:', error);
+      this.sendMessage(this.contentScriptContext, port, {
+        type: 'EXECUTE_SCRIPT_RESULT',
+        payload: {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
         },
       });
     }
