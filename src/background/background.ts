@@ -200,7 +200,8 @@ class BackgroundService {
         break;
       case 'EXECUTE_SCRIPT':
         const executeScriptPayload = message.payload as MessagePayloads['EXECUTE_SCRIPT'];
-        this.handleExecuteScript(port, executeScriptPayload.script);
+        this.handleExecuteScript(port, executeScriptPayload);
+        break;
     }
   };
 
@@ -238,12 +239,23 @@ class BackgroundService {
   }
 
   // Execute the provided script in the active tab
-  private async handleExecuteScript(port: chrome.runtime.Port, script: string): Promise<void> {
-    this.logger.info('Received EXECUTE_SCRIPT message');
+  private async handleExecuteScript(
+    port: chrome.runtime.Port,
+    params: { script: string } | { url: string }
+  ): Promise<void> {
+    if (('script' in params && 'url' in params) || (!('script' in params) && !('url' in params)))
+      return;
+
     const tabId = this.activeTabInfo?.tabId;
     if (!tabId) return;
 
     try {
+      const script =
+        'script' in params ? params.script : await this.fetchExternalScript(params.url);
+      if (!script) {
+        throw new Error('Script content is empty');
+      }
+
       await chrome.scripting.executeScript({
         target: { tabId },
         world: 'MAIN', // Use the main world for script execution
@@ -276,6 +288,15 @@ class BackgroundService {
         },
       });
     }
+  }
+
+  private async fetchExternalScript(url: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      fetch(url)
+        .then((response) => response.text())
+        .then(resolve)
+        .catch(reject);
+    });
   }
 }
 

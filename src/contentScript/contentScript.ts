@@ -294,48 +294,30 @@ class ContentScript {
   }
 
   private async tagInjection(tag: string, tagId: string, targetElement: HTMLElement) {
-    const fragment = this.parseHtml(tag);
+    const fragment = this.htmlToFragment(tag);
 
-    for (const child of Array.from(fragment.children)) {
-      child.setAttribute(EXTENSION_TAG_ID_ATTRIBUTE, tagId);
-      if (child.tagName.toLowerCase() === 'script') {
-        if ((child as HTMLScriptElement).src) {
-          await this.processScriptWithSrc(child, targetElement);
+    for (const node of Array.from(fragment.childNodes)) {
+      if (node instanceof HTMLElement) {
+        if (node instanceof HTMLScriptElement) {
+          const params = node.src ? { url: node.src } : { script: node.textContent || '' };
+          await this.processScript(params);
         } else {
-          await this.processInlineScript(child);
+          const element = node.cloneNode(true) as HTMLElement;
+          element.setAttribute(EXTENSION_TAG_ID_ATTRIBUTE, tagId);
+          targetElement.appendChild(element);
         }
-      } else {
-        const newElement = document.createElement(child.tagName);
-        Array.from(child.attributes).forEach((attr) => {
-          newElement.setAttribute(attr.name, attr.value);
-        });
-
-        newElement.innerHTML = child.innerHTML;
-        targetElement.appendChild(newElement);
       }
     }
   }
 
-  private parseHtml(html: string): DocumentFragment {
-    const fragment = document.createDocumentFragment();
+  private htmlToFragment(html: string): DocumentFragment {
     const template = document.createElement('template');
     template.innerHTML = html;
-    fragment.appendChild(template.content);
-    return fragment;
+    return template.content;
   }
 
-  private async processScriptWithSrc(scriptTag: Element, targetElement: HTMLElement) {
-    this.logger.info('processScriptWithSrc');
-
-    const script = document.createElement('script');
-    script.src = `${(scriptTag as HTMLScriptElement).src}?_cb=${Date.now()}`;
-    script.async = true;
-    script.onload = () => this.logger.info(`Script loaded: ${script.src}`);
-    targetElement.appendChild(script);
-  }
-
-  private async processInlineScript(scriptTag: Element): Promise<void> {
-    this.logger.info('processInlineScript');
+  private async processScript(parames: { script: string } | { url: string }) {
+    this.logger.info('processScript');
 
     try {
       const executeScriptPromise = new Promise<boolean>((resolve, reject) => {
@@ -343,9 +325,7 @@ class ContentScript {
 
         this.connectionManager?.sendMessage('background', {
           type: 'EXECUTE_SCRIPT',
-          payload: {
-            script: (scriptTag as HTMLElement).textContent,
-          } as MessagePayloads['EXECUTE_SCRIPT'],
+          payload: parames,
         });
 
         setTimeout(() => {
@@ -358,7 +338,7 @@ class ContentScript {
 
       await executeScriptPromise;
     } catch (error) {
-      this.logger.error('Inline script execution failed:', error);
+      this.logger.error('Script execution failed:', error);
       throw error;
     }
   }
