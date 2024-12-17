@@ -30,6 +30,16 @@ class ContentScript {
 
     this.injectStyles();
     this.setupEventListeners();
+
+    // Check connection status every 5 seconds, perform cleanup if disconnected
+    const intervalId = setInterval(() => {
+      const connectionStatus = this.connectionManager?.getStatus() || 'disconnected';
+      if (connectionStatus !== 'connected') {
+        this.logger.info('Connection lost, performing cleanup');
+        this.performCleanup();
+        clearInterval(intervalId);
+      }
+    }, 5000);
   }
 
   private async initialize() {
