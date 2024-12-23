@@ -1,6 +1,6 @@
 import { ConnectionManager } from '../lib/connectionManager';
 import { Logger } from '../lib/logger';
-import { BaseMessage, ExtensionMessage, TabInfo } from '../types/messages';
+import { BaseMessage, ExtensionMessage, MessagePayloads, TabInfo } from '../types/messages';
 import { Context } from '../types/types';
 
 class BackgroundService {
@@ -198,6 +198,10 @@ class BackgroundService {
       case 'CAPTURE_TAB':
         this.handleCaptureTab(port);
         break;
+      case 'EXECUTE_SCRIPT':
+        const executeScriptPayload = message.payload as MessagePayloads['EXECUTE_SCRIPT'];
+        this.handleExecuteScript(port, executeScriptPayload);
+        break;
     }
   };
 
@@ -232,6 +236,66 @@ class BackgroundService {
         },
       });
     }
+  }
+
+  // Execute the provided script in the active tab
+  private async handleExecuteScript(
+    port: chrome.runtime.Port,
+    params: { script: string } | { url: string }
+  ): Promise<void> {
+    const tabId = this.activeTabInfo?.tabId;
+    if (!tabId) return;
+
+    if (('script' in params && 'url' in params) || (!('script' in params) && !('url' in params)))
+      return;
+    try {
+      const script =
+        'script' in params ? params.script : await this.fetchExternalScript(params.url);
+      if (!script) {
+        throw new Error('Script content is empty');
+      }
+
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        world: 'MAIN', // Use the main world for script execution
+        args: [script],
+        func: (scriptContent: string) => {
+          try {
+            const result = new Function(scriptContent)();
+            return { success: true, result };
+          } catch (error) {
+            return {
+              success: false,
+              error: error instanceof Error ? error.message : 'Script execution failed',
+            };
+          }
+        },
+      });
+
+      this.logger.info('Script executed successfully');
+      this.sendMessage(this.contentScriptContext, port, {
+        type: 'EXECUTE_SCRIPT_RESULT',
+        payload: { success: true },
+      });
+    } catch (error) {
+      this.logger.error('Failed to execute script:', error);
+      this.sendMessage(this.contentScriptContext, port, {
+        type: 'EXECUTE_SCRIPT_RESULT',
+        payload: {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+      });
+    }
+  }
+
+  private async fetchExternalScript(url: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      fetch(url)
+        .then((response) => response.text())
+        .then(resolve)
+        .catch(reject);
+    });
   }
 }
 

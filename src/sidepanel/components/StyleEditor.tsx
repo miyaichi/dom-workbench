@@ -79,13 +79,13 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
   };
 
   const handleStyleFocus = (property: keyof CSSStyleDeclaration) => {
-    setFocusValue(currentStyles[property] || '');
+    setFocusValue(currentStyles[property as string] || '');
   };
 
   const handleStyleBlur = (property: keyof CSSStyleDeclaration) => {
     if (focusValue === null) return;
 
-    const newValue = currentStyles[property] || '';
+    const newValue = currentStyles[property as string] || '';
     if (newValue === focusValue) return;
 
     onStyleChange?.(property as string, newValue, focusValue);
@@ -105,7 +105,7 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
 
     if (isValidCSSProperty(trimmedProperty)) {
       const property = trimmedProperty as keyof CSSStyleDeclaration;
-      const oldValue = currentStyles[property] || '';
+      const oldValue = currentStyles[property as string] || '';
       setCurrentStyles((prev) => ({
         ...prev,
         [property]: trimmedValue,
@@ -177,7 +177,7 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
                   {new Date(entry.timestamp).toLocaleTimeString()}
                 </div>
                 <div className="style-history-content">
-                  <span className="style-history-property">{entry.property}</span>
+                  <span className="style-history-property">{String(entry.property)}</span>
                   <span className="style-history-old">{entry.oldValue}</span>
                   <span className="style-history-arrow">→</span>
                   <span className="style-history-new">{entry.newValue}</span>

@@ -3,7 +3,6 @@ import { Logger } from '../lib/logger';
 import { MessageHandler, MessagePayloads } from '../types/messages';
 import { ElementInfo } from '../types/types';
 import { createElementInfo, getElementByPath } from '../utils/domSelection';
-import { htmlToDoc } from '../utils/htmlToDoc';
 
 // Classes and attributes used by the extension
 const EXTENSION_HIGHLIGHT_CLASS = 'extension-highlight';
@@ -20,6 +19,10 @@ class ContentScript {
     selectedElementInfo: null as ElementInfo | null,
     hoveredElement: null as HTMLElement | null,
   };
+  private executeScriptPromise: {
+    resolve: (success: boolean) => void;
+    reject: (error: string) => void;
+  } | null = null;
 
   constructor() {
     this.logger = new Logger('content-script');
@@ -92,6 +95,16 @@ class ContentScript {
       this.connectionManager = new ConnectionManager(`content-${tabId}`, this.handleMessage);
       this.connectionManager.connect();
       this.logger.info('Connection established. tabId:', tabId);
+
+      // Monitor connection status, perform cleanup on disconnect
+      const intervalId = setInterval(() => {
+        const connectionStatus = this.connectionManager?.getStatus() || 'disconnected';
+        if (connectionStatus !== 'connected') {
+          this.logger.info('Connection lost, performing cleanup');
+          this.performCleanup();
+          clearInterval(intervalId);
+        }
+      }, 5000);
     } catch (error) {
       this.logger.error('Failed to setup connection:', error);
     }
@@ -101,6 +114,14 @@ class ContentScript {
     this.logger.debug('Message received', { type: message.type });
 
     switch (message.type) {
+      case 'EXECUTE_SCRIPT_RESULT':
+        const executeScriptResultPayload =
+          message.payload as MessagePayloads['EXECUTE_SCRIPT_RESULT'];
+        this.handleExecutionScriptResult(
+          executeScriptResultPayload.success,
+          executeScriptResultPayload.error
+        );
+        break;
       case 'INJECT_TAG':
         const injectTagPayload = message.payload as MessagePayloads['INJECT_TAG'];
         this.handleTagInjection(injectTagPayload.tag, injectTagPayload.tagId);
@@ -239,6 +260,17 @@ class ContentScript {
     this.elementSelection(target);
   }
 
+  // Toast notifications
+  private toastNotification(message: string, type: 'success' | 'error' = 'success') {
+    this.connectionManager?.sendMessage('sidepanel', {
+      type: 'SHOW_TOAST',
+      payload: {
+        message,
+        type,
+      } as MessagePayloads['SHOW_TOAST'],
+    });
+  }
+
   // Inject and remove tags
   private async handleTagInjection(tag: string, tagId: string) {
     if (!this.state.selectedElementInfo) {
@@ -251,95 +283,89 @@ class ContentScript {
         throw new Error('Target element not found');
       }
 
-      const domElement = await htmlToDoc(tag, {
-        async: true,
-        preserveOrder: true,
-        onScriptsLoaded: () => {
-          this.logger.debug(`Scripts loaded for tag ${tagId}`);
-          this.connectionManager?.sendMessage('sidepanel', {
-            type: 'SHOW_TOAST',
-            payload: {
-              message: chrome.i18n.getMessage('toastTagLoaded'),
-              type: 'success',
-            } as MessagePayloads['SHOW_TOAST'],
-          });
-        },
-      });
-
-      // Set tag ID to the root element of the injected tag
-      if (domElement instanceof DocumentFragment) {
-        Array.from(domElement.children).forEach((child) => {
-          child.setAttribute(EXTENSION_TAG_ID_ATTRIBUTE, tagId);
-        });
-      } else if (domElement instanceof Element) {
-        domElement.setAttribute(EXTENSION_TAG_ID_ATTRIBUTE, tagId);
-      }
-
-      targetElement.appendChild(domElement);
-
-      this.logger.info('Tag injected successfully:', {
-        tagId,
-        targetPath: this.state.selectedElementInfo.path,
-      });
-
-      this.connectionManager?.sendMessage('sidepanel', {
-        type: 'SHOW_TOAST',
-        payload: {
-          message: chrome.i18n.getMessage('toastTagInjected'),
-          type: 'success',
-        } as MessagePayloads['SHOW_TOAST'],
-      });
+      this.tagInjection(tag, tagId, targetElement);
+      this.toastNotification(chrome.i18n.getMessage('toastTagInjected'), 'success');
     } catch (error) {
       this.logger.error('Tag injection failed:', error);
-      this.connectionManager?.sendMessage('sidepanel', {
-        type: 'SHOW_TOAST',
-        payload: {
-          message: chrome.i18n.getMessage('toastTagInjected'),
-          type: 'error',
-        } as MessagePayloads['SHOW_TOAST'],
-      });
+      this.toastNotification(chrome.i18n.getMessage('toastTagInjectionFailed'), 'error');
     }
   }
 
   private handleTagRemoval(tagId: string) {
     try {
-      const injectedElements = document.querySelectorAll(
-        `[${EXTENSION_TAG_ID_ATTRIBUTE}="${tagId}"]`
-      );
-
-      if (injectedElements.length === 0) {
-        throw new Error(`No elements found with tag ID: ${tagId}`);
-      }
-
-      injectedElements.forEach((element) => {
+      document.querySelectorAll(`[${EXTENSION_TAG_ID_ATTRIBUTE}="${tagId}"]`).forEach((element) => {
         element.remove();
       });
 
-      this.logger.info('Tag removed successfully:', { tagId });
-
-      this.connectionManager?.sendMessage('sidepanel', {
-        type: 'SHOW_TOAST',
-        payload: {
-          message: chrome.i18n.getMessage('toastTagRemoved'),
-          type: 'success',
-        } as MessagePayloads['SHOW_TOAST'],
-      });
+      this.toastNotification(chrome.i18n.getMessage('toastTagRemoved'), 'success');
     } catch (error) {
-      this.logger.error('Tag removal failed:', error);
-      this.connectionManager?.sendMessage('sidepanel', {
-        type: 'SHOW_TOAST',
-        payload: {
-          message: chrome.i18n.getMessage('toastTagRemoveFailed'),
-          type: 'error',
-        } as MessagePayloads['SHOW_TOAST'],
-      });
+      this.toastNotification(chrome.i18n.getMessage('toastTagRemoveFailed'), 'error');
     }
   }
 
+  private async tagInjection(tag: string, tagId: string, targetElement: HTMLElement) {
+    const fragment = this.htmlToFragment(tag);
+
+    for (const node of Array.from(fragment.childNodes)) {
+      if (node instanceof HTMLElement) {
+        if (node instanceof HTMLScriptElement) {
+          const params = node.src ? { url: node.src } : { script: node.textContent || '' };
+          await this.processScript(params);
+        } else {
+          const element = node.cloneNode(true) as HTMLElement;
+          element.setAttribute(EXTENSION_TAG_ID_ATTRIBUTE, tagId);
+          targetElement.appendChild(element);
+        }
+      }
+    }
+  }
+
+  private htmlToFragment(html: string): DocumentFragment {
+    const template = document.createElement('template');
+    template.innerHTML = html;
+    return template.content;
+  }
+
+  private async processScript(parames: { script: string } | { url: string }) {
+    this.logger.info('processScript');
+
+    try {
+      const executeScriptPromise = new Promise<boolean>((resolve, reject) => {
+        this.executeScriptPromise = { resolve, reject };
+
+        this.connectionManager?.sendMessage('background', {
+          type: 'EXECUTE_SCRIPT',
+          payload: parames,
+        });
+
+        setTimeout(() => {
+          if (this.executeScriptPromise) {
+            reject('Script execution timed out');
+            this.executeScriptPromise = null;
+          }
+        }, 5000);
+      });
+
+      await executeScriptPromise;
+    } catch (error) {
+      this.logger.error('Script execution failed:', error);
+      throw error;
+    }
+  }
+
+  private async handleExecutionScriptResult(success: boolean, error?: string) {
+    if (this.executeScriptPromise) {
+      if (success) {
+        this.executeScriptPromise.resolve(true);
+      } else {
+        this.executeScriptPromise.reject(error || 'Script failed');
+      }
+    }
+    this.executeScriptPromise = null;
+  }
+
   private removeInjectedTags() {
-    const EXTENSION_TAG_ID_ATTRIBUTE = 'data-injected-tag-id';
-    const injectedElements = document.querySelectorAll(`[${EXTENSION_TAG_ID_ATTRIBUTE}]`);
-    injectedElements.forEach((element) => {
+    document.querySelectorAll(`[${EXTENSION_TAG_ID_ATTRIBUTE}]`).forEach((element) => {
       element.remove();
     });
   }
@@ -401,8 +427,6 @@ class ContentScript {
 
   // Toggles selection mode
   private handleToggleSelectionMode(enabled: boolean) {
-    //if (this.state.isSelectionMode === enabled) return;
-
     this.state.isSelectionMode = enabled;
     if (!enabled) {
       this.logger.debug('Selection mode disabled');
@@ -450,22 +474,9 @@ class ContentScript {
         path: this.state.selectedElementInfo.path,
       });
 
-      this.connectionManager?.sendMessage('sidepanel', {
-        type: 'SHOW_TOAST',
-        payload: {
-          message: chrome.i18n.getMessage('toastStyleUpdated'),
-          type: 'success',
-        } as MessagePayloads['SHOW_TOAST'],
-      });
+      this.toastNotification(chrome.i18n.getMessage('toastStyleUpdated'), 'success');
     } catch (error) {
-      this.logger.error('Element style update failed:', error);
-      this.connectionManager?.sendMessage('sidepanel', {
-        type: 'SHOW_TOAST',
-        payload: {
-          message: chrome.i18n.getMessage('toastStyleUpdateFailed'),
-          type: 'error',
-        } as MessagePayloads['SHOW_TOAST'],
-      });
+      this.toastNotification(chrome.i18n.getMessage('toastStyleUpdateFailed'), 'error');
     }
   }
 
