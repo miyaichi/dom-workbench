@@ -196,7 +196,7 @@ class BackgroundService {
     // to keep the flow of messages consistent and avoid port disconnection issues.
     switch (message.type) {
       case 'CAPTURE_TAB':
-        this.handleCaptureTab(port);
+        this.handleCaptureTab(port, message.source);
         break;
       case 'EXECUTE_SCRIPT':
         const executeScriptPayload = message.payload as MessagePayloads['EXECUTE_SCRIPT'];
@@ -206,7 +206,7 @@ class BackgroundService {
   };
 
   // Capture the active tab and send the image data to the sidepanel
-  private async handleCaptureTab(port: chrome.runtime.Port): Promise<void> {
+  private async handleCaptureTab(port: chrome.runtime.Port, source: Context): Promise<void> {
     this.logger.info('Received CAPTURE_TAB message');
     try {
       if (!this.activeTabInfo) {
@@ -220,13 +220,13 @@ class BackgroundService {
       });
 
       this.logger.info('Tab captured successfully');
-      this.sendMessage('sidepanel', port, {
+      this.sendMessage(source, port, {
         type: 'CAPTURE_TAB_RESULT',
         payload: { success: true, imageDataUrl, url: this.activeTabInfo.url ?? null },
       });
     } catch (error) {
       this.logger.info('Failed to capture tab:', error);
-      this.sendMessage('sidepanel', port, {
+      this.sendMessage(source, port, {
         type: 'CAPTURE_TAB_RESULT',
         payload: {
           success: false,
