@@ -130,13 +130,13 @@ export default function App() {
   const handleMessage = (message: BaseMessage) => {
     logger.debug('Message received', { type: message.type });
     switch (message.type) {
-      case 'CAPTURE_TAB_RESULT':
-        const captureTabResultPayload = message.payload as MessagePayloads['CAPTURE_TAB_RESULT'];
-        if (captureTabResultPayload.success) {
+      case 'CAPTURE_TAB_RESULT': {
+        const payload = message.payload as MessagePayloads['CAPTURE_TAB_RESULT'];
+        if (payload.success) {
           setState((prev) => ({
             ...prev,
-            imageDataUrl: captureTabResultPayload.imageDataUrl || null,
-            captureUrl: captureTabResultPayload.url || '',
+            imageDataUrl: payload.imageDataUrl || null,
+            captureUrl: payload.url || '',
           }));
         } else {
           setState((prev) => ({
@@ -150,20 +150,23 @@ export default function App() {
           }));
         }
         break;
-      case 'ELEMENT_SELECTED':
-        const elementSelectedPayload = message.payload as MessagePayloads['ELEMENT_SELECTED'];
+      }
+      case 'ELEMENT_SELECTED': {
+        const payload = message.payload as MessagePayloads['ELEMENT_SELECTED'];
         setState((prev) => ({
           ...prev,
-          selectedElement: elementSelectedPayload.elementInfo,
+          selectedElement: payload.elementInfo,
         }));
         break;
-      case 'ELEMENT_UNSELECTED':
+      }
+      case 'ELEMENT_UNSELECTED': {
         setState((prev) => ({
           ...prev,
           selectedElement: null,
         }));
         break;
-      case 'SHOW_TOAST':
+      }
+      case 'SHOW_TOAST': {
         const showToastPayload = message.payload as MessagePayloads['SHOW_TOAST'];
         setState((prev) => ({
           ...prev,
@@ -174,6 +177,7 @@ export default function App() {
           },
         }));
         break;
+      }
     }
   };
 

@@ -114,39 +114,36 @@ class ContentScript {
     this.logger.debug('Message received', { type: message.type });
 
     switch (message.type) {
-      case 'EXECUTE_SCRIPT_RESULT':
-        const executeScriptResultPayload =
-          message.payload as MessagePayloads['EXECUTE_SCRIPT_RESULT'];
-        this.handleExecutionScriptResult(
-          executeScriptResultPayload.success,
-          executeScriptResultPayload.error
-        );
+      case 'EXECUTE_SCRIPT_RESULT': {
+        const payload = message.payload as MessagePayloads['EXECUTE_SCRIPT_RESULT'];
+        this.handleExecutionScriptResult(payload.success, payload.error);
         break;
-      case 'INJECT_TAG':
-        const injectTagPayload = message.payload as MessagePayloads['INJECT_TAG'];
-        this.handleTagInjection(injectTagPayload.tag, injectTagPayload.tagId);
+      }
+      case 'INJECT_TAG': {
+        const payload = message.payload as MessagePayloads['INJECT_TAG'];
+        this.handleTagInjection(payload.tag, payload.tagId);
         break;
-      case 'REMOVE_TAG':
-        const removeTagPayload = message.payload as MessagePayloads['REMOVE_TAG'];
-        this.handleTagRemoval(removeTagPayload.tagId);
+      }
+      case 'REMOVE_TAG': {
+        const payload = message.payload as MessagePayloads['REMOVE_TAG'];
+        this.handleTagRemoval(payload.tagId);
         break;
-      case 'SELECT_ELEMENT':
-        const selectElementPayload = message.payload as MessagePayloads['SELECT_ELEMENT'];
-        this.handleSelectedElement(selectElementPayload.path);
+      }
+      case 'SELECT_ELEMENT': {
+        const payload = message.payload as MessagePayloads['SELECT_ELEMENT'];
+        this.handleSelectedElement(payload.path);
         break;
-      case 'TOGGLE_SELECTION_MODE':
-        const toggleSelectionModePayload =
-          message.payload as MessagePayloads['TOGGLE_SELECTION_MODE'];
-        this.handleToggleSelectionMode(toggleSelectionModePayload.enabled);
+      }
+      case 'TOGGLE_SELECTION_MODE': {
+        const payload = message.payload as MessagePayloads['TOGGLE_SELECTION_MODE'];
+        this.handleToggleSelectionMode(payload.enabled);
         break;
-      case 'UPDATE_ELEMENT_STYLE':
-        const updateElementStylePayload =
-          message.payload as MessagePayloads['UPDATE_ELEMENT_STYLE'];
-        this.handleUpdateElementStyle(
-          updateElementStylePayload.property,
-          updateElementStylePayload.value
-        );
+      }
+      case 'UPDATE_ELEMENT_STYLE': {
+        const payload = message.payload as MessagePayloads['UPDATE_ELEMENT_STYLE'];
+        this.handleUpdateElementStyle(payload.property, payload.value);
         break;
+      }
     }
   };
 

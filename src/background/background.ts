@@ -195,13 +195,15 @@ class BackgroundService {
     // When replying to a message, use this.sendMessage instead of ConnectionManager.sendMessage
     // to keep the flow of messages consistent and avoid port disconnection issues.
     switch (message.type) {
-      case 'CAPTURE_TAB':
+      case 'CAPTURE_TAB': {
         this.handleCaptureTab(port, message.source);
         break;
-      case 'EXECUTE_SCRIPT':
-        const executeScriptPayload = message.payload as MessagePayloads['EXECUTE_SCRIPT'];
-        this.handleExecuteScript(port, executeScriptPayload);
+      }
+      case 'EXECUTE_SCRIPT': {
+        const payload = message.payload as MessagePayloads['EXECUTE_SCRIPT'];
+        this.handleExecuteScript(port, payload);
         break;
+      }
     }
   };
 
