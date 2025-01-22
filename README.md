@@ -55,7 +55,22 @@ DOM Workbench is a Chrome extension designed to simplify DOM operations on web p
 - **Icons**: Lucide React icons
 - **Tools**: Webpack, PostCSS
 
-## Installation and Setup
+## Installation
+
+1. Download the latest release file (dom-workbench-build.zip
+) from the [Releases](https://github.com/miyaichi/dom-workbench/releases/tag/latest-build) page.
+
+2. Unzip the file to a local directory.
+
+3. Open Chrome and navigate to `chrome://extensions/`.
+
+4. Enable Developer Mode by toggling the switch in the top right corner.
+
+5. Click on the `Load unpacked` button and select the unzipped directory.
+
+6. The extension should now be installed and visible in the Extensions menu.
+
+## Development Setup
 
 1. **Clone the Repository**
    ```bash
